@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Local dev uses SQLite (zero setup). For production, switch this to
+  // "postgresql" and point DATABASE_URL at a hosted Postgres database.
+  // See README.md -> "Going to production".
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String? // only set for CLEANER / ADMIN demo accounts
+  role      String   @default("CUSTOMER") // CUSTOMER | CLEANER | ADMIN
+  createdAt DateTime @default(now())
+
+  cleanerProfile Cleaner?
+  bookings       Booking[] @relation("CustomerBookings")
+  leads          Lead[]
+}
+
+model Cleaner {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  bio             String?
+  rating          Float    @default(4.8)
+  yearsExperience Int      @default(2)
+  vehicle         String?
+  zipsServed      String // comma-separated zip codes, e.g. "32547,32548,32541"
+  available       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  jobs Booking[]
+}
+
+model Booking {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       User      @relation("CustomerBookings", fields: [customerId], references: [id])
+  serviceType    String // ESSENTIAL | PROFESSIONAL | PREMIUM | DEEP_CLEAN | MOVE_IN_OUT | COMMERCIAL | MEDICAL | VACATION_RENTAL | POST_CONSTRUCTION | PRESSURE_WASHING
+  frequency      String
+  address        String
+  city           String
+  zip            String
+  requestedDate  DateTime
+  timeWindow     String
+  notes          String?
+  estimatedPrice Float     @default(0)
+  status         String    @default("PENDING") // PENDING | MATCHED | IN_PROGRESS | COMPLETED | CANCELLED
+  cleanerId      String?
+  cleaner        Cleaner?  @relation(fields: [cleanerId], references: [id])
+  matchedAt      DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
