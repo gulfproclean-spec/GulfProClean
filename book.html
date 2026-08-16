@@ -48,20 +48,29 @@ let state = {
   step: draft ? 'account' : 'missing', email: null, isFirstTime: null, schedule: null,
   selectedDate: null, selectedTime: null,
   addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
+  extraAddons: [],
 };
 
 function money(n) { return '$' + Math.round(n).toLocaleString(); }
 
+function addonLabel(a, visitsCount) {
+  if (a.occurrences >= visitsCount) return visitsCount === 1 ? 'this visit' : `every visit ×${visitsCount}`;
+  if (a.occurrences === 1) return 'one-time';
+  return `${a.occurrences} of ${visitsCount} visits`;
+}
+
 function computeTotals() {
   const perVisit = draft.afterBooking * (state.isFirstTime ? 0.90 : 1);
   const totalAddons = draft.addonsTotalAmount;
-  const subtotal = perVisit * draft.visitsCount + totalAddons;
+  const extraAddonsTotal = (state.extraAddons || []).reduce((s, name) => s + ((draft.allAddonPricing && draft.allAddonPricing[name]) || 0), 0);
+  const plannedSubtotal = perVisit * draft.visitsCount + totalAddons;
+  const subtotal = plannedSubtotal + extraAddonsTotal;
   const grossTotal = draft.grossTotal;
-  const discount = Math.max(0, grossTotal - subtotal);
+  const discount = Math.max(0, grossTotal - plannedSubtotal);
   const taxRate = draft.taxRate || 0;
   const tax = subtotal * taxRate;
   const finalTotal = subtotal + tax;
-  return { perVisit, totalAddons, subtotal, grossTotal, discount, tax, taxRate, finalTotal };
+  return { perVisit, totalAddons, extraAddonsTotal, subtotal, grossTotal, discount, tax, taxRate, finalTotal };
 }
 
 function render() {
@@ -208,6 +217,8 @@ function renderSchedule() {
   const selectedDay = days.find(d => d.date.toDateString() === (state.selectedDate && state.selectedDate.toDateString()));
   const hasAddons = draft.addons && draft.addons.length > 0;
   const showRecurringPreview = draft.booking !== 'One-time' && draft.visitsCount > 1 && selectedDay;
+  const purchasedNames = new Set((draft.addons || []).map(a => a.name));
+  const extraOptions = Object.keys(draft.allAddonPricing || {}).filter(name => !purchasedNames.has(name));
   app.innerHTML = `
     <div class="step-label">Step 2 of 3</div>
     <h1>Pick your visit</h1>
@@ -217,8 +228,9 @@ function renderSchedule() {
       <div class="row"><span>${draft.tier} price per visit</span><span>${money(totals.perVisit)}</span></div>
       <div class="row muted" style="font-size:12px">Discounts apply to the visit price only — add-ons are never discounted.</div>
       <div class="row"><span>Add-ons total</span><span>${money(totals.totalAddons)}</span></div>
-      ${(draft.addons || []).map(a => `<div class="row muted" style="font-size:12px"><span>+ ${a.name} — ${a.frequency === 'once' ? 'one-time' : `every visit ×${draft.visitsCount}`}</span><span>${money(a.total)}</span></div>`).join('')}
+      ${(draft.addons || []).map(a => `<div class="row muted" style="font-size:12px"><span>+ ${a.name} — ${addonLabel(a, draft.visitsCount)}</span><span>${money(a.total)}</span></div>`).join('')}
       <div class="row"><span>Number of visits</span><span>× ${draft.visitsCount}</span></div>
+      ${totals.extraAddonsTotal > 0 ? `<div class="row"><span>Extra add-ons (this visit)</span><span>${money(totals.extraAddonsTotal)}</span></div>` : ''}
       ${totals.discount > 0 ? `<div class="row"><span class="muted">Total before discount</span><span class="struck">${money(totals.grossTotal)}</span></div>` : ''}
       <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
         <span>Subtotal ${totals.discount > 0 ? '(discounted)' : ''}</span><span>${money(totals.subtotal)}</span>
@@ -264,7 +276,19 @@ function renderSchedule() {
           ${draft.addons.map(a => `
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px">
               <input type="checkbox" data-addon="${a.name}" ${state.addonsApplied.includes(a.name) ? 'checked' : ''} />
-              ${a.name} <span class="muted" style="margin-left:auto">${a.frequency === 'once' ? 'one-time' : `every visit`} · ${money(a.unitPrice)}</span>
+              ${a.name} <span class="muted" style="margin-left:auto">${addonLabel(a, draft.visitsCount)} · ${money(a.unitPrice)}</span>
+            </label>
+          `).join('')}
+        </div>
+      ` : ''}
+      ${extraOptions.length > 0 ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3ded2">
+          <p style="font-size:13px;font-weight:500;margin:0 0 4px">Add an extra service for this visit</p>
+          <p class="muted" style="font-size:12px;margin:0 0 8px">Already used up what you paid for, or want something you didn't originally purchase? Add it here — it's charged with this visit's total.</p>
+          ${extraOptions.map(name => `
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px">
+              <input type="checkbox" data-extra-addon="${name}" ${state.extraAddons.includes(name) ? 'checked' : ''} />
+              ${name} <span class="muted" style="margin-left:auto">+${money(draft.allAddonPricing[name])}</span>
             </label>
           `).join('')}
         </div>
@@ -288,6 +312,15 @@ function renderSchedule() {
       state.addonsApplied = e.target.checked
         ? [...new Set([...state.addonsApplied, name])]
         : state.addonsApplied.filter(n => n !== name);
+    };
+  });
+  app.querySelectorAll('[data-extra-addon]').forEach(cb => {
+    cb.onchange = (e) => {
+      const name = e.target.getAttribute('data-extra-addon');
+      state.extraAddons = e.target.checked
+        ? [...new Set([...state.extraAddons, name])]
+        : state.extraAddons.filter(n => n !== name);
+      render();
     };
   });
   const confirmBtn = $('#confirm');
@@ -314,6 +347,7 @@ async function confirmBooking() {
         frequency: draft.frequency,
         addons: draft.addons,
         addonsApplied: state.addonsApplied,
+        extraAddons: state.extraAddons.map(name => ({ name, price: draft.allAddonPricing[name] })),
         visitsCount: draft.visitsCount,
         grossTotal: totals.grossTotal,
         finalTotal: totals.finalTotal,
