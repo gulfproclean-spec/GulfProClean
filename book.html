@@ -174,7 +174,7 @@ function renderSchedule() {
       <div class="row"><span>${draft.tier} price per visit</span><span>${money(totals.perVisit)}</span></div>
       <div class="row muted" style="font-size:12px">Discounts apply to the visit price only — add-ons are never discounted.</div>
       <div class="row"><span>Add-ons</span><span>${money(draft.addonsPerVisit)}</span></div>
-      <div class="row"><span>Number of visits (${draft.booking})</span><span>× ${draft.visitsCount}</span></div>
+      <div class="row"><span>Number of visits</span><span>× ${draft.visitsCount}</span></div>
       ${totals.discount > 0 ? `<div class="row"><span class="muted">Total before discount</span><span class="struck">${money(totals.grossTotal)}</span></div>` : ''}
       <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
         <span>Subtotal ${totals.discount > 0 ? '(discounted)' : ''}</span><span>${money(totals.subtotal)}</span>
