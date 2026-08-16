@@ -330,8 +330,7 @@ function Calculator({ navy, gold }) {
   const typeAdj = { "Standard office": 0, "Retail / high traffic": 0.10, "Medical": 0.25, "Restaurant": 0.30 };
   const freqAdj = { "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "5 visits weekly": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
-  const MONTHLY_DISCOUNT_PER_MONTH = 0.0125; // scales with committed months, capped below
-  const MONTHLY_DISCOUNT_CAP = 0.15;
+  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0;
   const addonPricing = {
     "Post-construction cleanup": { rate: 0.25, unit: "sqft", min: 750 },
     "Exterior window washing": { rate: 0.75, unit: "sqft", min: 350 },
@@ -400,7 +399,7 @@ function Calculator({ navy, gold }) {
   const scopeVal = { sqft, restrooms, areas };
   const addonPrice = (name) => { const p = addonPricing[name]; return Math.round(Math.max(p.rate * scopeVal[p.unit], p.min)); };
   const addonsTotal = addons.reduce((sum, name) => sum + addonPrice(name), 0);
-  const monthlyDiscountPct = booking === "Monthly" ? Math.min(MONTHLY_DISCOUNT_CAP, Math.max(0, months - 1) * MONTHLY_DISCOUNT_PER_MONTH) : 0;
+  const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
   const bookingAdjValue = booking === "One-time" ? ONE_TIME_SURCHARGE : -monthlyDiscountPct;
   const afterBooking = afterFrequency * (1 + bookingAdjValue);
   const perVisit = afterBooking;
@@ -412,6 +411,7 @@ function Calculator({ navy, gold }) {
   const totalAddons = addonsTotal * visitsCount;
   const grossTotal = (afterFrequency * visitsCount) + totalAddons;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
+  const money = (n) => Math.round(n).toLocaleString("en-US");
 
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
@@ -499,7 +499,7 @@ function Calculator({ navy, gold }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
               {Object.keys(addonPricing).map(name => (
                 <label key={name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: navy }}>
-                  <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name} <span style={{ marginLeft: "auto", color: "#7a746a" }}>${addonPrice(name)}</span>
+                  <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name} <span style={{ marginLeft: "auto", color: "#7a746a" }}>${money(addonPrice(name))}</span>
                 </label>
               ))}
             </div>
@@ -508,16 +508,16 @@ function Calculator({ navy, gold }) {
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Summary</p>
 
             <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit</span><span>${Math.round(perVisit)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit</span><span>${money(perVisit)}</span></div>
               <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{bookingLabel} · {displayFrequency}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${Math.round(discount)}` : "$0"}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${money(discount)}` : "$0"}</span></div>
               <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Discounts apply to the visit price only — add-ons are never discounted.</p>
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons (per visit)</span><span>${Math.round(addonsTotal)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons (per visit)</span><span>${money(addonsTotal)}</span></div>
               {addons.map(name => (
-                <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} (no discount)</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${addonPrice(name)}</span></div>
+                <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} (no discount)</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${money(addonPrice(name))}</span></div>
               ))}
             </div>
 
@@ -529,13 +529,13 @@ function Calculator({ navy, gold }) {
             {discount > 0 && (
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>Total for {visitsCount} visit{visitsCount === 1 ? "" : "s"}, before discount</p>
-                <p style={{ fontSize: 22, fontWeight: 600, color: "rgba(255,255,255,0.5)", textDecoration: "line-through", margin: "4px 0 0" }}>${Math.round(grossTotal)}</p>
+                <p style={{ fontSize: 22, fontWeight: 600, color: "rgba(255,255,255,0.5)", textDecoration: "line-through", margin: "4px 0 0" }}>${money(grossTotal)}</p>
               </div>
             )}
 
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
               <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>{discount > 0 ? "Total discounted price" : "Total price"} — {bookingLabel}, {displayFrequency}</p>
-              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${finalDiscounted.toFixed(0)}</p>
+              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${money(finalDiscounted)}</p>
             </div>
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
             <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>You'll create an account and pick a visit time next. First-time discounts are confirmed there.</p>
