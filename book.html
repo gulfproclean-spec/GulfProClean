@@ -161,6 +161,19 @@ function timeSlots(start, end) {
   return slots;
 }
 
+const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
+
+function slotDateTime(date, timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const dt = new Date(date);
+  dt.setHours(h, m, 0, 0);
+  return dt;
+}
+
+function availableTimeSlots(date, cfg) {
+  return timeSlots(cfg.start, cfg.end).filter(t => slotDateTime(date, t).getTime() - Date.now() >= MIN_NOTICE_MS);
+}
+
 function renderSchedule() {
   const totals = computeTotals();
   const days = nextAvailableDays(state.schedule, 14);
@@ -188,14 +201,19 @@ function renderSchedule() {
 
     <div class="card">
       <label>Choose a day</label>
+      <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice.</p>
       <div class="day-grid">
-        ${days.map(d => `<button type="button" class="day-btn ${selectedDay && selectedDay.date.toDateString() === d.date.toDateString() ? 'selected' : ''}" data-date="${d.date.toISOString()}">${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`).join('')}
+        ${days.map(d => {
+          const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
+          const isSelected = selectedDay && selectedDay.date.toDateString() === d.date.toDateString();
+          return `<button type="button" class="day-btn ${isSelected ? 'selected' : ''}" data-date="${d.date.toISOString()}" ${hasSlots ? '' : 'disabled'}>${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`;
+        }).join('')}
       </div>
       ${selectedDay ? `
         <label>Choose a time</label>
         <select id="time">
           <option value="">Select a time</option>
-          ${timeSlots(selectedDay.cfg.start, selectedDay.cfg.end).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
+          ${availableTimeSlots(selectedDay.date, selectedDay.cfg).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
         </select>
       ` : '<p class="muted" style="font-size:13px">Pick a day to see available times.</p>'}
       <div class="error" id="err" style="display:none"></div>
@@ -260,8 +278,11 @@ function renderConfirmed() {
     <div class="card">
       <p>${draft.tier} clean at ${draft.address}, scheduled for ${state.selectedDate.toLocaleDateString()} at ${state.selectedTime}.</p>
       <p style="font-size:24px;font-weight:600;color:#8a6221">${money(state.finalTotal)}</p>
-      <p class="muted" style="font-size:13px">A confirmation has been saved to your account under ${state.email}. We'll follow up to confirm access details.</p>
-      <a href="${draft.page}.html"><button class="secondary">Back to ${draft.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>
+      <p class="muted" style="font-size:13px">A confirmation has been saved to your account under ${state.email}. Need to change the date or time? You can reschedule up until 24 hours before your visit from My Account.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="account.html"><button>My Account</button></a>
+        <a href="${draft.page}.html"><button class="secondary">Back to ${draft.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>
+      </div>
     </div>
   `;
 }

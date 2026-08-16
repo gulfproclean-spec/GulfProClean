@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf ProClean — my account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Libre Franklin', system-ui, sans-serif; background: #f5f2ec; color: #153238; }
+  a { text-decoration: none; }
+  nav { position: sticky; top: 0; z-index: 50; background: #f5f2ec; border-bottom: 1px solid #d8d3c8; display: flex; align-items: center; gap: 10px; padding: 18px clamp(20px,5vw,56px); font-weight: 600; font-size: 15px; letter-spacing: 0.06em; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px clamp(20px,5vw,56px) 80px; }
+  h1 { font-weight: 300; font-size: 32px; margin: 0 0 8px; }
+  .card { background: #fff; border: 1px solid #d8d3c8; border-radius: 8px; padding: 24px; margin-top: 20px; }
+  label { display: block; font-size: 13px; color: #7a746a; margin-bottom: 6px; }
+  input, select { width: 100%; min-height: 40px; padding: 8px 12px; font-size: 14px; border: 1px solid #d8d3c8; border-radius: 4px; font-family: inherit; margin-bottom: 16px; }
+  button { background: #b68235; color: #153238; font-weight: 600; border: none; border-radius: 4px; padding: 11px 20px; cursor: pointer; font-size: 14px; }
+  button.secondary { background: transparent; color: #153238; border: 1px solid #d8d3c8; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { color: #b3261e; font-size: 13px; margin-top: -8px; margin-bottom: 14px; }
+  .row { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; }
+  .muted { color: #7a746a; }
+  .booking-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #8a6221; background: #f5f2ec; padding: 3px 9px; border-radius: 20px; }
+  .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin: 14px 0; }
+  .day-btn { border: 1px solid #d8d3c8; border-radius: 4px; padding: 8px 6px; background: #fff; cursor: pointer; font-size: 12px; text-align: center; }
+  .day-btn.selected { background: #b68235; border-color: #b68235; color: #153238; font-weight: 600; }
+  .day-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<nav><span style="width:18px;height:1px;background:#153238;display:inline-block;"></span>GULF PROCLEAN</nav>
+<main id="app"></main>
+<script>
+const $ = (sel, root = document) => root.querySelector(sel);
+const app = $('#app');
+const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
+
+let state = { step: 'loading', email: null, mode: 'login', bookings: [], schedule: null, reschedulingId: null, selectedDate: null, selectedTime: null };
+
+function money(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function combineDateTime(dateStr, timeStr) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const [h, mi] = timeStr.split(':').map(Number);
+  return new Date(y, mo - 1, d, h, mi, 0, 0);
+}
+
+function canReschedule(b) {
+  if (!b.scheduled_date || !b.scheduled_time) return false;
+  const dt = combineDateTime(String(b.scheduled_date).slice(0, 10), b.scheduled_time);
+  return dt.getTime() - Date.now() >= MIN_NOTICE_MS;
+}
+
+async function init() {
+  render();
+  try {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (data.loggedIn) {
+      state.email = data.email;
+      await loadBookings();
+      state.step = 'bookings';
+    } else {
+      state.step = 'login';
+    }
+  } catch (e) {
+    state.step = 'login';
+  }
+  render();
+}
+
+async function loadBookings() {
+  const res = await fetch('/api/bookings');
+  const data = await res.json();
+  state.bookings = data.bookings || [];
+}
+
+async function loadSchedule() {
+  if (state.schedule) return;
+  const res = await fetch('/api/schedule');
+  const data = await res.json();
+  state.schedule = data.days;
+}
+
+function nextAvailableDays(schedule, count) {
+  const out = [];
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  for (let i = 1; out.length < count && i < 60; i++) {
+    const day = new Date(d);
+    day.setDate(d.getDate() + i);
+    const key = DAY_KEYS[day.getDay()];
+    const cfg = schedule ? schedule[key] : null;
+    if (cfg && cfg.enabled) out.push({ date: day, key, cfg });
+  }
+  return out;
+}
+
+function timeSlots(start, end) {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const slots = [];
+  let h = sh, m = sm;
+  while (h < eh || (h === eh && m < em)) {
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    m += 60;
+    if (m >= 60) { h += 1; m -= 60; }
+  }
+  return slots;
+}
+
+function slotDateTime(date, timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const dt = new Date(date);
+  dt.setHours(h, m, 0, 0);
+  return dt;
+}
+
+function availableTimeSlots(date, cfg) {
+  return timeSlots(cfg.start, cfg.end).filter(t => slotDateTime(date, t).getTime() - Date.now() >= MIN_NOTICE_MS);
+}
+
+function render() {
+  if (state.step === 'loading') { app.innerHTML = '<p class="muted">Loading…</p>'; return; }
+  if (state.step === 'login') return renderLogin();
+  if (state.step === 'bookings') return renderBookings();
+}
+
+function renderLogin() {
+  app.innerHTML = `
+    <h1>My Account</h1>
+    <p class="muted">Log in to view or reschedule your bookings.</p>
+    <div class="card">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@example.com" />
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Your password" />
+      <div class="error" id="err" style="display:none"></div>
+      <button id="submit">Log in</button>
+      <p class="muted" style="font-size:12.5px;margin-top:12px">Don't have an account yet? Book a service from the <a href="residential.html" style="color:#8a6221">residential</a> or <a href="commercial.html" style="color:#8a6221">commercial</a> page first.</p>
+    </div>
+  `;
+  $('#submit').onclick = async () => {
+    const email = $('#email').value.trim();
+    const password = $('#password').value;
+    const errEl = $('#err');
+    errEl.style.display = 'none';
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      state.email = data.email;
+      await loadBookings();
+      state.step = 'bookings';
+      render();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    }
+  };
+}
+
+function renderBookings() {
+  app.innerHTML = `
+    <h1>My Bookings</h1>
+    <p class="muted">Signed in as ${state.email}</p>
+    ${state.bookings.length === 0 ? '<div class="card"><p class="muted">No bookings yet.</p></div>' : ''}
+    <div id="list"></div>
+  `;
+  const list = $('#list');
+  state.bookings.forEach(b => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const scheduled = b.scheduled_date ? `${new Date(b.scheduled_date).toLocaleDateString()} at ${b.scheduled_time}` : 'Not scheduled';
+    const allowed = canReschedule(b);
+    card.innerHTML = `
+      <div class="booking-header">
+        <div>
+          <span class="tag">${b.page === 'residential' ? 'Residential' : 'Commercial'}</span>
+          <p style="margin:8px 0 0;font-weight:500">${b.tier} — ${b.address}</p>
+          <p class="muted" style="font-size:13px;margin-top:4px">${scheduled}</p>
+        </div>
+        <p style="font-size:18px;font-weight:600;color:#8a6221;margin:0">${money(b.final_total)}</p>
+      </div>
+      <div style="margin-top:14px">
+        <button class="secondary" data-reschedule="${b.id}" ${allowed ? '' : 'disabled'}>Reschedule</button>
+        ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
+      </div>
+      <div id="reschedule-panel-${b.id}"></div>
+    `;
+    list.appendChild(card);
+    const btn = card.querySelector(`[data-reschedule="${b.id}"]`);
+    btn.onclick = async () => {
+      await loadSchedule();
+      state.reschedulingId = state.reschedulingId === b.id ? null : b.id;
+      state.selectedDate = null;
+      state.selectedTime = null;
+      render();
+    };
+    if (state.reschedulingId === b.id) {
+      renderReschedulePanel(card.querySelector(`#reschedule-panel-${b.id}`), b);
+    }
+  });
+}
+
+function renderReschedulePanel(container, booking) {
+  const days = nextAvailableDays(state.schedule, 14);
+  const selectedDay = days.find(d => d.date.toDateString() === (state.selectedDate && state.selectedDate.toDateString()));
+  container.innerHTML = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <label>Choose a new day</label>
+      <div class="day-grid">
+        ${days.map(d => {
+          const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
+          const isSelected = selectedDay && selectedDay.date.toDateString() === d.date.toDateString();
+          return `<button type="button" class="day-btn ${isSelected ? 'selected' : ''}" data-date="${d.date.toISOString()}" ${hasSlots ? '' : 'disabled'}>${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`;
+        }).join('')}
+      </div>
+      ${selectedDay ? `
+        <label>Choose a new time</label>
+        <select id="reschedule-time-${booking.id}">
+          <option value="">Select a time</option>
+          ${availableTimeSlots(selectedDay.date, selectedDay.cfg).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+      ` : '<p class="muted" style="font-size:13px">Pick a day to see available times.</p>'}
+      <div class="error" id="reschedule-err-${booking.id}" style="display:none"></div>
+      <button id="confirm-reschedule-${booking.id}" ${selectedDay && state.selectedTime ? '' : 'disabled'}>Confirm new time</button>
+    </div>
+  `;
+  container.querySelectorAll('.day-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.selectedDate = new Date(btn.getAttribute('data-date'));
+      state.selectedTime = null;
+      render();
+    };
+  });
+  const timeSel = $(`#reschedule-time-${booking.id}`, container);
+  if (timeSel) timeSel.onchange = (e) => { state.selectedTime = e.target.value; render(); };
+  const confirmBtn = $(`#confirm-reschedule-${booking.id}`, container);
+  if (confirmBtn) confirmBtn.onclick = async () => {
+    const errEl = $(`#reschedule-err-${booking.id}`, container);
+    errEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduledDate: state.selectedDate.toISOString().slice(0, 10),
+          scheduledTime: state.selectedTime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      state.reschedulingId = null;
+      state.selectedDate = null;
+      state.selectedTime = null;
+      await loadBookings();
+      render();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      confirmBtn.disabled = false;
+    }
+  };
+}
+
+init();
+</script>
+</body>
+</html>
