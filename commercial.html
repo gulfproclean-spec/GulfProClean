@@ -399,17 +399,20 @@ function Calculator({ navy, gold }) {
   const [address, setAddress] = React.useState("");
   const [unit, setUnit] = React.useState("");
   const [notes, setNotes] = React.useState("");
-  const [firstTime, setFirstTime] = React.useState(null);
-  const [booked, setBooked] = React.useState(false);
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const handleBookIt = () => {
-    const key = (address.trim() + " " + unit.trim()).trim().toLowerCase();
-    if (!key) { alert("Enter the service address to book."); return; }
-    const known = JSON.parse(localStorage.getItem("gpc_known_addresses") || "[]");
-    const isNew = !known.includes(key);
-    if (isNew) localStorage.setItem("gpc_known_addresses", JSON.stringify([...known, key]));
-    setFirstTime(isNew);
-    setBooked(true);
+    const fullAddress = (address.trim() + (unit.trim() ? " " + unit.trim() : "")).trim();
+    if (!fullAddress) { alert("Enter the service address to book."); return; }
+    sessionStorage.setItem("gpc_booking_draft", JSON.stringify({
+      page: "commercial",
+      address: fullAddress,
+      notes: notes.trim(),
+      tier, booking, frequency, displayFrequency,
+      addons: [...addons],
+      addonsPerVisit: addonsTotal,
+      afterFrequency, afterBooking, visitsCount, grossTotal,
+    }));
+    window.location.href = "book.html";
   };
 
   const restrooms = restroomBandCount[restroomBand];
@@ -422,7 +425,7 @@ function Calculator({ navy, gold }) {
   const addonPrice = (name) => { const p = addonPricing[name]; return Math.round(Math.max(p.rate * scopeVal[p.unit], p.min)); };
   const addonsTotal = addons.reduce((sum, name) => sum + addonPrice(name), 0);
   const afterBooking = afterFrequency * (1 + bookingAdj[booking]);
-  const perVisit = afterBooking * (firstTime ? 0.90 : 1);
+  const perVisit = afterBooking;
   const discount = Math.max(0, afterFrequency - perVisit);
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
   const visitsPerWeek = parseInt(frequency, 10) || 1;
@@ -449,7 +452,7 @@ function Calculator({ navy, gold }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={labelStyle}>Service address</span>
-            <input type="text" placeholder="123 Main St, Destin FL" value={address} onChange={e => { setAddress(e.target.value); setFirstTime(null); setBooked(false); }} style={selStyle} />
+            <input type="text" placeholder="123 Main St, Destin FL" value={address} onChange={e => setAddress(e.target.value)} style={selStyle} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={labelStyle}>Unit / suite number</span>
@@ -541,17 +544,19 @@ function Calculator({ navy, gold }) {
               <span>× {visitsCount}</span>
             </div>
 
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>Total for {visitsCount} visit{visitsCount === 1 ? "" : "s"}, before discount</p>
-              <p style={{ fontSize: 22, fontWeight: 600, color: "rgba(255,255,255,0.5)", textDecoration: "line-through", margin: "4px 0 0" }}>${Math.round(grossTotal)}</p>
-            </div>
+            {discount > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>Total for {visitsCount} visit{visitsCount === 1 ? "" : "s"}, before discount</p>
+                <p style={{ fontSize: 22, fontWeight: 600, color: "rgba(255,255,255,0.5)", textDecoration: "line-through", margin: "4px 0 0" }}>${Math.round(grossTotal)}</p>
+              </div>
+            )}
 
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Total discounted price — {booking}, {displayFrequency}</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>{discount > 0 ? "Total discounted price" : "Total price"} — {booking}, {displayFrequency}</p>
               <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${finalDiscounted.toFixed(0)}</p>
             </div>
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
-            {booked && <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)", marginTop: 10 }}>{firstTime ? "First-time address — 10% discount applied." : "Welcome back — booked at standard pricing."}</p>}
+            <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>You'll create an account and pick a visit time next. First-time discounts are confirmed there.</p>
           </div>
         </div>
       </div>

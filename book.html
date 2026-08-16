@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf ProClean — book your service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Libre Franklin', system-ui, sans-serif; background: #f5f2ec; color: #153238; }
+  a { text-decoration: none; }
+  nav { position: sticky; top: 0; z-index: 50; background: #f5f2ec; border-bottom: 1px solid #d8d3c8; display: flex; align-items: center; gap: 10px; padding: 18px clamp(20px,5vw,56px); font-weight: 600; font-size: 15px; letter-spacing: 0.06em; }
+  main { max-width: 640px; margin: 0 auto; padding: 40px clamp(20px,5vw,56px) 80px; }
+  h1 { font-weight: 300; font-size: 32px; margin: 0 0 8px; }
+  .step-label { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #8a6221; margin-bottom: 10px; }
+  .card { background: #fff; border: 1px solid #d8d3c8; border-radius: 8px; padding: 28px; margin-top: 20px; }
+  label { display: block; font-size: 13px; color: #7a746a; margin-bottom: 6px; }
+  input, select { width: 100%; min-height: 40px; padding: 8px 12px; font-size: 14px; border: 1px solid #d8d3c8; border-radius: 4px; font-family: inherit; margin-bottom: 16px; }
+  button { background: #b68235; color: #153238; font-weight: 600; border: none; border-radius: 4px; padding: 12px 22px; cursor: pointer; font-size: 14px; }
+  button.secondary { background: transparent; color: #153238; border: 1px solid #d8d3c8; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .tab { flex: 1; padding: 10px; text-align: center; border: 1px solid #d8d3c8; cursor: pointer; font-size: 13.5px; font-weight: 500; background: #fff; }
+  .tab.active { background: #153238; color: #fff; border-color: #153238; }
+  .error { color: #b3261e; font-size: 13px; margin-top: -8px; margin-bottom: 14px; }
+  .row { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; }
+  .muted { color: #7a746a; }
+  .struck { text-decoration: line-through; color: #7a746a; }
+  .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .day-btn { border: 1px solid #d8d3c8; border-radius: 4px; padding: 10px 6px; background: #fff; cursor: pointer; font-size: 12.5px; text-align: center; }
+  .day-btn.selected { background: #b68235; border-color: #b68235; color: #153238; font-weight: 600; }
+  .day-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<nav><span style="width:18px;height:1px;background:#153238;display:inline-block;"></span>GULF PROCLEAN</nav>
+<main id="app"></main>
+<script>
+const $ = (sel, root = document) => root.querySelector(sel);
+const app = $('#app');
+const params = new URLSearchParams(location.search);
+let draft = null;
+try { draft = JSON.parse(sessionStorage.getItem('gpc_booking_draft') || 'null'); } catch {}
+
+let state = { step: draft ? 'account' : 'missing', email: null, isFirstTime: null, schedule: null, selectedDate: null, selectedTime: null };
+
+function money(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function computeTotals() {
+  const perVisit = draft.afterBooking * (state.isFirstTime ? 0.90 : 1);
+  const totalAddons = draft.addonsPerVisit * draft.visitsCount;
+  const finalTotal = perVisit * draft.visitsCount + totalAddons;
+  const grossTotal = draft.grossTotal;
+  const discount = Math.max(0, grossTotal - finalTotal);
+  return { perVisit, totalAddons, finalTotal, grossTotal, discount };
+}
+
+function render() {
+  if (state.step === 'missing') {
+    app.innerHTML = `
+      <h1>Start a quote first</h1>
+      <p class="muted">We couldn't find a saved quote. Head back to the residential or commercial page, use the calculator, and click "Book It" to get here.</p>
+      <a href="residential.html"><button>Go to residential</button></a>
+    `;
+    return;
+  }
+  if (state.step === 'account') renderAccount();
+  else if (state.step === 'schedule') renderSchedule();
+  else if (state.step === 'confirmed') renderConfirmed();
+}
+
+function renderAccount() {
+  app.innerHTML = `
+    <div class="step-label">Step 1 of 3</div>
+    <h1>Create your account</h1>
+    <p class="muted">${draft.tier} · ${draft.booking} · ${draft.displayFrequency} at ${draft.address}</p>
+    <div class="card">
+      <div class="tabs">
+        <div class="tab ${state.mode !== 'login' ? 'active' : ''}" id="tab-signup">New customer</div>
+        <div class="tab ${state.mode === 'login' ? 'active' : ''}" id="tab-login">I have an account</div>
+      </div>
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@example.com" value="${state.emailInput || ''}" />
+      <label>Password</label>
+      <input type="password" id="password" placeholder="${state.mode === 'login' ? 'Your password' : 'At least 8 characters'}" />
+      <div class="error" id="err" style="display:none"></div>
+      <button id="submit">${state.mode === 'login' ? 'Log in' : 'Create account & continue'}</button>
+    </div>
+  `;
+  $('#tab-signup').onclick = () => { state.mode = 'signup'; render(); };
+  $('#tab-login').onclick = () => { state.mode = 'login'; render(); };
+  $('#submit').onclick = submitAccount;
+}
+
+async function submitAccount() {
+  const email = $('#email').value.trim();
+  const password = $('#password').value;
+  const errEl = $('#err');
+  errEl.style.display = 'none';
+  const btn = $('#submit');
+  btn.disabled = true;
+  try {
+    const url = state.mode === 'login' ? '/api/auth/login' : '/api/auth/signup';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    state.email = data.email;
+    state.isFirstTime = data.isFirstTime;
+    state.step = 'schedule';
+    await loadSchedule();
+    render();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+  }
+}
+
+async function loadSchedule() {
+  const res = await fetch('/api/schedule');
+  const data = await res.json();
+  state.schedule = data.days;
+}
+
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
+
+function nextAvailableDays(schedule, count) {
+  const out = [];
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  for (let i = 1; out.length < count && i < 60; i++) {
+    const day = new Date(d);
+    day.setDate(d.getDate() + i);
+    const key = DAY_KEYS[day.getDay()];
+    const cfg = schedule ? schedule[key] : null;
+    if (cfg && cfg.enabled) out.push({ date: day, key, cfg });
+  }
+  return out;
+}
+
+function timeSlots(start, end) {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const slots = [];
+  let h = sh, m = sm;
+  while (h < eh || (h === eh && m < em)) {
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    m += 60;
+    if (m >= 60) { h += 1; m -= 60; }
+  }
+  return slots;
+}
+
+function renderSchedule() {
+  const totals = computeTotals();
+  const days = nextAvailableDays(state.schedule, 14);
+  const selectedDay = days.find(d => d.date.toDateString() === (state.selectedDate && state.selectedDate.toDateString()));
+  app.innerHTML = `
+    <div class="step-label">Step 2 of 3</div>
+    <h1>Pick your visit</h1>
+    <p class="muted">Signed in as ${state.email}</p>
+
+    <div class="card">
+      <div class="row"><span>${draft.tier} price per visit</span><span>${money(totals.perVisit)}</span></div>
+      <div class="row muted" style="font-size:12px">Discounts apply to the visit price only — add-ons are never discounted.</div>
+      <div class="row"><span>Add-ons</span><span>${money(draft.addonsPerVisit)}</span></div>
+      <div class="row"><span>Number of visits (${draft.booking})</span><span>× ${draft.visitsCount}</span></div>
+      ${totals.discount > 0 ? `<div class="row"><span class="muted">Total before discount</span><span class="struck">${money(totals.grossTotal)}</span></div>` : ''}
+      <div class="row" style="font-size:20px;font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
+        <span>Total ${totals.discount > 0 ? '(discounted)' : ''}</span><span style="color:#8a6221">${money(totals.finalTotal)}</span>
+      </div>
+      ${state.isFirstTime ? '<p style="font-size:12.5px;color:#1a7a3d;margin-top:8px">First-time customer — 10% discount applied.</p>' : ''}
+    </div>
+
+    <div class="card">
+      <label>Choose a day</label>
+      <div class="day-grid">
+        ${days.map(d => `<button type="button" class="day-btn ${selectedDay && selectedDay.date.toDateString() === d.date.toDateString() ? 'selected' : ''}" data-date="${d.date.toISOString()}">${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`).join('')}
+      </div>
+      ${selectedDay ? `
+        <label>Choose a time</label>
+        <select id="time">
+          <option value="">Select a time</option>
+          ${timeSlots(selectedDay.cfg.start, selectedDay.cfg.end).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+      ` : '<p class="muted" style="font-size:13px">Pick a day to see available times.</p>'}
+      <div class="error" id="err" style="display:none"></div>
+      <button id="confirm" ${selectedDay && state.selectedTime ? '' : 'disabled'}>Confirm booking</button>
+    </div>
+  `;
+  app.querySelectorAll('.day-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.selectedDate = new Date(btn.getAttribute('data-date'));
+      state.selectedTime = null;
+      render();
+    };
+  });
+  const timeSel = $('#time');
+  if (timeSel) timeSel.onchange = (e) => { state.selectedTime = e.target.value; render(); };
+  const confirmBtn = $('#confirm');
+  if (confirmBtn) confirmBtn.onclick = confirmBooking;
+}
+
+async function confirmBooking() {
+  const totals = computeTotals();
+  const btn = $('#confirm');
+  const errEl = $('#err');
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page: draft.page,
+        address: draft.address,
+        notes: draft.notes,
+        tier: draft.tier,
+        bookingType: draft.booking,
+        frequency: draft.frequency,
+        addons: draft.addons,
+        visitsCount: draft.visitsCount,
+        grossTotal: totals.grossTotal,
+        finalTotal: totals.finalTotal,
+        scheduledDate: state.selectedDate.toISOString().slice(0, 10),
+        scheduledTime: state.selectedTime,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    sessionStorage.removeItem('gpc_booking_draft');
+    state.step = 'confirmed';
+    state.finalTotal = totals.finalTotal;
+    render();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+  }
+}
+
+function renderConfirmed() {
+  app.innerHTML = `
+    <div class="step-label">Step 3 of 3</div>
+    <h1>You're booked</h1>
+    <div class="card">
+      <p>${draft.tier} clean at ${draft.address}, scheduled for ${state.selectedDate.toLocaleDateString()} at ${state.selectedTime}.</p>
+      <p style="font-size:24px;font-weight:600;color:#8a6221">${money(state.finalTotal)}</p>
+      <p class="muted" style="font-size:13px">A confirmation has been saved to your account under ${state.email}. We'll follow up to confirm access details.</p>
+      <a href="${draft.page}.html"><button class="secondary">Back to ${draft.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>
+    </div>
+  `;
+}
+
+state.mode = 'signup';
+render();
+</script>
+</body>
+</html>
