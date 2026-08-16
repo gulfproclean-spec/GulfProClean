@@ -337,6 +337,7 @@ function Calculator({ navy, gold }) {
   const freqAdj = { "1 visit monthly": 0, "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0;
+  const MONTH_OPTIONS = [1, 2, 3, 4, 5, 6, 12];
   const addonPricing = {
     "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
     "Interior windows (package)": 110, "Baseboard detail": 75, "Inside cabinets": 100,
@@ -422,7 +423,9 @@ function Calculator({ navy, gold }) {
           </label>
           {booking === "Monthly" && (
             <label><span style={labelStyle}>Number of months{monthlyDiscountPct > 0 ? ` (${Math.round(monthlyDiscountPct * 100)}% discount)` : ""}</span>
-              <input type="number" min="1" max="24" value={months} onChange={e => setMonths(Math.max(1, Number(e.target.value)))} style={selStyle} />
+              <select style={selStyle} value={months} onChange={e => setMonths(Number(e.target.value))}>
+                {MONTH_OPTIONS.map(m => <option key={m} value={m}>{m} month{m === 1 ? "" : "s"}{monthlyDiscountFor(m) > 0 ? ` (${Math.round(monthlyDiscountFor(m) * 100)}% discount)` : ""}</option>)}
+              </select>
             </label>
           )}
           <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Service tier</span>
