@@ -354,7 +354,7 @@ function Contact({ note }) {
 function Calculator({ navy, gold }) {
   const baseMap = { Essential: 175, Preferred: 225, Premium: 325 };
   const typeAdj = { "Standard office": 0, "Retail / high traffic": 0.10, "Medical": 0.25, "Restaurant": 0.30 };
-  const freqAdj = { "1 visit weekly": 0, "2 visits weekly": -0.08, "3 visits weekly": -0.12, "5 visits weekly": -0.18 };
+  const freqAdj = { "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "5 visits weekly": 0 };
   const bookingAdj = { "One-time": 0.30, "Monthly": 0, "6-month prepay": -0.10, "12-month prepay": -0.15 };
   const addonPricing = {
     "Post-construction cleanup": { rate: 0.25, unit: "sqft", min: 750 },

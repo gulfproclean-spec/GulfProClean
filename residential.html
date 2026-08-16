@@ -326,7 +326,7 @@ function Contact({ note }) {
 
 function Calculator({ navy, gold }) {
   const baseMap = { Essential: 165, Preferred: 185, Premium: 205 };
-  const freqAdj = { "1 visit monthly": 0, "2 visits monthly (Biweekly Cleaning)": -0.05, "4 visits monthly (Weekly Cleaning)": -0.10 };
+  const freqAdj = { "1 visit monthly": 0, "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
   const bookingAdj = { "One-time": 0.30, "Monthly": 0, "6-month prepay": -0.10, "12-month prepay": -0.15 };
   const addonPricing = {
     "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
