@@ -496,7 +496,7 @@ function Calculator({ navy, gold }) {
           )}
           <label><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
-              {Object.keys(baseMap).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} — from ${baseMap[k]}/visit</option>)}
+              {Object.keys(baseMap).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""}</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>Cleaning frequency</span>
