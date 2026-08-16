@@ -110,7 +110,7 @@ function Kicker({ children, gold }) {
 
 function Services({ navy, items }) {
   return (
-    <section id="services" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="services" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">What we clean</Kicker>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 40, marginTop: 8 }}>
         {items.map(({ title, body }) => (
@@ -133,7 +133,7 @@ function ServiceTiers({ navy, gold }) {
   const tierNames = groups.map(g => g[0]);
   const rows = groups.flatMap(([tier, items]) => items.map(item => ({ item, from: tierNames.indexOf(tier) })));
   return (
-    <section id="tiers" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="tiers" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">Service tiers</Kicker>
       <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Choose how deep we go</h2>
       <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Every tier includes everything in the tier before it — compare all three at a glance.</p>
@@ -183,7 +183,7 @@ function Plans({ navy, gold, booking, setBooking }) {
       ["5 cleanings per week", "High-traffic & multi-site portfolios", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"]]
   ];
   return (
-    <section id="plans" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+    <section id="plans" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Kicker gold="#8a6221">Booking</Kicker>
         <div style={{ position: "relative", background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginTop: 8, marginBottom: 28, display: "inline-flex", alignItems: "center", gap: 12, fontSize: 15.5, fontWeight: 700, boxShadow: `0 8px 28px ${gold}55`, border: `1px solid ${navy}22`, letterSpacing: "0.01em" }}>
@@ -235,7 +235,7 @@ function Plans({ navy, gold, booking, setBooking }) {
 
 function AddOns({ navy, gold }) {
   return (
-    <section id="addons" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+    <section id="addons" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Kicker gold="#8a6221">Add-ons</Kicker>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Commercial Add-On Services</h2>
@@ -249,7 +249,7 @@ function AddOns({ navy, gold }) {
 
 function Commercial({ navy, gold }) {
   return (
-    <section id="approach" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="approach" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <div>
         <Kicker gold="#8a6221">Approach</Kicker>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0 }}>No contracts. Cancel anytime.</h2>
@@ -261,7 +261,7 @@ function Commercial({ navy, gold }) {
 
 function Quote({ navy, text, caption }) {
   return (
-    <section style={{ background: navy, color: "#fff", padding: "88px clamp(20px,5vw,56px)" }}>
+    <section style={{ background: navy, color: "#fff", padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <blockquote style={{ fontFamily: "inherit", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(24px,2.6vw,34px)", lineHeight: 1.4, maxWidth: "34ch", margin: 0 }}>
           "{text}"
@@ -280,7 +280,7 @@ function PricingTable({ navy, gold }) {
     ["Premium", "⭐ Most Popular", [325, 299, 286, 267]]
   ];
   return (
-    <section id="pricing" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="pricing" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">Pricing</Kicker>
       <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Commercial Maintenance</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginTop: 32, marginBottom: 8 }}>

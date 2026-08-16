@@ -110,7 +110,7 @@ function Kicker({ children, gold }) {
 
 function Services({ navy, items }) {
   return (
-    <section id="services" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="services" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">What we clean</Kicker>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 40, marginTop: 8 }}>
         {items.map(({ title, body }) => (
@@ -133,7 +133,7 @@ function ServiceTiers({ navy, gold }) {
   const tierNames = groups.map(g => g[0]);
   const rows = groups.flatMap(([tier, items]) => items.map(item => ({ item, from: tierNames.indexOf(tier) })));
   return (
-    <section id="tiers" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="tiers" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">Service tiers</Kicker>
       <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Choose how deep we go</h2>
       <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Every tier includes everything in the tier before it — compare all three at a glance.</p>
@@ -183,7 +183,7 @@ function Plans({ navy, gold, booking, setBooking }) {
       ["4 cleanings per month", "Luxury & high-use homes", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"]]
   ];
   return (
-    <section id="plans" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+    <section id="plans" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Kicker gold="#8a6221">Booking</Kicker>
         <div style={{ position: "relative", background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginTop: 8, marginBottom: 28, display: "inline-flex", alignItems: "center", gap: 12, fontSize: 15.5, fontWeight: 700, boxShadow: `0 8px 28px ${gold}55`, border: `1px solid ${navy}22`, letterSpacing: "0.01em" }}>
@@ -241,7 +241,7 @@ function AddOns({ navy, gold }) {
     ["Carpet Deep Cleaning", "Ask for quote"], ["Shower & Tile Deep Cleaning", "Ask for quote"], ["Balcony/Patio Cleaning", "$47"]
   ];
   return (
-    <section id="addons" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+    <section id="addons" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Kicker gold="#8a6221">Add-ons</Kicker>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Customers on the Emerald Coast are accustomed to add-ons</h2>
@@ -262,7 +262,7 @@ function AddOns({ navy, gold }) {
 
 function Quote({ navy, text, caption }) {
   return (
-    <section style={{ background: navy, color: "#fff", padding: "88px clamp(20px,5vw,56px)" }}>
+    <section style={{ background: navy, color: "#fff", padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <blockquote style={{ fontFamily: "inherit", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(24px,2.6vw,34px)", lineHeight: 1.4, maxWidth: "34ch", margin: 0 }}>
           "{text}"
@@ -278,7 +278,7 @@ function PricingTable({ navy, gold }) {
   const rows = [[165, 200, 285], [205, 250, 360], [240, 295, 425], [280, 345, 495], [315, 390, 560], [355, 440, 635], [390, 485, 700], [455, 565, 815], null];
   const tiers = ["Essential", "Preferred", "Premium"];
   return (
-    <section id="pricing" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+    <section id="pricing" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">Pricing</Kicker>
       <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Tier pricing by property size</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginTop: 32, marginBottom: 8 }}>
@@ -663,7 +663,7 @@ function MyHomeDashboard({ navy, gold }) {
   const isMobile = useIsMobile(720);
   const order = (key) => isMobile ? MOBILE_ORDER[key] : undefined;
   return (
-    <section id="my-home" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+    <section id="my-home" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Reveal>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
@@ -759,7 +759,7 @@ function MyHomeDashboard({ navy, gold }) {
 function WhatWeWatch({ navy, gold }) {
   const items = ["Cleaning & Quality", "HVAC & Filters", "Plumbing & Leaks", "Appliances", "Pool & Equipment", "Supplies", "Doors & Windows", "Exterior", "Storm Readiness", "Maintenance", "Vendors & Repairs", "Upcoming Projects"];
   return (
-    <section style={{ background: "#fff", padding: "88px clamp(20px,5vw,56px)" }}>
+    <section style={{ background: "#fff", padding: "56px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Reveal>
           <Kicker gold="#8a6221">What we watch</Kicker>
@@ -787,7 +787,7 @@ function CareProgression({ navy, gold }) {
     ["05", "Home Operating System", "Everything is visible in one place."],
   ];
   return (
-    <section style={{ background: navy, padding: "88px clamp(20px,5vw,56px)", color: "#fff" }}>
+    <section style={{ background: navy, padding: "56px clamp(20px,5vw,56px)", color: "#fff" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <Reveal>
           <Kicker gold="#d9a94a">The path</Kicker>
@@ -819,7 +819,7 @@ function CareProgression({ navy, gold }) {
 
 function HomeOSIntro({ navy, gold }) {
   return (
-    <section style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px) 0" }}>
+    <section style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px) 0" }}>
       <div style={{ maxWidth: 880, margin: "0 auto", textAlign: "center" }}>
         <Reveal>
           <Kicker gold="#8a6221">The Real Secret</Kicker>
