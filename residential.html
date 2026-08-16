@@ -364,6 +364,7 @@ function Calculator({ navy, gold }) {
       addons: [...addons],
       addonsPerVisit: addonsTotal,
       afterFrequency, afterBooking, visitsCount, grossTotal,
+      taxRate: 0,
     }));
     window.location.href = "book.html";
   };
@@ -540,7 +541,7 @@ function useIsMobile(breakpoint) {
   return isMobile;
 }
 
-function Reveal({ children, delay = 0 }) {
+function Reveal({ children, delay = 0, order }) {
   const ref = React.useRef(null);
   const [visible, setVisible] = React.useState(false);
   React.useEffect(() => {
@@ -553,7 +554,7 @@ function Reveal({ children, delay = 0 }) {
     return () => obs.disconnect();
   }, []);
   return (
-    <div ref={ref} style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(18px)", transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s` }}>
+    <div ref={ref} style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(18px)", transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`, order, display: "flex", flexDirection: "column", height: "100%" }}>
       {children}
     </div>
   );
@@ -570,9 +571,9 @@ function StatusBadge({ type, children }) {
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 600, color: s.color, background: s.bg, padding: "4px 10px", borderRadius: 20, width: "fit-content" }}>{icon} {children}</span>;
 }
 
-function DashCard({ navy, icon, title, subtitle, children, status, statusText, order }) {
+function DashCard({ navy, icon, title, subtitle, children, status, statusText }) {
   return (
-    <div style={{ background: "#fff", border: "1px solid #e3ded2", borderRadius: 10, padding: 22, boxShadow: "0 1px 3px rgba(21,50,56,0.05)", display: "flex", flexDirection: "column", gap: 12, order }}>
+    <div style={{ background: "#fff", border: "1px solid #e3ded2", borderRadius: 10, padding: 22, boxShadow: "0 1px 3px rgba(21,50,56,0.05)", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
       <div>
         <p style={{ fontSize: 13.5, fontWeight: 600, color: navy, margin: 0, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 16 }}>{icon}</span>{title}</p>
         {subtitle && <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{subtitle}</p>}
@@ -659,46 +660,46 @@ function MyHomeDashboard({ navy, gold }) {
         </Reveal>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 24 }}>
-          <Reveal delay={0.05}>
-            <DashCard navy={navy} icon="🧹" title="Cleaning" subtitle="Completed today" status="ok" statusText="Complete" order={order("cleaning")}>
+          <Reveal delay={0.05} order={order("cleaning")}>
+            <DashCard navy={navy} icon="🧹" title="Cleaning" subtitle="Completed today" status="ok" statusText="Complete">
               <DashList items={["10:42 AM", "Quality check completed", "2-person team"]} />
             </DashCard>
           </Reveal>
-          <Reveal delay={0.1}>
-            <DashCard navy={navy} icon="🏠" title="Home Check" subtitle="Property check completed" status="ok" statusText="No issues found" order={order("homecheck")}>
+          <Reveal delay={0.1} order={order("homecheck")}>
+            <DashCard navy={navy} icon="🏠" title="Home Check" subtitle="Property check completed" status="ok" statusText="No issues found">
               <DashList items={["Doors & windows checked", "Water/leak check", "Thermostat checked"]} />
             </DashCard>
           </Reveal>
-          <Reveal delay={0.15}>
-            <DashCard navy={navy} icon="❄️" title="HVAC" subtitle="Operating normally" status="ok" statusText="Normal" order={order("hvac")}>
+          <Reveal delay={0.15} order={order("hvac")}>
+            <DashCard navy={navy} icon="❄️" title="HVAC" subtitle="Operating normally" status="ok" statusText="Normal">
               <DashList items={["Filter: Good", "Last replaced: Aug. 2", "Next recommended: Nov. 2"]} />
             </DashCard>
           </Reveal>
-          <Reveal delay={0.05}>
-            <DashCard navy={navy} icon="🏊" title="Pool" subtitle="Operating normally" status="ok" statusText="Normal" order={order("pool")}>
+          <Reveal delay={0.05} order={order("pool")}>
+            <DashCard navy={navy} icon="🏊" title="Pool" subtitle="Operating normally" status="ok" statusText="Normal">
               <DashList items={["Water level: Normal", "Equipment: Normal", "Cleaning: Scheduled"]} />
             </DashCard>
           </Reveal>
-          <Reveal delay={0.1}>
-            <DashCard navy={navy} icon="🧴" title="Supplies" subtitle="2 items need attention" status="warn" statusText="Needs restock" order={order("supplies")}>
+          <Reveal delay={0.1} order={order("supplies")}>
+            <DashCard navy={navy} icon="🧴" title="Supplies" subtitle="2 items need attention" status="warn" statusText="Needs restock">
               <DashList items={["Paper towels — Low", "Dishwasher detergent — Low"]} />
               <CardCTA>Review Supplies →</CardCTA>
             </DashCard>
           </Reveal>
-          <Reveal delay={0.15}>
-            <DashCard navy={navy} icon="🔧" title="Maintenance" subtitle="1 item needs attention" status="warn" statusText="Needs attention" order={order("maintenance")}>
+          <Reveal delay={0.15} order={order("maintenance")}>
+            <DashCard navy={navy} icon="🔧" title="Maintenance" subtitle="1 item needs attention" status="warn" statusText="Needs attention">
               <p style={{ fontSize: 13, color: "#3d4a4d", margin: "8px 0 0" }}>Kitchen faucet has a slow drip.</p>
               <CardCTA>View Issue →</CardCTA>
             </DashCard>
           </Reveal>
-          <Reveal delay={0.05}>
-            <DashCard navy={navy} icon="📅" title="Upcoming" subtitle="Next scheduled visits" order={order("upcoming")}>
+          <Reveal delay={0.05} order={order("upcoming")}>
+            <DashCard navy={navy} icon="📅" title="Upcoming" subtitle="Next scheduled visits">
               <DashList items={["Exterior window cleaning — Sept. 15", "HVAC service — Oct. 3", "Pool service — Oct. 10"]} />
               <CardCTA>View Schedule →</CardCTA>
             </DashCard>
           </Reveal>
-          <Reveal delay={0.1}>
-            <DashCard navy={navy} icon="🛠" title="Projects" subtitle="Guest bathroom refresh — 70% complete" order={order("projects")}>
+          <Reveal delay={0.1} order={order("projects")}>
+            <DashCard navy={navy} icon="🛠" title="Projects" subtitle="Guest bathroom refresh — 70% complete">
               <ProgressBar pct={70} gold={gold} />
               <StepList navy={navy} items={[
                 { label: "Materials delivered", state: "done" },
@@ -709,15 +710,15 @@ function MyHomeDashboard({ navy, gold }) {
               <CardCTA>View Project →</CardCTA>
             </DashCard>
           </Reveal>
-          <Reveal delay={0.15}>
-            <DashCard navy={navy} icon="🌪" title="Storm Ready" subtitle="Storm Watch" order={order("storm")}>
+          <Reveal delay={0.15} order={order("storm")}>
+            <DashCard navy={navy} icon="🌪" title="Storm Ready" subtitle="Storm Watch">
               <p style={{ fontSize: 13, color: "#3d4a4d", margin: "8px 0 0" }}>Tropical weather is being monitored for your area.</p>
               <p style={{ fontSize: 12.5, color: "#8a6221", fontWeight: 600, margin: "8px 0 0" }}>Storm preparation available</p>
               <CardCTA>Prepare My Home →</CardCTA>
             </DashCard>
           </Reveal>
-          <Reveal delay={0.2}>
-            <DashCard navy={navy} icon="✈️" title="Arrival" subtitle="Next Arrival — Friday · Aug. 22" order={order("arrival")}>
+          <Reveal delay={0.2} order={order("arrival")}>
+            <DashCard navy={navy} icon="✈️" title="Arrival" subtitle="Next Arrival — Friday · Aug. 22">
               <p style={{ fontSize: 12.5, color: "#7a746a", margin: "8px 0 0" }}>Home preparation scheduled</p>
               <StepList navy={navy} items={[
                 { label: "Cleaning complete", state: "done" },

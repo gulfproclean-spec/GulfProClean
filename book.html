@@ -51,10 +51,13 @@ function money(n) { return '$' + Math.round(n).toLocaleString(); }
 function computeTotals() {
   const perVisit = draft.afterBooking * (state.isFirstTime ? 0.90 : 1);
   const totalAddons = draft.addonsPerVisit * draft.visitsCount;
-  const finalTotal = perVisit * draft.visitsCount + totalAddons;
+  const subtotal = perVisit * draft.visitsCount + totalAddons;
   const grossTotal = draft.grossTotal;
-  const discount = Math.max(0, grossTotal - finalTotal);
-  return { perVisit, totalAddons, finalTotal, grossTotal, discount };
+  const discount = Math.max(0, grossTotal - subtotal);
+  const taxRate = draft.taxRate || 0;
+  const tax = subtotal * taxRate;
+  const finalTotal = subtotal + tax;
+  return { perVisit, totalAddons, subtotal, grossTotal, discount, tax, taxRate, finalTotal };
 }
 
 function render() {
@@ -173,8 +176,12 @@ function renderSchedule() {
       <div class="row"><span>Add-ons</span><span>${money(draft.addonsPerVisit)}</span></div>
       <div class="row"><span>Number of visits (${draft.booking})</span><span>× ${draft.visitsCount}</span></div>
       ${totals.discount > 0 ? `<div class="row"><span class="muted">Total before discount</span><span class="struck">${money(totals.grossTotal)}</span></div>` : ''}
+      <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
+        <span>Subtotal ${totals.discount > 0 ? '(discounted)' : ''}</span><span>${money(totals.subtotal)}</span>
+      </div>
+      ${totals.taxRate > 0 ? `<div class="row"><span class="muted">FL Sales Tax (${Math.round(totals.taxRate * 100)}%)</span><span>${money(totals.tax)}</span></div>` : ''}
       <div class="row" style="font-size:20px;font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
-        <span>Total ${totals.discount > 0 ? '(discounted)' : ''}</span><span style="color:#8a6221">${money(totals.finalTotal)}</span>
+        <span>Total</span><span style="color:#8a6221">${money(totals.finalTotal)}</span>
       </div>
       ${state.isFirstTime ? '<p style="font-size:12.5px;color:#1a7a3d;margin-top:8px">First-time customer — 10% discount applied.</p>' : ''}
     </div>

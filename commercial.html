@@ -386,6 +386,7 @@ function Calculator({ navy, gold }) {
       addons: [...addons],
       addonsPerVisit: addonsTotal,
       afterFrequency, afterBooking, visitsCount, grossTotal,
+      taxRate: FL_TAX_RATE,
     }));
     window.location.href = "book.html";
   };
@@ -411,6 +412,9 @@ function Calculator({ navy, gold }) {
   const totalAddons = addonsTotal * visitsCount;
   const grossTotal = (afterFrequency * visitsCount) + totalAddons;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
+  const FL_TAX_RATE = 0.06;
+  const tax = finalDiscounted * FL_TAX_RATE;
+  const totalWithTax = finalDiscounted + tax;
   const money = (n) => Math.round(n).toLocaleString("en-US");
 
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
@@ -533,9 +537,18 @@ function Calculator({ navy, gold }) {
               </div>
             )}
 
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>{discount > 0 ? "Subtotal (discounted)" : "Subtotal"} — {bookingLabel}, {displayFrequency}</p>
+              <p style={{ fontSize: 22, fontWeight: 600, color: "#fff", margin: "6px 0 0" }}>${money(finalDiscounted)}</p>
+            </div>
+            <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+              <span style={{ color: "rgba(255,255,255,0.75)" }}>FL Sales Tax (6%)</span>
+              <span>${money(tax)}</span>
+            </div>
+
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>{discount > 0 ? "Total discounted price" : "Total price"} — {bookingLabel}, {displayFrequency}</p>
-              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${money(finalDiscounted)}</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Total</p>
+              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${money(totalWithTax)}</p>
             </div>
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
             <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>You'll create an account and pick a visit time next. First-time discounts are confirmed there.</p>
