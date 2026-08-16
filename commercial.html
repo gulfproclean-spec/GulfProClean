@@ -272,13 +272,9 @@ function Quote({ navy, text, caption }) {
   );
 }
 
-function PricingTable({ navy, gold }) {
-  const freqs = ["1× Weekly", "2× Weekly", "3× Weekly", "5× Weekly"];
-  const rows = [
-    ["Essential", null, [175, 161, 154, 144]],
-    ["Preferred", null, [225, 207, 198, 185]],
-    ["Premium", "⭐ Most Popular", [325, 299, 286, 267]]
-  ];
+function PricingTable({ navy, gold, pricing }) {
+  const tiers = ["Essential", "Preferred", "Premium"];
+  const badges = { Premium: "⭐ Most Popular" };
   return (
     <section id="pricing" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">Pricing</Kicker>
@@ -293,17 +289,17 @@ function PricingTable({ navy, gold }) {
           <thead>
             <tr>
               <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Service tier</th>
-              {freqs.map(f => (<th key={f} style={{ textAlign: "left", fontSize: 15, color: navy, fontWeight: 600, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>{f}</th>))}
+              {pricing.map(row => (<th key={row.band_label} style={{ textAlign: "left", fontSize: 15, color: navy, fontWeight: 600, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>{row.band_label}</th>))}
             </tr>
           </thead>
           <tbody>
-            {rows.map(([name, badge, prices]) => (
+            {tiers.map((name, i) => (
               <tr key={name}>
                 <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>
-                  {name}{badge && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: "#8a6221" }}>{badge}</span>}
+                  {name}{badges[name] && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: "#8a6221" }}>{badges[name]}</span>}
                 </td>
-                {prices.map((p, i) => (
-                  <td key={i} style={{ fontSize: 15, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>From ${p}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}>/visit</span></td>
+                {pricing.map(row => (
+                  <td key={row.band_label} style={{ fontSize: 15, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>From ${Math.round([row.essential, row.preferred, row.premium][i]).toLocaleString("en-US")}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}>/visit</span></td>
                 ))}
               </tr>
             ))}
@@ -328,8 +324,9 @@ function Contact({ note }) {
   );
 }
 
-function Calculator({ navy, gold }) {
-  const baseMap = { Essential: 175, Preferred: 225, Premium: 325 };
+function Calculator({ navy, gold, pricing }) {
+  const base1x = pricing[0] || { essential: 175, preferred: 225, premium: 325 };
+  const baseMap = { Essential: base1x.essential, Preferred: base1x.preferred, Premium: base1x.premium };
   const typeAdj = { "Standard office": 0, "Retail / high traffic": 0.10, "Medical": 0.25, "Restaurant": 0.30 };
   const freqAdj = { "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "4 visits weekly": 0, "5 visits weekly": 0, "6 visits weekly": 0, "7 visits weekly": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
@@ -607,12 +604,31 @@ function useSiteContent(page) {
   return content;
 }
 
+const DEFAULT_PRICING_COMMERCIAL = [
+  { band_order: 1, band_label: "1× Weekly", max_sqft: null, essential: 175, preferred: 225, premium: 325, unavailable: false },
+  { band_order: 2, band_label: "2× Weekly", max_sqft: null, essential: 161, preferred: 207, premium: 299, unavailable: false },
+  { band_order: 3, band_label: "3× Weekly", max_sqft: null, essential: 154, preferred: 198, premium: 286, unavailable: false },
+  { band_order: 4, band_label: "5× Weekly", max_sqft: null, essential: 144, preferred: 185, premium: 267, unavailable: false },
+];
+
+function usePricing(page, fallback) {
+  const [pricing, setPricing] = React.useState(fallback);
+  React.useEffect(() => {
+    fetch('/api/pricing/' + page)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data && Array.isArray(data.rows) && data.rows.length) setPricing(data.rows); })
+      .catch(() => {});
+  }, [page]);
+  return pricing;
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [booking, setBooking] = React.useState(t.defaultBooking);
   React.useEffect(() => setBooking(t.defaultBooking), [t.defaultBooking]);
   const [navy, gold] = t.palette;
   const content = useSiteContent('commercial');
+  const pricing = usePricing('commercial', DEFAULT_PRICING_COMMERCIAL);
 
   return (
     <div style={{ background: CREAM }}>
@@ -624,8 +640,8 @@ function App() {
       <AddOns navy={navy} gold={gold} />
       <Commercial navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
-      <PricingTable navy={navy} gold={gold} />
-      <Calculator navy={navy} gold={gold} />
+      <PricingTable navy={navy} gold={gold} pricing={pricing} />
+      <Calculator navy={navy} gold={gold} pricing={pricing} />
       <Contact note={content.contact.note} />
       <TweaksPanel>
         <TweakSection label="Theme" />

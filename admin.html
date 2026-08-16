@@ -22,6 +22,11 @@
   .day-row { display: grid; grid-template-columns: 90px 90px 1fr 1fr; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e3ded2; }
   .day-row label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .day-row input[type=time] { padding: 6px 8px; border: 1px solid #d8d3c8; border-radius: 4px; font-size: 13px; }
+  .pricing-row { display: grid; grid-template-columns: 1fr 100px 90px 90px 90px 110px 32px; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #e3ded2; }
+  .pricing-row input[type=text], .pricing-row input[type=number] { padding: 6px 8px; border: 1px solid #d8d3c8; border-radius: 4px; font-size: 13px; width: 100%; }
+  .pricing-row label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #7a746a; }
+  .pricing-row button { padding: 6px 8px; background: #e3ded2; color: #153238; }
+  .pricing-head { display: grid; grid-template-columns: 1fr 100px 90px 90px 90px 110px 32px; gap: 8px; font-size: 11px; color: #7a746a; text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -41,6 +46,22 @@
       <h2>Commercial page</h2>
       <textarea id="commercial"></textarea>
       <div><button data-page="commercial">Save commercial</button> <span class="status" id="status-commercial"></span></div>
+    </div>
+    <div class="page-block">
+      <h2>Residential pricing</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Size bands drive both the pricing table and the live quote calculator on the residential page. Check "Unavailable" for a band that should show "priced individually" instead of numbers (e.g. the top band).</p>
+      <div class="pricing-head"><span>Band label</span><span>Max sq ft</span><span>Essential</span><span>Preferred</span><span>Premium</span><span>Unavailable</span><span></span></div>
+      <div id="pricing-rows-residential"></div>
+      <div style="margin-top:12px"><button data-add-pricing="residential">+ Add size band</button></div>
+      <div style="margin-top:16px"><button data-save-pricing="residential">Save residential pricing</button> <span class="status" id="status-pricing-residential"></span></div>
+    </div>
+    <div class="page-block">
+      <h2>Commercial pricing</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Frequency bands shown on the commercial pricing table. The first band's prices also set the live calculator's base tier price (before size/complexity adjustments).</p>
+      <div class="pricing-head"><span>Band label</span><span>Max sq ft</span><span>Essential</span><span>Preferred</span><span>Premium</span><span>Unavailable</span><span></span></div>
+      <div id="pricing-rows-commercial"></div>
+      <div style="margin-top:12px"><button data-add-pricing="commercial">+ Add frequency band</button></div>
+      <div style="margin-top:16px"><button data-save-pricing="commercial">Save commercial pricing</button> <span class="status" id="status-pricing-commercial"></span></div>
     </div>
     <div class="page-block">
       <h2>Business hours</h2>
@@ -116,11 +137,90 @@ document.getElementById('save-schedule').addEventListener('click', async () => {
   }
 });
 
+const PRICING_PAGES = ['residential', 'commercial'];
+let pricingData = { residential: [], commercial: [] };
+
+function renderPricing(page) {
+  const container = document.getElementById('pricing-rows-' + page);
+  container.innerHTML = pricingData[page].map((r, idx) => `
+    <div class="pricing-row">
+      <input type="text" data-page="${page}" data-idx="${idx}" data-field="band_label" value="${r.band_label || ''}" placeholder="e.g. Up to 1,000 sq ft">
+      <input type="number" data-page="${page}" data-idx="${idx}" data-field="max_sqft" value="${r.max_sqft ?? ''}" placeholder="optional">
+      <input type="number" step="0.01" data-page="${page}" data-idx="${idx}" data-field="essential" value="${r.essential ?? ''}" ${r.unavailable ? 'disabled' : ''}>
+      <input type="number" step="0.01" data-page="${page}" data-idx="${idx}" data-field="preferred" value="${r.preferred ?? ''}" ${r.unavailable ? 'disabled' : ''}>
+      <input type="number" step="0.01" data-page="${page}" data-idx="${idx}" data-field="premium" value="${r.premium ?? ''}" ${r.unavailable ? 'disabled' : ''}>
+      <label><input type="checkbox" data-page="${page}" data-idx="${idx}" data-field="unavailable" ${r.unavailable ? 'checked' : ''}> Unavailable</label>
+      <button type="button" data-remove-pricing="${page}:${idx}" title="Remove band">×</button>
+    </div>
+  `).join('');
+  container.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const p = inp.getAttribute('data-page');
+      const idx = Number(inp.getAttribute('data-idx'));
+      const field = inp.getAttribute('data-field');
+      const row = pricingData[p][idx];
+      if (field === 'unavailable') row.unavailable = inp.checked;
+      else if (field === 'band_label') row.band_label = inp.value;
+      else if (field === 'max_sqft') row.max_sqft = inp.value === '' ? null : Number(inp.value);
+      else row[field] = inp.value === '' ? null : Number(inp.value);
+      renderPricing(p);
+    });
+  });
+  container.querySelectorAll('button[data-remove-pricing]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [p, idx] = btn.getAttribute('data-remove-pricing').split(':');
+      pricingData[p].splice(Number(idx), 1);
+      pricingData[p].forEach((r, i) => { r.band_order = i + 1; });
+      renderPricing(p);
+    });
+  });
+}
+
+async function loadPricing(page) {
+  const res = await fetch('/api/pricing/' + page);
+  const data = await res.json();
+  pricingData[page] = data.rows || [];
+  renderPricing(page);
+}
+
+document.querySelectorAll('button[data-add-pricing]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.getAttribute('data-add-pricing');
+    pricingData[page].push({ band_order: pricingData[page].length + 1, band_label: '', max_sqft: null, essential: null, preferred: null, premium: null, unavailable: false });
+    renderPricing(page);
+  });
+});
+
+document.querySelectorAll('button[data-save-pricing]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const page = btn.getAttribute('data-save-pricing');
+    const statusEl = document.getElementById('status-pricing-' + page);
+    btn.disabled = true;
+    statusEl.textContent = 'Saving…';
+    statusEl.className = 'status';
+    try {
+      const res = await fetch('/api/pricing/' + page, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ rows: pricingData[page] })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+      statusEl.textContent = 'Saved.';
+      statusEl.className = 'status ok';
+    } catch (e) {
+      statusEl.textContent = 'Failed: ' + e.message;
+      statusEl.className = 'status err';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
 document.getElementById('unlock').addEventListener('click', async () => {
   token = document.getElementById('token').value.trim();
   if (!token) return;
   document.getElementById('editors').style.display = 'block';
-  await Promise.all(['residential', 'commercial'].map(loadPage).concat([loadSchedule()]));
+  await Promise.all(['residential', 'commercial'].map(loadPage).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
 });
 
 document.querySelectorAll('button[data-page]').forEach(btn => {

@@ -273,9 +273,7 @@ function Quote({ navy, text, caption }) {
   );
 }
 
-function PricingTable({ navy, gold }) {
-  const sizes = ["Up to 1,000", "1,001–1,500", "1,501–2,000", "2,001–2,500", "2,501–3,000", "3,001–3,500", "3,501–4,000", "4,001–5,000", "5,001+"];
-  const rows = [[165, 200, 285], [205, 250, 360], [240, 295, 425], [280, 345, 495], [315, 390, 560], [355, 440, 635], [390, 485, 700], [455, 565, 815], null];
+function PricingTable({ navy, gold, pricing }) {
   const tiers = ["Essential", "Preferred", "Premium"];
   return (
     <section id="pricing" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
@@ -296,17 +294,16 @@ function PricingTable({ navy, gold }) {
             </tr>
           </thead>
           <tbody>
-            {sizes.map((size, r) => {
-              const row = rows[r];
-              return (
-                <tr key={size}>
-                  <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>{size} sq ft</td>
-                  {row ? tiers.map((tier, i) => (<td key={tier} style={{ fontSize: 17, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>${row[i]}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> /visit</span></td>)) : (
-                    <td colSpan={3} style={{ fontSize: 14, color: "#3d4a4d", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>Priced individually — <a href="mailto:hello@gulfproclean.com" style={{ color: "#8a6221" }}>request a quote</a></td>
-                  )}
-                </tr>
-              );
-            })}
+            {pricing.map((row) => (
+              <tr key={row.band_label}>
+                <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>{row.band_label}</td>
+                {row.unavailable ? (
+                  <td colSpan={3} style={{ fontSize: 14, color: "#3d4a4d", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>Priced individually — <a href="mailto:hello@gulfproclean.com" style={{ color: "#8a6221" }}>request a quote</a></td>
+                ) : [row.essential, row.preferred, row.premium].map((price, i) => (
+                  <td key={tiers[i]} style={{ fontSize: 17, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>${Math.round(price).toLocaleString("en-US")}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> /visit</span></td>
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -327,17 +324,11 @@ function Contact({ note }) {
   );
 }
 
-function Calculator({ navy, gold }) {
-  const SIZE_TIERS = [
-    { max: 1000, label: "Up to 1,000", prices: { Essential: 165, Preferred: 200, Premium: 285 } },
-    { max: 1500, label: "1,001–1,500", prices: { Essential: 205, Preferred: 250, Premium: 360 } },
-    { max: 2000, label: "1,501–2,000", prices: { Essential: 240, Preferred: 295, Premium: 425 } },
-    { max: 2500, label: "2,001–2,500", prices: { Essential: 280, Preferred: 345, Premium: 495 } },
-    { max: 3000, label: "2,501–3,000", prices: { Essential: 315, Preferred: 390, Premium: 560 } },
-    { max: 3500, label: "3,001–3,500", prices: { Essential: 355, Preferred: 440, Premium: 635 } },
-    { max: 4000, label: "3,501–4,000", prices: { Essential: 390, Preferred: 485, Premium: 700 } },
-    { max: 5000, label: "4,001–5,000", prices: { Essential: 455, Preferred: 565, Premium: 815 } },
-  ];
+function Calculator({ navy, gold, pricing }) {
+  const SIZE_TIERS = pricing.filter(r => !r.unavailable).map(r => ({
+    max: r.max_sqft, label: r.band_label,
+    prices: { Essential: r.essential, Preferred: r.preferred, Premium: r.premium },
+  }));
   const freqAdj = { "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0;
@@ -547,6 +538,29 @@ function useSiteContent(page) {
       .catch(() => {});
   }, [page]);
   return content;
+}
+
+const DEFAULT_PRICING_RESIDENTIAL = [
+  { band_order: 1, band_label: "Up to 1,000 sq ft", max_sqft: 1000, essential: 165, preferred: 200, premium: 285, unavailable: false },
+  { band_order: 2, band_label: "1,001–1,500 sq ft", max_sqft: 1500, essential: 205, preferred: 250, premium: 360, unavailable: false },
+  { band_order: 3, band_label: "1,501–2,000 sq ft", max_sqft: 2000, essential: 240, preferred: 295, premium: 425, unavailable: false },
+  { band_order: 4, band_label: "2,001–2,500 sq ft", max_sqft: 2500, essential: 280, preferred: 345, premium: 495, unavailable: false },
+  { band_order: 5, band_label: "2,501–3,000 sq ft", max_sqft: 3000, essential: 315, preferred: 390, premium: 560, unavailable: false },
+  { band_order: 6, band_label: "3,001–3,500 sq ft", max_sqft: 3500, essential: 355, preferred: 440, premium: 635, unavailable: false },
+  { band_order: 7, band_label: "3,501–4,000 sq ft", max_sqft: 4000, essential: 390, preferred: 485, premium: 700, unavailable: false },
+  { band_order: 8, band_label: "4,001–5,000 sq ft", max_sqft: 5000, essential: 455, preferred: 565, premium: 815, unavailable: false },
+  { band_order: 9, band_label: "5,001+ sq ft", max_sqft: null, essential: null, preferred: null, premium: null, unavailable: true },
+];
+
+function usePricing(page, fallback) {
+  const [pricing, setPricing] = React.useState(fallback);
+  React.useEffect(() => {
+    fetch('/api/pricing/' + page)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data && Array.isArray(data.rows) && data.rows.length) setPricing(data.rows); })
+      .catch(() => {});
+  }, [page]);
+  return pricing;
 }
 
 function useIsMobile(breakpoint) {
@@ -852,6 +866,7 @@ function App() {
   React.useEffect(() => setBooking(t.defaultBooking), [t.defaultBooking]);
   const [navy, gold] = t.palette;
   const content = useSiteContent('residential');
+  const pricing = usePricing('residential', DEFAULT_PRICING_RESIDENTIAL);
 
   return (
     <div style={{ background: CREAM }}>
@@ -863,8 +878,8 @@ function App() {
       <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} />
       <AddOns navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
-      <PricingTable navy={navy} gold={gold} />
-      <Calculator navy={navy} gold={gold} />
+      <PricingTable navy={navy} gold={gold} pricing={pricing} />
+      <Calculator navy={navy} gold={gold} pricing={pricing} />
       <Contact note={content.contact.note} />
       <TweaksPanel>
         <TweakSection label="Theme" />
