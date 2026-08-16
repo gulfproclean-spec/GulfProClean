@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf ProClean — commercial cleaning</title>
+<script src="./ds-base.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="image-slot.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Libre Franklin', system-ui, sans-serif; text-wrap: pretty; }
+  a { text-decoration: none; }
+  #root { min-height: 100vh; }
+  @media (max-width: 720px) {
+    nav { flex-wrap: wrap; row-gap: 10px; }
+    .calc-two-col { grid-template-columns: 1fr !important; }
+    table { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(async () => {
+  try {
+    const src = await (await fetch('tweaks-panel.jsx')).text();
+    (0, eval)(Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code);
+  } catch (e) { console.error('tweaks-panel.jsx failed:', e); }
+  try {
+    const src = document.getElementById('app-script').textContent;
+    (0, eval)(Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code);
+  } catch (e) { console.error('app script failed:', e); }
+})();
+</script>
+<script type="text/plain" id="app-script">
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": ["#153238", "#b68235"],
+  "defaultBooking": "Subscription",
+  "heroPhoto": true
+}/*EDITMODE-END*/;
+
+const CREAM = "#f5f2ec";
+
+function Nav({ navy, gold, onHero }) {
+  const links = [["Home", "index.html"], ["Approach", "#approach"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Pricing", "#pricing"], ["Get a Quote", "#calculator"], ["Residential →", "residential.html"]];
+  return (
+    <nav style={{ display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: onHero ? "#fff" : navy, fontSize: 14 }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
+        <span style={{ width: 18, height: 1, background: onHero ? "#fff" : navy, display: "inline-block" }} />
+        GULF PROCLEAN
+      </span>
+      {links.map(([label, href]) => (
+        <a key={label} href={href} style={{ color: "inherit", opacity: 0.92 }}>{label}</a>
+      ))}
+    </nav>
+  );
+}
+
+function Hero({ navy, gold, heroPhoto }) {
+  const headline = (
+    <h1 style={{ fontFamily: "'Libre Franklin', sans-serif", fontWeight: 300, fontSize: "clamp(40px, 6vw, 74px)", lineHeight: 1.08, letterSpacing: "-0.01em", margin: 0, color: heroPhoto ? "#fff" : navy, maxWidth: 780 }}>
+      Spotless, on your <span style={{ fontStyle: "italic" }}>terms.</span> Built for how you operate.
+    </h1>
+  );
+  const subhead = (
+    <p style={{ display: "inline-block", background: gold, color: navy, fontWeight: 500, fontSize: 17, lineHeight: 1.5, padding: "18px 22px", marginTop: 28, maxWidth: 620 }}>
+      Gulf ProClean cleans offices, restaurants and commercial portfolios from Pensacola to Panama City Beach — recurring or on-demand, booked around your hours.
+    </p>
+  );
+  const bookNow = (
+    <a href="#calculator" style={{ display: "inline-block", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 600, padding: "14px 30px", borderRadius: 3, marginTop: 28, background: gold, color: navy }}>Book Now</a>
+  );
+  const ctaRow = (
+    <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 22, flexWrap: "wrap" }}>
+      <a href="#pricing" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 16, padding: "14px 24px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 8 }}>See pricing →</a>
+      <a href="#plans" style={{ color: heroPhoto ? "#fff" : navy, fontWeight: 500, fontSize: 16, textDecoration: "underline" }}>Explore service tiers</a>
+    </div>
+  );
+  if (!heroPhoto) {
+    return (
+      <header style={{ background: CREAM, padding: "0 clamp(20px,5vw,56px) 64px" }}>
+        <Nav navy={navy} gold={gold} onHero={false} />
+        <div style={{ paddingTop: 48 }}>{headline}{subhead}<div>{bookNow}</div>{ctaRow}</div>
+      </header>
+    );
+  }
+  return (
+    <header style={{ position: "relative", minHeight: "min(960px, 100vh)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <image-slot id="hero-photo" shape="rect" placeholder="Full-bleed photo of a clean, bright commercial office lobby" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}></image-slot>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(20,30,32,0.55) 0%, rgba(20,30,32,0.15) 40%, rgba(20,30,32,0.6) 100%)" }} />
+      <div style={{ position: "relative", zIndex: 5 }}><Nav navy={navy} gold={gold} onHero={true} /></div>
+      <div style={{ position: "relative", zIndex: 5, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px clamp(20px,5vw,56px) 56px" }}>
+        {headline}{subhead}<div>{bookNow}</div>{ctaRow}
+      </div>
+    </header>
+  );
+}
+
+function Kicker({ children, gold }) {
+  return <span style={{ display: "block", fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: gold, marginBottom: 14 }}>{children}</span>;
+}
+
+function Services({ navy }) {
+  const items = [
+    ["Offices", "Cleaned on a schedule that matches your hours, with a point of contact who answers the phone."],
+    ["Retail & restaurants", "Front-of-house and back-of-house cleaned around service hours, so the doors open spotless."],
+    ["Property portfolios", "HOAs and multi-site managers get one crew and one written scope across every building."]
+  ];
+  return (
+    <section id="services" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+      <Kicker gold="#8a6221">What we clean</Kicker>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 40, marginTop: 8 }}>
+        {items.map(([title, body]) => (
+          <div key={title} style={{ borderTop: `2px solid ${navy}`, paddingTop: 18 }}>
+            <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>{title}</h3>
+            <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "#3d4a4d", marginTop: 12 }}>{body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ServiceTiers({ navy, gold }) {
+  const groups = [
+    ["Essential Clean", ["Trash & recycling", "Restroom restock & sanitize", "Floors (vacuum/mop)", "Surface wipe-down", "Entryway & glass doors", "Break room surfaces", "Dusting reachable surfaces"]],
+    ["Preferred Clean", ["Interior glass & partitions", "Baseboards", "Detailed restroom fixtures", "High-touch disinfection", "Kitchen/break room appliance exteriors", "Window sills"]],
+    ["Premium", ["Floor scrub & burnish", "Interior windows", "Vents & light fixtures", "Upholstery spot clean", "Detailed baseboards & corners", "Behind/under movable furniture", "Restroom grout & fixture detail"]]
+  ];
+  const tierNames = groups.map(g => g[0]);
+  const rows = groups.flatMap(([tier, items]) => items.map(item => ({ item, from: tierNames.indexOf(tier) })));
+  return (
+    <section id="tiers" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+      <Kicker gold="#8a6221">Service tiers</Kicker>
+      <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Choose how deep we go</h2>
+      <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Every tier includes everything in the tier before it — compare all three at a glance.</p>
+      <div style={{ overflowX: "auto", marginTop: 32 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Included</th>
+              {tierNames.map(name => (
+                <th key={name} style={{ textAlign: "center", fontSize: 15, color: navy, fontWeight: 600, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>{name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ item, from }) => (
+              <tr key={item}>
+                <td style={{ fontSize: 14, color: navy, padding: "10px 16px 10px 0", borderBottom: "1px solid #e3ded2" }}>{item}</td>
+                {tierNames.map((name, i) => (
+                  <td key={name} style={{ textAlign: "center", padding: "10px 16px", borderBottom: "1px solid #e3ded2" }}>
+                    {i >= from && <span style={{ color: gold, fontWeight: 700 }}>✓</span>}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function PlanList({ items, gold }) {
+  return (
+    <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, fontSize: 14, color: "#3d4a4d" }}>
+      {items.map(i => (<li key={i} style={{ padding: "4px 0", display: "flex", gap: 8 }}><span style={{ color: gold }}>—</span>{i}</li>))}
+    </ul>
+  );
+}
+
+function Plans({ navy, gold, booking, setBooking }) {
+  const subs = [
+    ["Essential", null, "Small offices · Light traffic", "$175", "1 cleaning / week · weekly cadence",
+      ["1 cleaning per week", "Ideal for small offices & retail", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"]],
+    ["Preferred", null, "Restaurants · Multi-tenant · Daily traffic", "$225", "3 cleanings / week · standard cadence",
+      ["3 cleanings per week", "Best value — most chosen", "Price by property size", "Cloud-synced schedule"]],
+    ["Premium", "Most popular", "High-traffic sites · Portfolios", "$325", "5 cleanings / week · weekly cadence",
+      ["5 cleanings per week", "High-traffic & multi-site portfolios", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"]]
+  ];
+  return (
+    <section id="plans" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <Kicker gold="#8a6221">Booking</Kicker>
+        <div style={{ position: "relative", background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginTop: 8, marginBottom: 28, display: "inline-flex", alignItems: "center", gap: 12, fontSize: 15.5, fontWeight: 700, boxShadow: `0 8px 28px ${gold}55`, border: `1px solid ${navy}22`, letterSpacing: "0.01em" }}>
+          <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
+          First-time customers save 10% on any plan — limited time only
+          <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
+        </div>
+        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 36, color: navy, margin: 0, maxWidth: 640 }}>Book once, or let us handle it on repeat</h2>
+        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with property size — <a href="#pricing" style={{ color: "#8a6221" }}>see tier pricing</a> for your square footage.</p>
+
+        <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+            <div>
+              <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>One-time clean</h3>
+              <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 8, maxWidth: "56ch" }}>A single visit — post-construction cleanup, event turnover or a one-off deep clean. No commitment, scheduled around your hours.</p>
+            </div>
+            <a href="#pricing" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>See one-time pricing</a>
+          </div>
+          <div style={{ display: "flex", gap: 24, marginTop: 20, flexWrap: "wrap" }}>
+            {subs.map(([name, , , price]) => (
+              <div key={name}>
+                <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
+                <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>Starting at ${Math.round(parseInt(price.slice(1), 10) * 1.3)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0 }}>Recurring plans</p>
+        <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for offices, restaurants and multi-site portfolios, billed monthly. No contracts — cancel anytime.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
+          {subs.map(([name, badge, audience, price, cadence, features]) => (
+            <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
+              {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
+              <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
+              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "6px 0 0" }}>{audience}</p>
+              <p style={{ margin: "16px 0 0" }}><span style={{ fontSize: 13, fontWeight: 500, color: "#7a746a" }}>Starting at </span><span style={{ fontSize: 26, fontWeight: 600, color: "#8a6221" }}>{price}</span><span style={{ fontSize: 13, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
+              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{cadence}</p>
+              <p style={{ fontSize: 12.5, color: "#8a6221", margin: "6px 0 0", fontWeight: 500 }}>6-month prepay: ${Math.round(parseInt(price.slice(1), 10) * 0.9)} / visit (−10%) · 12-month: ${Math.round(parseInt(price.slice(1), 10) * 0.85)} / visit (−15%)</p>
+              <PlanList gold={gold} items={features} />
+              <a href="#pricing" style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name}</a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AddOns({ navy, gold }) {
+  const commercial = [
+    ["Post-Construction Cleanup", "From $0.25/sq ft"],
+    ["Exterior Window Washing", "From $0.75/sq ft of glass"],
+    ["High / Low Dusting", "From $0.08/sq ft"],
+    ["Restroom Deep Sanitize", "From $75/restroom"],
+    ["Trash & Dumpster Area Detail", "From $175/area"],
+    ["Carpet Extraction", "From $0.35/sq ft"],
+    ["Kitchen Equipment Degreasing", "From $175/area"],
+    ["Pressure Washing — Entryways/Dumpster Pads", "From $0.35/sq ft"]
+  ];
+  return (
+    <section id="addons" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <Kicker gold="#8a6221">Add-ons</Kicker>
+        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Commercial Add-On Services</h2>
+        <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 14, maxWidth: "58ch" }}>Actual cost is calculated from your property's square footage, restroom count and service areas in the estimate below.</p>
+        <div style={{ overflowX: "auto", marginTop: 32 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Add-on</th>
+                <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>Starting price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {commercial.map(([name, rate]) => (
+                <tr key={name}>
+                  <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>{name}</td>
+                  <td style={{ fontSize: 15, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>{rate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <a href="#calculator" style={{ display: "inline-block", marginTop: 24, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Build your estimate</a>
+      </div>
+    </section>
+  );
+}
+
+function Commercial({ navy, gold }) {
+  return (
+    <section id="approach" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(0,7fr) minmax(0,5fr)", gap: 48, alignItems: "center" }}>
+      <div>
+        <Kicker gold="#8a6221">Approach</Kicker>
+        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0 }}>Contracts built around your building</h2>
+        <p style={{ fontSize: 15.5, lineHeight: 1.7, color: "#3d4a4d", marginTop: 18, maxWidth: "48ch" }}>Offices, HOAs, restaurants and property-management portfolios get a written scope, a fixed schedule and one crew that learns the building — not a rotating roster starting from zero every visit.</p>
+      </div>
+      <image-slot id="photo-commercial" shape="rect" placeholder="Photo of a cleaned commercial space or office" style={{ width: "100%", aspectRatio: "4/5", border: `6px solid ${CREAM}`, outline: "1px solid #e3ded2" }}></image-slot>
+    </section>
+  );
+}
+
+function Quote({ navy }) {
+  return (
+    <section style={{ background: navy, color: "#fff", padding: "88px clamp(20px,5vw,56px)" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <blockquote style={{ fontFamily: "inherit", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(24px,2.6vw,34px)", lineHeight: 1.4, maxWidth: "34ch", margin: 0 }}>
+          "One crew, one scope, one invoice across four locations. That's the whole reason we switched."
+        </blockquote>
+        <figcaption style={{ fontSize: 14.5, opacity: 0.75, marginTop: 24 }}>— placeholder quote, swap for a real client</figcaption>
+      </div>
+    </section>
+  );
+}
+
+function PricingTable({ navy, gold }) {
+  const freqs = ["1× Weekly", "2× Weekly", "3× Weekly", "5× Weekly"];
+  const rows = [
+    ["Essential", null, [175, 161, 154, 144]],
+    ["Preferred", null, [225, 207, 198, 185]],
+    ["Premium", "⭐ Most Popular", [325, 299, 286, 267]]
+  ];
+  return (
+    <section id="pricing" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
+      <Kicker gold="#8a6221">Pricing</Kicker>
+      <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Commercial Maintenance</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginTop: 32, marginBottom: 8 }}>
+        {[["Essential", "The basics, every visit: trash, restrooms, floors and surface wipe-down."], ["Preferred", "Essential, plus interior glass, baseboards and high-touch disinfection."], ["Premium", "Preferred, plus floor scrub & burnish, interior windows and vents."]].map(([name, blurb]) => (
+          <div key={name}><p style={{ fontSize: 14.5, fontWeight: 600, color: navy, margin: 0 }}>{name}</p><p style={{ fontSize: 13, color: "#7a746a", margin: "4px 0 0" }}>{blurb}</p></div>
+        ))}
+      </div>
+      <div style={{ overflowX: "auto", marginTop: 32 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Service tier</th>
+              {freqs.map(f => (<th key={f} style={{ textAlign: "left", fontSize: 15, color: navy, fontWeight: 600, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>{f}</th>))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([name, badge, prices]) => (
+              <tr key={name}>
+                <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>
+                  {name}{badge && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: "#8a6221" }}>{badge}</span>}
+                </td>
+                {prices.map((p, i) => (
+                  <td key={i} style={{ fontSize: 15, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>From ${p}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}>/visit</span></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ fontSize: 13, color: "#7a746a", marginTop: 24, maxWidth: "70ch" }}>Pricing shown is a starting point for standard commercial properties. Final pricing is based on property size, facility type, condition, occupancy, restroom count, floor type, and service requirements.</p>
+      <footer style={{ marginTop: 40, fontSize: 13, color: "#7a746a" }}>Gulf ProClean — serving businesses from Pensacola to Panama City Beach.</footer>
+    </section>
+  );
+}
+
+function Contact() {
+  return (
+    <section id="contact" style={{ padding: "0 clamp(20px,5vw,56px) 40px", maxWidth: 1200, margin: "0 auto" }}>
+      <p style={{ fontSize: 14, color: "#7a746a" }}>Large or non-standard facilities: <a href="mailto:hello@gulfproclean.com" style={{ color: "#8a6221" }}>request a quote</a>.</p>
+    </section>
+  );
+}
+
+function Calculator({ navy, gold }) {
+  const baseMap = { Essential: 175, Preferred: 225, Premium: 325 };
+  const typeAdj = { "Standard office": 0, "Retail / high traffic": 0.10, "Medical": 0.25, "Restaurant": 0.30 };
+  const freqAdj = { "1 visit weekly": 0, "2 visits weekly": -0.08, "3 visits weekly": -0.12, "5 visits weekly": -0.18 };
+  const bookingAdj = { "One-time": 0.30, "Monthly": 0, "6-month prepay": -0.10, "12-month prepay": -0.15 };
+  const addonPricing = {
+    "Post-construction cleanup": { rate: 0.25, unit: "sqft", min: 750 },
+    "Exterior window washing": { rate: 0.75, unit: "sqft", min: 350 },
+    "High / low dusting": { rate: 0.08, unit: "sqft", min: 250 },
+    "Restroom deep sanitize": { rate: 75, unit: "restrooms", min: 250 },
+    "Trash & dumpster area detail": { rate: 175, unit: "areas", min: 175 },
+    "Carpet extraction": { rate: 0.35, unit: "sqft", min: 300 },
+    "Kitchen equipment degreasing": { rate: 175, unit: "areas", min: 250 },
+    "Pressure washing — entryways/dumpster pads": { rate: 0.35, unit: "sqft", min: 300 }
+  };
+  const unitLabels = { sqft: "sq ft", restrooms: "restrooms", areas: "areas" };
+  const occupancyAdj = { "Light": 0, "Moderate": 0.05, "Heavy": 0.10, "Very heavy": 0.175 };
+  const occupancyDesc = {
+    "Light": "Primarily employees, limited visitors",
+    "Moderate": "Regular employee and visitor traffic",
+    "Heavy": "Frequent customers, visitors, or public traffic",
+    "Very heavy": "Continuous or high-volume public traffic"
+  };
+  const areaAdj = (n) => n <= 1 ? 0 : n <= 3 ? 0.05 : 0.10;
+  const restroomBandCount = { "1–2": 2, "3–5": 4, "6–10": 8, "11+": 12 };
+  const hardFloorAdj = { "0–25%": 0, "26–50%": 0.025, "51–75%": 0.05, "76–100%": 0.10 };
+  const hardFloorDesc = {
+    "0–25%": "Mostly carpet — less than 25% hard floor",
+    "26–50%": "Mixed — about 25–50% hard floor",
+    "51–75%": "Mostly hard floor — about 50–75% hard floor",
+    "76–100%": "Almost entirely hard floor — 75%+ hard floor"
+  };
+  const highRestroomThreshold = (s) => s <= 2500 ? 4 : s <= 5000 ? 6 : s <= 10000 ? 10 : s <= 20000 ? 15 : 25;
+
+  const [sqft, setSqft] = React.useState(2500);
+  const [restroomBand, setRestroomBand] = React.useState("3–5");
+  const [areas, setAreas] = React.useState(1);
+  const [tier, setTier] = React.useState("Premium");
+  const [propertyType, setPropertyType] = React.useState("Standard office");
+  const [occupancy, setOccupancy] = React.useState("Moderate");
+  const [hardFloorPct, setHardFloorPct] = React.useState("0–25%");
+  const [frequency, setFrequency] = React.useState("5 visits weekly");
+  const [addons, setAddons] = React.useState([]);
+  const [booking, setBooking] = React.useState("Monthly");
+  const [address, setAddress] = React.useState("");
+  const [unit, setUnit] = React.useState("");
+  const [firstTime, setFirstTime] = React.useState(null);
+  const [booked, setBooked] = React.useState(false);
+  const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
+  const handleBookIt = () => {
+    const key = (address.trim() + " " + unit.trim()).trim().toLowerCase();
+    if (!key) { alert("Enter the service address to book."); return; }
+    const known = JSON.parse(localStorage.getItem("gpc_known_addresses") || "[]");
+    const isNew = !known.includes(key);
+    if (isNew) localStorage.setItem("gpc_known_addresses", JSON.stringify([...known, key]));
+    setFirstTime(isNew);
+    setBooked(true);
+  };
+
+  const restrooms = restroomBandCount[restroomBand];
+  const isHighRestroom = restrooms >= highRestroomThreshold(sqft);
+  const base = baseMap[tier];
+  const complexityMult = 1 + typeAdj[propertyType] + occupancyAdj[occupancy] + (isHighRestroom ? 0.10 : 0) + hardFloorAdj[hardFloorPct] + areaAdj(areas);
+  const afterComplexity = base * complexityMult;
+  const afterFrequency = afterComplexity * (1 + freqAdj[frequency]);
+  const scopeVal = { sqft, restrooms, areas };
+  const addonPrice = (name) => { const p = addonPricing[name]; return Math.round(Math.max(p.rate * scopeVal[p.unit], p.min)); };
+  const addonsTotal = addons.reduce((sum, name) => sum + addonPrice(name), 0);
+  const afterBooking = afterFrequency * (1 + bookingAdj[booking]);
+  const final = afterBooking * (firstTime ? 0.90 : 1) + addonsTotal;
+
+  const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
+  const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
+
+  return (
+    <section id="calculator" style={{ background: navy, padding: "48px clamp(20px,5vw,56px)" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginBottom: 24, textAlign: "center", fontWeight: 700, fontSize: 16 }}>
+          ✦ Discounts for first-time customers and subscription plans ✦
+        </div>
+        <Kicker gold="#d9a94a">Get a quote</Kicker>
+        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your price</h2>
+        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Base price × complexity multiplier × frequency adjustment + add-ons. An estimate — final pricing is confirmed on walkthrough.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={labelStyle}>Service address</span>
+            <input type="text" placeholder="123 Main St, Destin FL" value={address} onChange={e => { setAddress(e.target.value); setFirstTime(null); setBooked(false); }} style={selStyle} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={labelStyle}>Unit / suite number</span>
+            <input type="text" placeholder="Suite 200 (optional)" value={unit} onChange={e => setUnit(e.target.value)} style={selStyle} />
+          </div>
+          <label><span style={labelStyle}>Property size (sq ft)</span>
+            <input type="number" min="0" value={sqft} onChange={e => setSqft(Number(e.target.value))} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>Restroom count</span>
+            <select style={selStyle} value={restroomBand} onChange={e => setRestroomBand(e.target.value)}>
+              {Object.keys(restroomBandCount).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </label>
+          <label><span style={labelStyle}>Service areas (trash/kitchen)</span>
+            <input type="number" min="0" value={areas} onChange={e => setAreas(Number(e.target.value))} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>Property type</span>
+            <select style={selStyle} value={propertyType} onChange={e => setPropertyType(e.target.value)}>
+              {Object.keys(typeAdj).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </label>
+          <label><span style={labelStyle}>How busy is the facility?</span>
+            <select style={selStyle} value={occupancy} onChange={e => setOccupancy(e.target.value)}>
+              {Object.keys(occupancyAdj).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+            <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{occupancyDesc[occupancy]}</p>
+          </label>
+          <label><span style={labelStyle}>Percent hard flooring</span>
+            <select style={selStyle} value={hardFloorPct} onChange={e => setHardFloorPct(e.target.value)}>
+              {Object.keys(hardFloorAdj).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+            <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{hardFloorDesc[hardFloorPct]}</p>
+          </label>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
+          <label><span style={labelStyle}>Service tier</span>
+            <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
+              {Object.keys(baseMap).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} — from ${baseMap[k]}/visit</option>)}
+            </select>
+          </label>
+          <label><span style={labelStyle}>Cleaning frequency</span>
+            <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
+              {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </label>
+          <label><span style={labelStyle}>Billing</span>
+            <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>
+              {Object.keys(bookingAdj).map(k => <option key={k} value={k}>{k}{bookingAdj[k] < 0 ? ` (${Math.abs(Math.round(bookingAdj[k] * 100))}% Discount)` : ""}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="calc-two-col" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,0.9fr)", gap: 20, marginTop: 20, alignItems: "start" }}>
+          <label style={{ background: "#fff", borderRadius: 8, padding: 20 }}><span style={labelStyle}>Add-ons</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
+              {Object.keys(addonPricing).map(name => (
+                <label key={name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: navy }}>
+                  <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name} <span style={{ marginLeft: "auto", color: "#7a746a" }}>${addonPrice(name)}</span>
+                </label>
+              ))}
+            </div>
+          </label>
+          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "24px 28px", color: "#fff", position: "sticky", top: 20 }}>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Summary</p>
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} base ({frequency})</span><span>${Math.round(afterFrequency)}/visit</span></div>
+              {addons.map(name => (
+                <div key={name} style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>+ {name}</span><span>${addonPrice(name)}</span></div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Billing: {booking}</span><span>{bookingAdj[booking] >= 0 ? "—" : `−$${Math.round(afterFrequency - afterBooking)}/visit`}</span></div>
+              {(booking === "6-month prepay" || booking === "12-month prepay") && (() => {
+                const visitsPerWeek = parseInt(frequency, 10);
+                const months = booking === "6-month prepay" ? 6 : 12;
+                const totalVisits = Math.round(visitsPerWeek * (months * 52 / 12));
+                return <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Total saved ({months} mo.)</span><span>−${Math.round((afterFrequency - afterBooking) * totalVisits)}</span></div>;
+              })()}
+              {firstTime && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>First-time customer</span><span>−${Math.round(afterBooking - final)}</span></div>}
+            </div>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Estimated price</p>
+              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${final.toFixed(0)}<span style={{ fontSize: 16, fontWeight: 400, color: "rgba(255,255,255,0.7)" }}> / visit</span></p>
+            </div>
+            <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
+            {booked && <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)", marginTop: 10 }}>{firstTime ? "First-time address — 10% discount applied." : "Welcome back — booked at standard pricing."}</p>}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [booking, setBooking] = React.useState(t.defaultBooking);
+  React.useEffect(() => setBooking(t.defaultBooking), [t.defaultBooking]);
+  const [navy, gold] = t.palette;
+
+  return (
+    <div style={{ background: CREAM }}>
+      <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} />
+      <Services navy={navy} />
+      <ServiceTiers navy={navy} gold={gold} />
+      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} />
+      <AddOns navy={navy} gold={gold} />
+      <Commercial navy={navy} gold={gold} />
+      <Quote navy={navy} />
+      <PricingTable navy={navy} gold={gold} />
+      <Calculator navy={navy} gold={gold} />
+      <Contact />
+      <TweaksPanel>
+        <TweakSection label="Theme" />
+        <TweakColor label="Palette" value={t.palette}
+          options={[["#153238", "#b68235"], ["#201f1d", "#b68235"], ["#2d3f47", "#c9a227"]]}
+          onChange={(v) => setTweak('palette', v)} />
+        <TweakToggle label="Full-bleed photo hero" value={t.heroPhoto}
+          onChange={(v) => setTweak('heroPhoto', v)} />
+        <TweakSection label="Booking" />
+        <TweakRadio label="Default view" value={t.defaultBooking}
+          options={['Subscription', 'One-Time']}
+          onChange={(v) => setTweak('defaultBooking', v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

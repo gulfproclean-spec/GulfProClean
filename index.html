@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf ProClean — residential &amp; commercial cleaning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="image-slot.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Libre Franklin', system-ui, sans-serif; text-wrap: pretty; background: #f5f2ec; color: #153238; }
+  a { text-decoration: none; }
+  .navy { color: #153238; }
+</style>
+</head>
+<body>
+  <nav style="display:flex;align-items:center;gap:10px;padding:18px clamp(20px,5vw,56px);font-weight:600;font-size:15px;letter-spacing:0.06em;">
+    <span style="width:18px;height:1px;background:#153238;display:inline-block;"></span>
+    GULF PROCLEAN
+  </nav>
+
+  <header style="padding:56px clamp(20px,5vw,56px) 24px;max-width:900px;">
+    <h1 style="font-family:inherit;font-weight:300;font-size:clamp(38px,5.5vw,60px);line-height:1.1;letter-spacing:-0.01em;margin:0;">
+      Spotless, on your <span style="font-style:italic;">terms.</span>
+    </h1>
+    <p style="font-size:17px;line-height:1.6;color:#3d4a4d;margin-top:20px;max-width:60ch;">
+      Gulf ProClean cleans houses, offices and vacation rentals from Pensacola to Panama City Beach — recurring or on-demand. Tell us which kind of property you're booking for.
+    </p>
+  </header>
+
+  <main style="padding:24px clamp(20px,5vw,56px) 0;max-width:1200px;margin:0 auto;">
+    <span style="display:block;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8a6221;margin-bottom:14px;">What we clean</span>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:40px;">
+      <div style="border-top:2px solid #153238;padding-top:18px;">
+        <h3 style="font-family:inherit;font-weight:500;font-size:22px;color:#153238;margin:0;">Residential</h3>
+        <p style="font-size:15.5px;line-height:1.65;color:#3d4a4d;margin-top:12px;">Standard and deep cleans for houses and condos along the coast, top to bottom, with the same crew returning so nothing gets relearned every visit.</p>
+      </div>
+      <div style="border-top:2px solid #153238;padding-top:18px;">
+        <h3 style="font-family:inherit;font-weight:500;font-size:22px;color:#153238;margin:0;">Commercial</h3>
+        <p style="font-size:15.5px;line-height:1.65;color:#3d4a4d;margin-top:12px;">Offices, restaurants and retail floors cleaned on a schedule that matches your hours, with a point of contact who answers the phone.</p>
+      </div>
+      <div style="border-top:2px solid #153238;padding-top:18px;">
+        <h3 style="font-family:inherit;font-weight:500;font-size:22px;color:#153238;margin:0;">Vacation rentals</h3>
+        <p style="font-size:15.5px;line-height:1.65;color:#3d4a4d;margin-top:12px;">Guest turnovers between check-out and check-in, photo-documented, so the listing looks exactly like its photos every time.</p>
+      </div>
+    </div>
+  </main>
+
+  <main style="padding:56px clamp(20px,5vw,56px) 88px;max-width:1200px;margin:0 auto;">
+    <span style="display:block;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8a6221;margin-bottom:14px;">Get started</span>
+    <h2 style="font-family:inherit;font-weight:300;font-size:28px;color:#153238;margin:0 0 24px;">Tell us which kind of property you're booking for</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:28px;">
+      <a href="residential.html" style="display:block;border:1px solid #d8d3c8;border-radius:8px;overflow:hidden;background:#fff;color:inherit;">
+        <image-slot id="chooser-residential" shape="rect" placeholder="Photo of a bright residential living room" style="width:100%;aspect-ratio:16/10;display:block;"></image-slot>
+        <div style="padding:26px 28px 30px;">
+          <h2 style="font-family:inherit;font-weight:500;font-size:26px;color:#153238;margin:0;">Residential</h2>
+          <p style="font-size:14.5px;line-height:1.6;color:#3d4a4d;margin-top:10px;">Homes, condos and vacation rentals — one-time cleans, recurring plans, and add-ons priced by square footage.</p>
+          <span style="display:inline-block;margin-top:20px;background:#b68235;color:#153238;font-weight:600;font-size:14px;padding:11px 20px;border-radius:3px;">View residential →</span>
+        </div>
+      </a>
+      <a href="commercial.html" style="display:block;border:1px solid #d8d3c8;border-radius:8px;overflow:hidden;background:#fff;color:inherit;">
+        <image-slot id="chooser-commercial" shape="rect" placeholder="Photo of a cleaned commercial office space" style="width:100%;aspect-ratio:16/10;display:block;"></image-slot>
+        <div style="padding:26px 28px 30px;">
+          <h2 style="font-family:inherit;font-weight:500;font-size:26px;color:#153238;margin:0;">Commercial</h2>
+          <p style="font-size:14.5px;line-height:1.6;color:#3d4a4d;margin-top:10px;">Offices, restaurants and property portfolios — service tiers, add-ons and pricing by square footage.</p>
+          <span style="display:inline-block;margin-top:20px;background:#b68235;color:#153238;font-weight:600;font-size:14px;padding:11px 20px;border-radius:3px;">View commercial →</span>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <footer style="padding:0 clamp(20px,5vw,56px) 48px;font-size:13px;color:#7a746a;">Gulf ProClean — serving homes and businesses from Pensacola to Panama City Beach.</footer>
+</body>
+</html>
