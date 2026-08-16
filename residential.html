@@ -47,12 +47,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 const CREAM = "#f5f2ec";
 
-function Nav({ navy, gold, onHero }) {
+function Nav({ navy, gold }) {
   const links = [["Home", "index.html"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Pricing", "#pricing"], ["Get a Quote", "#calculator"], ["Commercial →", "commercial.html"]];
   return (
-    <nav style={{ display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: onHero ? "#fff" : navy, fontSize: 14 }}>
+    <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
-        <span style={{ width: 18, height: 1, background: onHero ? "#fff" : navy, display: "inline-block" }} />
+        <span style={{ width: 18, height: 1, background: navy, display: "inline-block" }} />
         GULF PROCLEAN
       </span>
       {links.map(([label, href]) => (
@@ -85,7 +85,6 @@ function Hero({ navy, gold, heroPhoto, hero }) {
   if (!heroPhoto) {
     return (
       <header style={{ background: CREAM, padding: "0 clamp(20px,5vw,56px) 64px" }}>
-        <Nav navy={navy} gold={gold} onHero={false} />
         <div style={{ paddingTop: 48 }}>{headline}{subhead}<div>{bookNow}</div>{ctaRow}</div>
       </header>
     );
@@ -94,7 +93,6 @@ function Hero({ navy, gold, heroPhoto, hero }) {
     <header style={{ position: "relative", minHeight: "min(960px, 100vh)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       <img src="assets/residential-hero.jpg" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(20,30,32,0.55) 0%, rgba(20,30,32,0.15) 40%, rgba(20,30,32,0.6) 100%)" }} />
-      <div style={{ position: "relative", zIndex: 5 }}><Nav navy={navy} gold={gold} onHero={true} /></div>
       <div style={{ position: "relative", zIndex: 5, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px clamp(20px,5vw,56px) 56px" }}>
         {headline}{subhead}<div>{bookNow}</div>{ctaRow}
       </div>
@@ -477,6 +475,7 @@ function App() {
 
   return (
     <div style={{ background: CREAM }}>
+      <Nav navy={navy} gold={gold} />
       <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero} />
       <Services navy={navy} items={content.services} />
       <ServiceTiers navy={navy} gold={gold} />
