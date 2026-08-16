@@ -69,9 +69,24 @@ const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
 
-let state = { step: 'loading', email: null, mode: 'login', bookings: [], schedule: null, reschedulingId: null, selectedDate: null, selectedTime: null };
+let state = { step: 'loading', email: null, mode: 'login', bookings: [], schedule: null, reschedulingId: null, selectedDate: null, selectedTime: null, addonPanelId: null, addonSelection: {} };
+
+const RESIDENTIAL_ADDON_CATALOG = {
+  "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
+  "Interior windows (package)": 110, "Baseboard detail": 75, "Inside cabinets": 100,
+  "Laundry wash/dry/fold": 35, "Bed linen change": 12, "Pet hair surcharge": 37,
+  "Heavy sand removal": 55, "Patio / balcony": 47, "Garage sweep": 62
+};
 
 function money(n) { return '$' + Math.round(n).toLocaleString(); }
+
+async function signOut() {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
+  state.email = null;
+  state.bookings = [];
+  state.step = 'login';
+  render();
+}
 
 function combineDateTime(dateStr, timeStr) {
   const [y, mo, d] = dateStr.split('-').map(Number);
@@ -297,14 +312,20 @@ function renderLogin() {
 
 function renderBookings() {
   app.innerHTML = `
-    <h1>My Account</h1>
-    <p class="muted">Signed in as ${state.email}</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1>My Account</h1>
+        <p class="muted">Signed in as ${state.email}</p>
+      </div>
+      <button class="secondary" id="signout">Sign out</button>
+    </div>
     ${homeHealthHtml()}
     <h1 style="font-size:24px;margin-top:40px">My Bookings</h1>
     ${state.bookings.length === 0 ? '<div class="card"><p class="muted">No bookings yet.</p></div>' : ''}
     <div id="list"></div>
     ${subscriptionTermsHtml()}
   `;
+  $('#signout').onclick = signOut;
   const list = $('#list');
   state.bookings.forEach(b => {
     const card = document.createElement('div');
@@ -320,11 +341,14 @@ function renderBookings() {
         </div>
         <p style="font-size:18px;font-weight:600;color:#8a6221;margin:0">${money(b.final_total)}</p>
       </div>
-      <div style="margin-top:14px">
+      ${b.scheduled_date ? monthCalendarHtml(b.scheduled_date, b.scheduled_time) : ''}
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="secondary" data-reschedule="${b.id}" ${allowed ? '' : 'disabled'}>Reschedule</button>
-        ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
+        <button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>
       </div>
+      ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
       <div id="reschedule-panel-${b.id}"></div>
+      <div id="addon-panel-${b.id}"></div>
     `;
     list.appendChild(card);
     const btn = card.querySelector(`[data-reschedule="${b.id}"]`);
@@ -335,10 +359,107 @@ function renderBookings() {
       state.selectedTime = null;
       render();
     };
+    const addonBtn = card.querySelector(`[data-addon-toggle="${b.id}"]`);
+    addonBtn.onclick = () => {
+      state.addonPanelId = state.addonPanelId === b.id ? null : b.id;
+      render();
+    };
     if (state.reschedulingId === b.id) {
       renderReschedulePanel(card.querySelector(`#reschedule-panel-${b.id}`), b);
     }
+    if (state.addonPanelId === b.id) {
+      renderAddonPanel(card.querySelector(`#addon-panel-${b.id}`), b);
+    }
   });
+}
+
+function monthCalendarHtml(scheduledDate, scheduledTime) {
+  const target = new Date(String(scheduledDate).slice(0, 10) + 'T00:00:00');
+  const year = target.getFullYear(), month = target.getMonth();
+  const startWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = target.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  return `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 10px">${monthLabel}</p>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;max-width:280px">
+        ${dayLabels.map(l => `<span class="muted" style="font-size:11px">${l}</span>`).join('')}
+        ${cells.map(d => `<span style="font-size:12.5px;padding:6px 0;border-radius:4px;${d === target.getDate() ? 'background:#b68235;color:#153238;font-weight:600' : (d ? 'color:#3d4a4d' : '')}">${d || ''}</span>`).join('')}
+      </div>
+      <p class="muted" style="font-size:12px;margin-top:8px">Scheduled for ${target.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}${scheduledTime ? ' at ' + scheduledTime : ''}</p>
+    </div>
+  `;
+}
+
+function addonOptionsFor(booking) {
+  const purchasedNames = new Set((booking.addons || []).map(a => a.name));
+  const options = (booking.addons || []).map(a => ({ name: a.name, price: a.unitPrice, alreadyOwned: true }));
+  if (booking.page === 'residential') {
+    Object.keys(RESIDENTIAL_ADDON_CATALOG).forEach(name => {
+      if (!purchasedNames.has(name)) options.push({ name, price: RESIDENTIAL_ADDON_CATALOG[name], alreadyOwned: false });
+    });
+  }
+  return options;
+}
+
+function renderAddonPanel(container, booking) {
+  const options = addonOptionsFor(booking);
+  const selected = state.addonSelection[booking.id] || {};
+  const selectedTotal = Object.values(selected).reduce((s, p) => s + p, 0);
+  container.innerHTML = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 4px">Add an add-on to this booking</p>
+      <p class="muted" style="font-size:12px;margin:0 0 8px">Charged immediately to this booking's total.</p>
+      ${options.map(o => `
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px">
+          <input type="checkbox" data-addon-name="${o.name}" ${selected[o.name] != null ? 'checked' : ''} />
+          ${o.name}${o.alreadyOwned ? ' <span class="muted" style="font-size:11px">(more of this)</span>' : ''}
+          <span class="muted" style="margin-left:auto">+${money(o.price)}</span>
+        </label>
+      `).join('')}
+      ${booking.page === 'commercial' ? `<p class="muted" style="font-size:12px;margin-top:6px">Want a service not listed here? <a href="mailto:hello@gulfproclean.com" style="color:#8a6221">Contact us</a> for accurate pricing based on your property.</p>` : ''}
+      <div class="error" id="addon-err-${booking.id}" style="display:none"></div>
+      <button id="confirm-addon-${booking.id}" ${selectedTotal > 0 ? '' : 'disabled'}>${selectedTotal > 0 ? `Add & charge ${money(selectedTotal)}` : 'Select an add-on'}</button>
+    </div>
+  `;
+  container.querySelectorAll('[data-addon-name]').forEach(cb => {
+    cb.onchange = (e) => {
+      const name = e.target.getAttribute('data-addon-name');
+      const opt = options.find(o => o.name === name);
+      if (!state.addonSelection[booking.id]) state.addonSelection[booking.id] = {};
+      if (e.target.checked) state.addonSelection[booking.id][name] = opt.price;
+      else delete state.addonSelection[booking.id][name];
+      render();
+    };
+  });
+  const confirmBtn = $(`#confirm-addon-${booking.id}`, container);
+  if (confirmBtn) confirmBtn.onclick = async () => {
+    const errEl = $(`#addon-err-${booking.id}`, container);
+    errEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    try {
+      const extraAddons = Object.entries(state.addonSelection[booking.id] || {}).map(([name, price]) => ({ name, price }));
+      const res = await fetch(`/api/bookings/${booking.id}/addons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extraAddons }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      state.addonSelection[booking.id] = {};
+      state.addonPanelId = null;
+      await loadBookings();
+      render();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      confirmBtn.disabled = false;
+    }
+  };
 }
 
 function renderReschedulePanel(container, booking) {
