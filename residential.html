@@ -338,7 +338,7 @@ function Calculator({ navy, gold }) {
     { max: 4000, label: "3,501–4,000", prices: { Essential: 390, Preferred: 485, Premium: 700 } },
     { max: 5000, label: "4,001–5,000", prices: { Essential: 455, Preferred: 565, Premium: 815 } },
   ];
-  const freqAdj = { "1 visit monthly": 0, "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
+  const freqAdj = { "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0;
   const MONTH_OPTIONS = [1, 2, 3, 4, 5, 6, 12];
