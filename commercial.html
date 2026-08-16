@@ -63,19 +63,19 @@ function Nav({ navy, gold, onHero }) {
   );
 }
 
-function Hero({ navy, gold, heroPhoto }) {
+function Hero({ navy, gold, heroPhoto, hero }) {
   const headline = (
     <h1 style={{ fontFamily: "'Libre Franklin', sans-serif", fontWeight: 300, fontSize: "clamp(40px, 6vw, 74px)", lineHeight: 1.08, letterSpacing: "-0.01em", margin: 0, color: heroPhoto ? "#fff" : navy, maxWidth: 780 }}>
-      Spotless, on your <span style={{ fontStyle: "italic" }}>terms.</span> Built for how you operate.
+      {hero.headline}
     </h1>
   );
   const subhead = (
     <p style={{ display: "inline-block", background: gold, color: navy, fontWeight: 500, fontSize: 17, lineHeight: 1.5, padding: "18px 22px", marginTop: 28, maxWidth: 620 }}>
-      Gulf ProClean cleans offices, restaurants and commercial portfolios from Pensacola to Panama City Beach — recurring or on-demand, booked around your hours.
+      {hero.subhead}
     </p>
   );
   const bookNow = (
-    <a href="#calculator" style={{ display: "inline-block", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 600, padding: "14px 30px", borderRadius: 3, marginTop: 28, background: gold, color: navy }}>Book Now</a>
+    <a href="#calculator" style={{ display: "inline-block", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 600, padding: "14px 30px", borderRadius: 3, marginTop: 28, background: gold, color: navy }}>{hero.ctaLabel}</a>
   );
   const ctaRow = (
     <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 22, flexWrap: "wrap" }}>
@@ -107,17 +107,12 @@ function Kicker({ children, gold }) {
   return <span style={{ display: "block", fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: gold, marginBottom: 14 }}>{children}</span>;
 }
 
-function Services({ navy }) {
-  const items = [
-    ["Offices", "Cleaned on a schedule that matches your hours, with a point of contact who answers the phone."],
-    ["Retail & restaurants", "Front-of-house and back-of-house cleaned around service hours, so the doors open spotless."],
-    ["Property portfolios", "HOAs and multi-site managers get one crew and one written scope across every building."]
-  ];
+function Services({ navy, items }) {
   return (
     <section id="services" style={{ padding: "88px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <Kicker gold="#8a6221">What we clean</Kicker>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 40, marginTop: 8 }}>
-        {items.map(([title, body]) => (
+        {items.map(({ title, body }) => (
           <div key={title} style={{ borderTop: `2px solid ${navy}`, paddingTop: 18 }}>
             <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>{title}</h3>
             <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "#3d4a4d", marginTop: 12 }}>{body}</p>
@@ -291,14 +286,14 @@ function Commercial({ navy, gold }) {
   );
 }
 
-function Quote({ navy }) {
+function Quote({ navy, text, caption }) {
   return (
     <section style={{ background: navy, color: "#fff", padding: "88px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <blockquote style={{ fontFamily: "inherit", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(24px,2.6vw,34px)", lineHeight: 1.4, maxWidth: "34ch", margin: 0 }}>
-          "One crew, one scope, one invoice across four locations. That's the whole reason we switched."
+          "{text}"
         </blockquote>
-        <figcaption style={{ fontSize: 14.5, opacity: 0.75, marginTop: 24 }}>— placeholder quote, swap for a real client</figcaption>
+        <figcaption style={{ fontSize: 14.5, opacity: 0.75, marginTop: 24 }}>{caption}</figcaption>
       </div>
     </section>
   );
@@ -348,10 +343,10 @@ function PricingTable({ navy, gold }) {
   );
 }
 
-function Contact() {
+function Contact({ note }) {
   return (
     <section id="contact" style={{ padding: "0 clamp(20px,5vw,56px) 40px", maxWidth: 1200, margin: "0 auto" }}>
-      <p style={{ fontSize: 14, color: "#7a746a" }}>Large or non-standard facilities: <a href="mailto:hello@gulfproclean.com" style={{ color: "#8a6221" }}>request a quote</a>.</p>
+      <p style={{ fontSize: 14, color: "#7a746a" }}>{note} <a href="mailto:hello@gulfproclean.com" style={{ color: "#8a6221" }}>request a quote</a>.</p>
     </section>
   );
 }
@@ -533,24 +528,54 @@ function Calculator({ navy, gold }) {
   );
 }
 
+const DEFAULT_CONTENT = {
+  hero: {
+    headline: "Spotless, on your terms. Built for how you operate.",
+    subhead: "Gulf ProClean cleans offices, restaurants and commercial portfolios from Pensacola to Panama City Beach — recurring or on-demand, booked around your hours.",
+    ctaLabel: "Book Now"
+  },
+  services: [
+    { title: "Offices", body: "Cleaned on a schedule that matches your hours, with a point of contact who answers the phone." },
+    { title: "Retail & restaurants", body: "Front-of-house and back-of-house cleaned around service hours, so the doors open spotless." },
+    { title: "Property portfolios", body: "HOAs and multi-site managers get one crew and one written scope across every building." }
+  ],
+  quote: {
+    text: "One crew, one scope, one invoice across four locations. That's the whole reason we switched.",
+    caption: "— placeholder quote, swap for a real client"
+  },
+  contact: { note: "Large or non-standard facilities:" }
+};
+
+function useSiteContent(page) {
+  const [content, setContent] = React.useState(DEFAULT_CONTENT);
+  React.useEffect(() => {
+    fetch('/api/content/' + page)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data) setContent(data); })
+      .catch(() => {});
+  }, [page]);
+  return content;
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [booking, setBooking] = React.useState(t.defaultBooking);
   React.useEffect(() => setBooking(t.defaultBooking), [t.defaultBooking]);
   const [navy, gold] = t.palette;
+  const content = useSiteContent('commercial');
 
   return (
     <div style={{ background: CREAM }}>
-      <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} />
-      <Services navy={navy} />
+      <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero} />
+      <Services navy={navy} items={content.services} />
       <ServiceTiers navy={navy} gold={gold} />
       <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} />
       <AddOns navy={navy} gold={gold} />
       <Commercial navy={navy} gold={gold} />
-      <Quote navy={navy} />
+      <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
       <PricingTable navy={navy} gold={gold} />
       <Calculator navy={navy} gold={gold} />
-      <Contact />
+      <Contact note={content.contact.note} />
       <TweaksPanel>
         <TweakSection label="Theme" />
         <TweakColor label="Palette" value={t.palette}

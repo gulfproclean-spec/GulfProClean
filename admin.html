@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf ProClean — content admin</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #f5f2ec; color: #153238; }
+  header { padding: 20px clamp(20px,5vw,56px); border-bottom: 1px solid #d8d3c8; font-weight: 600; letter-spacing: 0.06em; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px clamp(20px,5vw,56px) 80px; }
+  h2 { font-weight: 500; }
+  .row { display: flex; gap: 10px; margin-bottom: 24px; }
+  input[type=password] { flex: 1; padding: 10px 12px; font-size: 14px; border: 1px solid #d8d3c8; border-radius: 4px; }
+  button { background: #b68235; color: #153238; font-weight: 600; border: none; border-radius: 4px; padding: 10px 18px; cursor: pointer; font-size: 14px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  textarea { width: 100%; min-height: 260px; font-family: ui-monospace, monospace; font-size: 13px; padding: 12px; border: 1px solid #d8d3c8; border-radius: 4px; }
+  .page-block { margin-bottom: 40px; }
+  .status { font-size: 13px; margin-top: 8px; }
+  .status.ok { color: #1a7a3d; }
+  .status.err { color: #b3261e; }
+</style>
+</head>
+<body>
+<header>GULF PROCLEAN — content admin</header>
+<main>
+  <div class="row">
+    <input type="password" id="token" placeholder="Admin token" />
+    <button id="unlock">Unlock</button>
+  </div>
+  <div id="editors" style="display:none">
+    <div class="page-block">
+      <h2>Residential page</h2>
+      <textarea id="residential"></textarea>
+      <div><button data-page="residential">Save residential</button> <span class="status" id="status-residential"></span></div>
+    </div>
+    <div class="page-block">
+      <h2>Commercial page</h2>
+      <textarea id="commercial"></textarea>
+      <div><button data-page="commercial">Save commercial</button> <span class="status" id="status-commercial"></span></div>
+    </div>
+  </div>
+</main>
+<script>
+let token = '';
+
+async function loadPage(page) {
+  const res = await fetch('/api/content/' + page);
+  const data = await res.json();
+  document.getElementById(page).value = JSON.stringify(data, null, 2);
+}
+
+document.getElementById('unlock').addEventListener('click', async () => {
+  token = document.getElementById('token').value.trim();
+  if (!token) return;
+  document.getElementById('editors').style.display = 'block';
+  await Promise.all(['residential', 'commercial'].map(loadPage));
+});
+
+document.querySelectorAll('button[data-page]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const page = btn.getAttribute('data-page');
+    const statusEl = document.getElementById('status-' + page);
+    let body;
+    try {
+      body = JSON.parse(document.getElementById(page).value);
+    } catch (e) {
+      statusEl.textContent = 'Invalid JSON: ' + e.message;
+      statusEl.className = 'status err';
+      return;
+    }
+    btn.disabled = true;
+    statusEl.textContent = 'Saving…';
+    statusEl.className = 'status';
+    try {
+      const res = await fetch('/api/content/' + page, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+      statusEl.textContent = 'Saved.';
+      statusEl.className = 'status ok';
+    } catch (e) {
+      statusEl.textContent = 'Failed: ' + e.message;
+      statusEl.className = 'status err';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+</script>
+</body>
+</html>

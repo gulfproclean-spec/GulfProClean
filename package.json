@@ -1,0 +1,11 @@
+{
+  "name": "gulf-proclean-site",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node serve.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  }
+}
