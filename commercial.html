@@ -234,16 +234,20 @@ function Plans({ navy, gold, booking, setBooking }) {
 }
 
 function AddOns({ navy, gold }) {
+  const REP_SCOPE = { sqft: 2500, restrooms: 4, areas: 1 };
   const commercial = [
-    ["Post-Construction Cleanup", "From $0.25/sq ft"],
-    ["Exterior Window Washing", "From $0.75/sq ft of glass"],
-    ["High / Low Dusting", "From $0.08/sq ft"],
-    ["Restroom Deep Sanitize", "From $75/restroom"],
-    ["Trash & Dumpster Area Detail", "From $175/area"],
-    ["Carpet Extraction", "From $0.35/sq ft"],
-    ["Kitchen Equipment Degreasing", "From $175/area"],
-    ["Pressure Washing — Entryways/Dumpster Pads", "From $0.35/sq ft"]
+    ["Post-Construction Cleanup", { rate: 0.25, unit: "sqft", min: 750 }],
+    ["Exterior Window Washing", { rate: 0.75, unit: "sqft", min: 350 }],
+    ["High / Low Dusting", { rate: 0.08, unit: "sqft", min: 250 }],
+    ["Restroom Deep Sanitize", { rate: 75, unit: "restrooms", min: 250 }],
+    ["Trash & Dumpster Area Detail", { rate: 175, unit: "areas", min: 175 }],
+    ["Carpet Extraction", { rate: 0.35, unit: "sqft", min: 300 }],
+    ["Kitchen Equipment Degreasing", { rate: 175, unit: "areas", min: 250 }],
+    ["Pressure Washing — Entryways/Dumpster Pads", { rate: 0.35, unit: "sqft", min: 300 }]
   ];
+  const UNIT_LABEL = { sqft: "/sq ft", restrooms: "/restroom", areas: "/area" };
+  const FREQ_PER_YEAR = { "One-time": null, "Monthly": 12, "Quarterly": 4, "Semi-Annually": 2, "Annually": 1 };
+  const [freq, setFreq] = React.useState(() => Object.fromEntries(commercial.map(([name]) => [name, "One-time"])));
   return (
     <section id="addons" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -251,24 +255,31 @@ function AddOns({ navy, gold }) {
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Commercial Add-On Services</h2>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 14, maxWidth: "58ch" }}>Actual cost is calculated from your property's square footage, restroom count and service areas in the estimate below.</p>
         <img src="assets/commercial-addons.jpg" alt="Commercial add-on services: post-construction cleanup, exterior window washing, high/low dusting, restroom deep sanitize, trash and dumpster area detail, carpet extraction, kitchen equipment degreasing, pressure washing entryways and dumpster pads" style={{ width: "100%", display: "block", marginTop: 32, borderRadius: 6 }} />
-        <div style={{ overflowX: "auto", marginTop: 32 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Add-on</th>
-                <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>Starting price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {commercial.map(([name, rate]) => (
-                <tr key={name}>
-                  <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>{name}</td>
-                  <td style={{ fontSize: 15, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>{rate}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: "grid", gap: 1, marginTop: 32, border: "1px solid #e3ded2", background: "#e3ded2" }}>
+          {commercial.map(([name, p]) => {
+            const perOccurrence = Math.max(p.rate * REP_SCOPE[p.unit], p.min);
+            const perYear = FREQ_PER_YEAR[freq[name]];
+            return (
+              <div key={name} style={{ background: "#fff", padding: "18px 20px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+                <div style={{ flex: "1 1 220px" }}>
+                  <p style={{ fontSize: 14.5, color: navy, margin: 0, fontWeight: 500 }}>{name}</p>
+                  <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>${p.rate}{UNIT_LABEL[p.unit]}, ${p.min} minimum</p>
+                </div>
+                <label style={{ fontSize: 12.5, color: "#7a746a", display: "flex", alignItems: "center", gap: 6 }}>
+                  Frequency
+                  <select value={freq[name]} onChange={e => setFreq(f => ({ ...f, [name]: e.target.value }))} style={{ minHeight: 34, padding: "4px 8px", fontSize: 13, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit" }}>
+                    {Object.keys(FREQ_PER_YEAR).map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </label>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: 0 }}>${Math.round(perOccurrence)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> /service</span></p>
+                  {perYear && <p style={{ fontSize: 12, color: "#7a746a", margin: "2px 0 0" }}>${Math.round(perOccurrence * perYear).toLocaleString()} /year ({perYear}{"×"} {freq[name].toLowerCase()})</p>}
+                </div>
+              </div>
+            );
+          })}
         </div>
+        <p style={{ fontSize: 12, color: "#7a746a", marginTop: 12 }}>Priced here using a 2,500 sq ft / 4-restroom / 1-area property as an example — get your property's exact number in the estimate below.</p>
         <a href="#calculator" style={{ display: "inline-block", marginTop: 24, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Build your estimate</a>
       </div>
     </section>
