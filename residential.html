@@ -335,7 +335,9 @@ function Calculator({ navy, gold }) {
     { max: 5000, label: "4,001–5,000", prices: { Essential: 455, Preferred: 565, Premium: 815 } },
   ];
   const freqAdj = { "1 visit monthly": 0, "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
-  const bookingAdj = { "One-time": 0.30, "Monthly": 0, "6-month prepay": -0.10, "12-month prepay": -0.15 };
+  const ONE_TIME_SURCHARGE = 0.30;
+  const MONTHLY_DISCOUNT_PER_MONTH = 0.0125; // scales with committed months, capped below
+  const MONTHLY_DISCOUNT_CAP = 0.15;
   const addonPricing = {
     "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
     "Interior windows (package)": 110, "Baseboard detail": 75, "Inside cabinets": 100,
@@ -349,6 +351,7 @@ function Calculator({ navy, gold }) {
   const [sqft, setSqft] = React.useState(1500);
   const [frequency, setFrequency] = React.useState("4 visits monthly (Weekly Cleaning)");
   const [booking, setBooking] = React.useState("Monthly");
+  const [months, setMonths] = React.useState(1);
   const [addons, setAddons] = React.useState([]);
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const handleBookIt = () => {
@@ -358,7 +361,7 @@ function Calculator({ navy, gold }) {
       page: "residential",
       address: address.trim(),
       notes: notes.trim(),
-      tier, booking, frequency, displayFrequency,
+      tier, booking, months, frequency, displayFrequency, bookingLabel,
       addons: [...addons],
       addonsPerVisit: addonsTotal,
       afterFrequency, afterBooking, visitsCount, grossTotal,
@@ -371,15 +374,15 @@ function Calculator({ navy, gold }) {
   const afterSize = sizeTier ? sizeTier.prices[tier] : 0;
   const afterFrequency = booking === "One-time" ? afterSize : afterSize * (1 + freqAdj[frequency]);
   const addonsTotal = addons.reduce((sum, name) => sum + addonPricing[name], 0);
-  const afterBooking = afterFrequency * (1 + bookingAdj[booking]);
+  const monthlyDiscountPct = booking === "Monthly" ? Math.min(MONTHLY_DISCOUNT_CAP, Math.max(0, months - 1) * MONTHLY_DISCOUNT_PER_MONTH) : 0;
+  const bookingAdjValue = booking === "One-time" ? ONE_TIME_SURCHARGE : -monthlyDiscountPct;
+  const afterBooking = afterFrequency * (1 + bookingAdjValue);
   const perVisit = afterBooking;
   const discount = Math.max(0, afterFrequency - perVisit);
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
+  const bookingLabel = booking === "Monthly" ? `Monthly × ${months} mo` : booking;
   const visitsPerMonth = parseInt(frequency, 10) || 1;
-  const visitsCount = booking === "One-time" ? 1
-    : booking === "6-month prepay" ? visitsPerMonth * 6
-    : booking === "12-month prepay" ? visitsPerMonth * 12
-    : visitsPerMonth;
+  const visitsCount = booking === "One-time" ? 1 : visitsPerMonth * months;
   const totalAddons = addonsTotal * visitsCount;
   const grossTotal = (afterFrequency * visitsCount) + totalAddons;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
@@ -412,9 +415,15 @@ function Calculator({ navy, gold }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
           <label><span style={labelStyle}>Billing</span>
             <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>
-              {Object.keys(bookingAdj).map(k => <option key={k} value={k}>{k}{bookingAdj[k] < 0 ? ` (${Math.abs(Math.round(bookingAdj[k] * 100))}% Discount)` : ""}</option>)}
+              <option value="One-time">One-time</option>
+              <option value="Monthly">Monthly</option>
             </select>
           </label>
+          {booking === "Monthly" && (
+            <label><span style={labelStyle}>Number of months{monthlyDiscountPct > 0 ? ` (${Math.round(monthlyDiscountPct * 100)}% discount)` : ""}</span>
+              <input type="number" min="1" max="24" value={months} onChange={e => setMonths(Math.max(1, Number(e.target.value)))} style={selStyle} />
+            </label>
+          )}
           <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
               {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} from ${SIZE_TIERS[0].prices[k]}/visit</option>)}
@@ -451,7 +460,7 @@ function Calculator({ navy, gold }) {
               <>
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit</span><span>${Math.round(perVisit)}</span></div>
-                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{booking} · {displayFrequency}</div>
+                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{bookingLabel} · {displayFrequency}</div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${Math.round(discount)}` : "$0"}</span></div>
                   <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Discounts apply to the visit price only — add-ons are never discounted.</p>
                 </div>
@@ -464,7 +473,7 @@ function Calculator({ navy, gold }) {
                 </div>
 
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-                  <span style={{ color: "rgba(255,255,255,0.75)" }}>Number of visits ({booking})</span>
+                  <span style={{ color: "rgba(255,255,255,0.75)" }}>Number of visits ({bookingLabel})</span>
                   <span>× {visitsCount}</span>
                 </div>
 
@@ -476,7 +485,7 @@ function Calculator({ navy, gold }) {
                 )}
 
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>{discount > 0 ? "Total discounted price" : "Total price"} — {booking}, {displayFrequency}</p>
+                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>{discount > 0 ? "Total discounted price" : "Total price"} — {bookingLabel}, {displayFrequency}</p>
                   <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${finalDiscounted.toFixed(0)}</p>
                 </div>
               </>
