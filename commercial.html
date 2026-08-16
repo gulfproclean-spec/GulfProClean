@@ -395,6 +395,7 @@ function Calculator({ navy, gold }) {
   const [booking, setBooking] = React.useState("Monthly");
   const [address, setAddress] = React.useState("");
   const [unit, setUnit] = React.useState("");
+  const [notes, setNotes] = React.useState("");
   const [firstTime, setFirstTime] = React.useState(null);
   const [booked, setBooked] = React.useState(false);
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
@@ -479,8 +480,17 @@ function Calculator({ navy, gold }) {
             </select>
             <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{hardFloorDesc[hardFloorPct]}</p>
           </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
+            <span style={labelStyle}>Notes for your cleaning crew (optional)</span>
+            <textarea placeholder="Access instructions, alarm codes, areas to avoid, special requests…" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...selStyle, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} />
+          </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
+          <label><span style={labelStyle}>Billing</span>
+            <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>
+              {Object.keys(bookingAdj).map(k => <option key={k} value={k}>{k}{bookingAdj[k] < 0 ? ` (${Math.abs(Math.round(bookingAdj[k] * 100))}% Discount)` : ""}</option>)}
+            </select>
+          </label>
           <label><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
               {Object.keys(baseMap).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} — from ${baseMap[k]}/visit</option>)}
@@ -494,11 +504,6 @@ function Calculator({ navy, gold }) {
                 {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             )}
-          </label>
-          <label><span style={labelStyle}>Billing</span>
-            <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>
-              {Object.keys(bookingAdj).map(k => <option key={k} value={k}>{k}{bookingAdj[k] < 0 ? ` (${Math.abs(Math.round(bookingAdj[k] * 100))}% Discount)` : ""}</option>)}
-            </select>
           </label>
         </div>
         <div className="calc-two-col" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,0.9fr)", gap: 20, marginTop: 20, alignItems: "start" }}>
@@ -518,6 +523,7 @@ function Calculator({ navy, gold }) {
               <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit</span><span>${Math.round(perVisit)}</span></div>
               <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{booking} · {displayFrequency}</div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${Math.round(discount)}` : "$0"}</span></div>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Discounts apply to the visit price only — add-ons are never discounted.</p>
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
