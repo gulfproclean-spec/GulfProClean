@@ -52,7 +52,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 const CREAM = "#f5f2ec";
 
 function Nav({ navy, gold }) {
-  const links = [["Home", "index.html"], ["My Home", "#my-home"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Pricing", "#pricing"], ["Get a Quote", "#calculator"], ["My Account", "account.html"], ["Commercial →", "commercial.html"]];
+  const links = [["Home", "index.html"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Pricing", "#pricing"], ["Get a Quote", "#calculator"], ["My Account", "account.html"], ["Commercial →", "commercial.html"]];
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
@@ -128,7 +128,7 @@ function ServiceTiers({ navy, gold }) {
   const groups = [
     ["Essential Clean", ["Kitchen surfaces", "Bathrooms", "Floors", "Dusting", "Countertops", "Mirrors", "Sinks", "Toilets", "General tidying", "Trash", "High-touch surfaces"]],
     ["Preferred Clean", ["Baseboards", "Doors", "Cabinet fronts", "Ceiling fans", "Detailed dusting", "Under/behind accessible furniture", "Detailed bathroom & kitchen"]],
-    ["Premium", ["Interior appliances", "Detailed baseboards", "Vents", "Blinds", "Door frames", "Wall spot cleaning", "Heavy buildup", "Detailed fixtures", "Interior cabinets where applicable"]]
+    ["Premium", ["External kitchen appliances", "Detailed baseboards", "Vents", "Blinds", "Door frames", "Wall spot cleaning", "Heavy buildup", "Detailed fixtures", "Interior cabinets where applicable"]]
   ];
   const tierNames = groups.map(g => g[0]);
   const rows = groups.flatMap(([tier, items]) => items.map(item => ({ item, from: tierNames.indexOf(tier) })));
@@ -280,7 +280,7 @@ function PricingTable({ navy, gold, pricing }) {
       <Kicker gold="#8a6221">Pricing</Kicker>
       <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Tier pricing by property size</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginTop: 32, marginBottom: 8 }}>
-        {[["Essential", "The basics, every visit: kitchens, bathrooms, floors, dusting and tidying."], ["Preferred", "Essential, plus baseboards, doors, cabinet fronts and detailed dusting."], ["Premium", "Preferred, plus interior appliances, vents, blinds and heavy buildup."]].map(([name, blurb]) => (
+        {[["Essential", "The basics, every visit: kitchens, bathrooms, floors, dusting and tidying."], ["Preferred", "Essential, plus baseboards, doors, cabinet fronts and detailed dusting."], ["Premium", "Preferred, plus external kitchen appliances, vents, blinds and heavy buildup."]].map(([name, blurb]) => (
           <div key={name}><p style={{ fontSize: 14.5, fontWeight: 600, color: navy, margin: 0 }}>{name}</p><p style={{ fontSize: 13, color: "#7a746a", margin: "4px 0 0" }}>{blurb}</p></div>
         ))}
       </div>
@@ -563,18 +563,6 @@ function usePricing(page, fallback) {
   return pricing;
 }
 
-function useIsMobile(breakpoint) {
-  const [isMobile, setIsMobile] = React.useState(() => window.matchMedia(`(max-width: ${breakpoint}px)`).matches);
-  React.useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    const handler = () => setIsMobile(mq.matches);
-    handler();
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [breakpoint]);
-  return isMobile;
-}
-
 function Reveal({ children, delay = 0, order }) {
   const ref = React.useRef(null);
   const [visible, setVisible] = React.useState(false);
@@ -591,182 +579,6 @@ function Reveal({ children, delay = 0, order }) {
     <div ref={ref} style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(18px)", transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`, order, display: "flex", flexDirection: "column", height: "100%" }}>
       {children}
     </div>
-  );
-}
-
-function StatusBadge({ type, children }) {
-  const styles = {
-    ok: { bg: "#e8f5ec", color: "#1a7a3d" },
-    warn: { bg: "#fdf3e3", color: "#8a6221" },
-    info: { bg: "#eef2f3", color: "#153238" },
-  };
-  const icon = { ok: "✓", warn: "⚠", info: "●" }[type];
-  const s = styles[type];
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 600, color: s.color, background: s.bg, padding: "4px 10px", borderRadius: 20, width: "fit-content" }}>{icon} {children}</span>;
-}
-
-function DashCard({ navy, icon, title, subtitle, children, status, statusText }) {
-  return (
-    <div style={{ background: "#fff", border: "1px solid #e3ded2", borderRadius: 10, padding: 22, boxShadow: "0 1px 3px rgba(21,50,56,0.05)", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-      <div>
-        <p style={{ fontSize: 13.5, fontWeight: 600, color: navy, margin: 0, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 16 }}>{icon}</span>{title}</p>
-        {subtitle && <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{subtitle}</p>}
-      </div>
-      <div style={{ flex: 1 }}>{children}</div>
-      {status && <StatusBadge type={status}>{statusText}</StatusBadge>}
-    </div>
-  );
-}
-
-function DashList({ items }) {
-  return (
-    <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-      {items.map((t, i) => <li key={i} style={{ fontSize: 13, color: "#3d4a4d", display: "flex", gap: 8 }}><span style={{ color: "#8a6221" }}>•</span>{t}</li>)}
-    </ul>
-  );
-}
-
-function StepList({ items, navy }) {
-  const ICON = { done: "✓", current: "●", upcoming: "○" };
-  const COLOR = { done: "#1a7a3d", current: navy, upcoming: "#b3aca0" };
-  return (
-    <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 7 }}>
-      {items.map((it, i) => (
-        <li key={i} style={{ fontSize: 13, display: "flex", gap: 8, alignItems: "center", color: it.state === "upcoming" ? "#b3aca0" : "#3d4a4d" }}>
-          <span style={{ color: COLOR[it.state], fontWeight: 700, width: 14, flex: "none" }}>{ICON[it.state]}</span>{it.label}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ProgressBar({ pct, gold }) {
-  return (
-    <div style={{ height: 6, background: "#e3ded2", borderRadius: 99, overflow: "hidden", marginTop: 10 }}>
-      <div style={{ height: "100%", width: pct + "%", background: gold, borderRadius: 99 }} />
-    </div>
-  );
-}
-
-function CardCTA({ children }) {
-  return <a href="#calculator" style={{ fontSize: 12.5, fontWeight: 600, color: "#8a6221", marginTop: "auto", display: "inline-block" }}>{children}</a>;
-}
-
-function HomeHealthBar({ navy, gold }) {
-  const items = [["Cleaning", "ok"], ["HVAC", "ok"], ["Pool", "ok"], ["Supplies", "warn"], ["Maintenance", "warn"], ["Upcoming", "ok"]];
-  return (
-    <div style={{ background: navy, borderRadius: 12, padding: "28px 30px", color: "#fff", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 24 }}>
-      <div>
-        <p style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", margin: 0 }}>Home Health</p>
-        <p style={{ fontSize: 38, fontWeight: 600, color: gold, margin: "6px 0 0" }}>98%<span style={{ fontSize: 15, fontWeight: 400, color: "rgba(255,255,255,0.75)" }}> — Operating Normally</span></p>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-        {items.map(([label, state]) => (
-          <span key={label} style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6, color: state === "ok" ? "#9ee6a8" : "#e8c375" }}>
-            {state === "ok" ? "✓" : "⚠"} <span style={{ color: "rgba(255,255,255,0.85)" }}>{label}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const MOBILE_ORDER = { cleaning: 1, maintenance: 2, hvac: 3, supplies: 4, upcoming: 5, arrival: 6, projects: 7, storm: 8, homecheck: 9, pool: 10 };
-
-function MyHomeDashboard({ navy, gold }) {
-  const isMobile = useIsMobile(720);
-  const order = (key) => isMobile ? MOBILE_ORDER[key] : undefined;
-  return (
-    <section id="my-home" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <Reveal>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
-            <div>
-              <p style={{ fontSize: 22, fontWeight: 600, color: navy, letterSpacing: "0.02em", margin: 0 }}>MY HOME</p>
-              <p style={{ fontSize: 13, color: "#7a746a", margin: "4px 0 0" }}>Beach House · Last updated today</p>
-            </div>
-            <span style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6, color: "#1a7a3d", background: "#e8f5ec", padding: "6px 12px", borderRadius: 20, fontWeight: 600 }}>● Home operating normally</span>
-          </div>
-        </Reveal>
-
-        <Reveal delay={0.05}>
-          <HomeHealthBar navy={navy} gold={gold} />
-        </Reveal>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 24 }}>
-          <Reveal delay={0.05} order={order("cleaning")}>
-            <DashCard navy={navy} icon="🧹" title="Cleaning" subtitle="Completed today" status="ok" statusText="Complete">
-              <DashList items={["10:42 AM", "Quality check completed", "2-person team"]} />
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.1} order={order("homecheck")}>
-            <DashCard navy={navy} icon="🏠" title="Home Check" subtitle="Property check completed" status="ok" statusText="No issues found">
-              <DashList items={["Doors & windows checked", "Water/leak check", "Thermostat checked"]} />
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.15} order={order("hvac")}>
-            <DashCard navy={navy} icon="❄️" title="HVAC" subtitle="Operating normally" status="ok" statusText="Normal">
-              <DashList items={["Filter: Good", "Last replaced: Aug. 2", "Next recommended: Nov. 2"]} />
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.05} order={order("pool")}>
-            <DashCard navy={navy} icon="🏊" title="Pool" subtitle="Operating normally" status="ok" statusText="Normal">
-              <DashList items={["Water level: Normal", "Equipment: Normal", "Cleaning: Scheduled"]} />
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.1} order={order("supplies")}>
-            <DashCard navy={navy} icon="🧴" title="Supplies" subtitle="2 items need attention" status="warn" statusText="Needs restock">
-              <DashList items={["Paper towels — Low", "Dishwasher detergent — Low"]} />
-              <CardCTA>Review Supplies →</CardCTA>
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.15} order={order("maintenance")}>
-            <DashCard navy={navy} icon="🔧" title="Maintenance" subtitle="1 item needs attention" status="warn" statusText="Needs attention">
-              <p style={{ fontSize: 13, color: "#3d4a4d", margin: "8px 0 0" }}>Kitchen faucet has a slow drip.</p>
-              <CardCTA>View Issue →</CardCTA>
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.05} order={order("upcoming")}>
-            <DashCard navy={navy} icon="📅" title="Upcoming" subtitle="Next scheduled visits">
-              <DashList items={["Exterior window cleaning — Sept. 15", "HVAC service — Oct. 3", "Pool service — Oct. 10"]} />
-              <CardCTA>View Schedule →</CardCTA>
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.1} order={order("projects")}>
-            <DashCard navy={navy} icon="🛠" title="Projects" subtitle="Guest bathroom refresh — 70% complete">
-              <ProgressBar pct={70} gold={gold} />
-              <StepList navy={navy} items={[
-                { label: "Materials delivered", state: "done" },
-                { label: "Plumbing completed", state: "done" },
-                { label: "Tile installation", state: "current" },
-                { label: "Final cleaning", state: "upcoming" },
-              ]} />
-              <CardCTA>View Project →</CardCTA>
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.15} order={order("storm")}>
-            <DashCard navy={navy} icon="🌪" title="Storm Ready" subtitle="Storm Watch">
-              <p style={{ fontSize: 13, color: "#3d4a4d", margin: "8px 0 0" }}>Tropical weather is being monitored for your area.</p>
-              <p style={{ fontSize: 12.5, color: "#8a6221", fontWeight: 600, margin: "8px 0 0" }}>Storm preparation available</p>
-              <CardCTA>Prepare My Home →</CardCTA>
-            </DashCard>
-          </Reveal>
-          <Reveal delay={0.2} order={order("arrival")}>
-            <DashCard navy={navy} icon="✈️" title="Arrival" subtitle="Next Arrival — Friday · Aug. 22">
-              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "8px 0 0" }}>Home preparation scheduled</p>
-              <StepList navy={navy} items={[
-                { label: "Cleaning complete", state: "done" },
-                { label: "Beds prepared", state: "done" },
-                { label: "Thermostat adjusted", state: "done" },
-                { label: "Essentials stocked", state: "done" },
-                { label: "Final arrival check", state: "upcoming" },
-              ]} />
-              <CardCTA>View Arrival Plan →</CardCTA>
-            </DashCard>
-          </Reveal>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -840,7 +652,7 @@ function HomeOSIntro({ navy, gold }) {
           <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: "clamp(28px,4vw,42px)", color: navy, margin: 0, lineHeight: 1.2 }}>Your Home Runs Better When Everything Is Connected.</h2>
           <p style={{ fontSize: 16.5, lineHeight: 1.7, color: "#3d4a4d", marginTop: 20, maxWidth: "62ch", marginLeft: "auto", marginRight: "auto" }}>Your home is more than a cleaning appointment. Our Home Operating System keeps track of the condition, cleaning, maintenance, supplies, upcoming services, and projects happening at your property—all from one account.</p>
           <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
-            <a href="#my-home" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 3 }}>See My Home</a>
+            <a href="account.html" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 3 }}>See My Home</a>
             <a href="#calculator" style={{ border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 3 }}>Explore Membership</a>
           </div>
         </Reveal>
@@ -853,7 +665,6 @@ function HomeOperatingSystem({ navy, gold }) {
   return (
     <>
       <HomeOSIntro navy={navy} gold={gold} />
-      <MyHomeDashboard navy={navy} gold={gold} />
       <WhatWeWatch navy={navy} gold={gold} />
       <CareProgression navy={navy} gold={gold} />
     </>
