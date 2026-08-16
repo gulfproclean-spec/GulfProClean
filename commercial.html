@@ -421,6 +421,7 @@ function Calculator({ navy, gold }) {
   const perVisit = afterBooking * (firstTime ? 0.90 : 1);
   const discount = Math.max(0, afterFrequency - perVisit);
   const final = perVisit + addonsTotal;
+  const grossTotal = afterFrequency + addonsTotal;
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
 
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
@@ -520,8 +521,13 @@ function Calculator({ navy, gold }) {
               ))}
             </div>
 
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+              <span style={{ color: "rgba(255,255,255,0.75)" }}>Total (before discount)</span>
+              <span>${Math.round(grossTotal)}</span>
+            </div>
+
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Total price — {booking}, {displayFrequency} (per visit + add-ons)</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Final discounted price — {booking}, {displayFrequency}</p>
               <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${final.toFixed(0)}<span style={{ fontSize: 16, fontWeight: 400, color: "rgba(255,255,255,0.7)" }}> / visit</span></p>
             </div>
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
