@@ -438,7 +438,7 @@ function Calculator({ navy, gold }) {
           )}
           <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
-              {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} — 6mo: 10% off · 12mo: 15% off</option>)}
+              {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} from ${SIZE_TIERS[0].prices[k]}/visit</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>Cleaning frequency</span>
