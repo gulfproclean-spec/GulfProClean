@@ -421,6 +421,7 @@ function Calculator({ navy, gold }) {
   const perVisit = afterBooking * (firstTime ? 0.90 : 1);
   const discount = Math.max(0, afterFrequency - perVisit);
   const final = perVisit + addonsTotal;
+  const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
 
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
@@ -506,20 +507,21 @@ function Calculator({ navy, gold }) {
           <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "24px 28px", color: "#fff", position: "sticky", top: 20 }}>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Summary</p>
 
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit ({booking})</span><span>${Math.round(perVisit)}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${Math.round(discount)}` : "$0"}</span></div>
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit</span><span>${Math.round(perVisit)}</span></div>
+              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{booking} · {displayFrequency}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${Math.round(discount)}` : "$0"}</span></div>
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons</span><span>${Math.round(addonsTotal)}</span></div>
               {addons.map(name => (
-                <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name}</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${addonPrice(name)}</span></div>
+                <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} (no discount)</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${addonPrice(name)}</span></div>
               ))}
             </div>
 
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Total price (per visit + add-ons)</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Total price — {booking}, {displayFrequency} (per visit + add-ons)</p>
               <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${final.toFixed(0)}<span style={{ fontSize: 16, fontWeight: 400, color: "rgba(255,255,255,0.7)" }}> / visit</span></p>
             </div>
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
