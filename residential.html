@@ -10,7 +10,6 @@
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="image-slot.js"></script>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -70,7 +69,7 @@ function Hero({ navy, gold, heroPhoto, hero }) {
     </h1>
   );
   const subhead = (
-    <p style={{ display: "inline-block", background: gold, color: navy, fontWeight: 500, fontSize: 17, lineHeight: 1.5, padding: "18px 22px", marginTop: 28, maxWidth: 620 }}>
+    <p style={{ display: "block", color: heroPhoto ? "#fff" : navy, fontWeight: 500, fontSize: 17, lineHeight: 1.5, marginTop: 28, maxWidth: 620, textShadow: heroPhoto ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
       {hero.subhead}
     </p>
   );
@@ -93,7 +92,7 @@ function Hero({ navy, gold, heroPhoto, hero }) {
   }
   return (
     <header style={{ position: "relative", minHeight: "min(960px, 100vh)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <image-slot id="hero-photo" shape="rect" placeholder="Full-bleed photo of a bright coastal living room or exterior" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}></image-slot>
+      <img src="assets/residential-hero.jpg" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(20,30,32,0.55) 0%, rgba(20,30,32,0.15) 40%, rgba(20,30,32,0.6) 100%)" }} />
       <div style={{ position: "relative", zIndex: 5 }}><Nav navy={navy} gold={gold} onHero={true} /></div>
       <div style={{ position: "relative", zIndex: 5, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px clamp(20px,5vw,56px) 56px" }}>
