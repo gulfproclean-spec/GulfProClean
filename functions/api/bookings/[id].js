@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../_lib/auth.js';
+import { sendBookingConfirmationEmail } from '../../_lib/email.js';
 
 const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -68,6 +69,14 @@ export async function onRequestPut({ env, request, params }) {
     set scheduled_date = ${scheduledDate}, scheduled_time = ${scheduledTime}
     where id = ${params.id}
   `;
+
+  await sendBookingConfirmationEmail(env, {
+    to: customer.email,
+    page: booking.page, tier: booking.tier, address: booking.address,
+    bookingType: booking.booking_type, months: booking.months || 1,
+    scheduledDate, scheduledTime,
+    finalTotal: booking.final_total,
+  });
 
   return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 }

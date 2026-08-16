@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
+import { sendBookingConfirmationEmail } from '../_lib/email.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
@@ -15,7 +16,7 @@ export async function onRequestPost({ env, request }) {
   } catch {
     return new Response(JSON.stringify({ error: 'invalid json' }), { status: 400 });
   }
-  const { page, address, notes, tier, bookingType, frequency, addons, visitsCount, grossTotal, finalTotal, scheduledDate, scheduledTime } = body;
+  const { page, address, notes, tier, bookingType, months, frequency, addons, visitsCount, grossTotal, finalTotal, scheduledDate, scheduledTime } = body;
 
   if (!PAGES.has(page) || !address || !tier || !bookingType || !frequency) {
     return new Response(JSON.stringify({ error: 'missing required fields' }), { status: 400 });
@@ -30,18 +31,27 @@ export async function onRequestPost({ env, request }) {
   const priorBookings = await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
   const isFirstTime = priorBookings.length === 0;
 
+  const monthsVal = Number(months) || 1;
   const rows = await sql`
     insert into bookings (
-      customer_id, page, address, notes, tier, booking_type, frequency,
+      customer_id, page, address, notes, tier, booking_type, months, frequency,
       addons, visits_count, gross_total, final_total, is_first_time,
       scheduled_date, scheduled_time
     ) values (
-      ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${frequency},
+      ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(addons || [])}::jsonb, ${visits}, ${gross}, ${final}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}
     )
     returning id
   `;
+
+  await sendBookingConfirmationEmail(env, {
+    to: customer.email,
+    page, tier, address,
+    bookingType, months: monthsVal,
+    scheduledDate, scheduledTime,
+    finalTotal: final,
+  });
 
   return new Response(JSON.stringify({ ok: true, id: rows[0].id, isFirstTime }), {
     status: 201,
@@ -56,7 +66,7 @@ export async function onRequestGet({ env, request }) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
   }
   const rows = await sql`
-    select id, page, address, tier, booking_type, frequency, visits_count, final_total, scheduled_date, scheduled_time, created_at
+    select id, page, address, tier, booking_type, months, frequency, visits_count, final_total, scheduled_date, scheduled_time, created_at
     from bookings where customer_id = ${customer.id} order by created_at desc
   `;
   return new Response(JSON.stringify({ bookings: rows }), { headers: { 'Content-Type': 'application/json' } });

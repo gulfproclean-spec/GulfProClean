@@ -249,6 +249,7 @@ async function confirmBooking() {
         notes: draft.notes,
         tier: draft.tier,
         bookingType: draft.booking,
+        months: draft.months,
         frequency: draft.frequency,
         addons: draft.addons,
         visitsCount: draft.visitsCount,
@@ -271,6 +272,18 @@ async function confirmBooking() {
   }
 }
 
+function refundPolicyText() {
+  if (draft.booking === 'One-time') {
+    return "This is a one-time visit. Contact us as soon as possible if you need to cancel — cancellations inside 24 hours of your visit may not be refundable.";
+  }
+  const months = draft.months || 1;
+  if (months >= 6) {
+    const pct = months >= 12 ? '15%' : '10%';
+    return `You're on our ${months}-month subscription (${pct} discount). You can cancel early at any time — the discount already applied to your past visits is deducted from your refund (discount reconciliation).`;
+  }
+  return "You're on our month-to-month Standard plan (no discount applied). Cancel anytime with 30 days' notice.";
+}
+
 function renderConfirmed() {
   app.innerHTML = `
     <div class="step-label">Step 3 of 3</div>
@@ -278,11 +291,16 @@ function renderConfirmed() {
     <div class="card">
       <p>${draft.tier} clean at ${draft.address}, scheduled for ${state.selectedDate.toLocaleDateString()} at ${state.selectedTime}.</p>
       <p style="font-size:24px;font-weight:600;color:#8a6221">${money(state.finalTotal)}</p>
-      <p class="muted" style="font-size:13px">A confirmation has been saved to your account under ${state.email}. Need to change the date or time? You can reschedule up until 24 hours before your visit from My Account.</p>
+      <p class="muted" style="font-size:13px">A confirmation email is on its way to ${state.email} with these details. Need to change the date or time? You can reschedule up until 24 hours before your visit from My Account.</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <a href="account.html"><button>My Account</button></a>
         <a href="${draft.page}.html"><button class="secondary">Back to ${draft.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>
       </div>
+    </div>
+    <div class="card">
+      <p style="font-weight:500;margin:0 0 4px">Refund Policy</p>
+      <p class="muted" style="font-size:13.5px;line-height:1.6">No contracts — cancel anytime. ${refundPolicyText()}</p>
+      <p class="muted" style="font-size:12px;margin-top:10px">Full terms are always available under <a href="account.html" style="color:#8a6221">My Account</a>.</p>
     </div>
   `;
 }
