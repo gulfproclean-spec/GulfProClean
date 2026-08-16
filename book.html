@@ -44,13 +44,17 @@ const params = new URLSearchParams(location.search);
 let draft = null;
 try { draft = JSON.parse(sessionStorage.getItem('gpc_booking_draft') || 'null'); } catch {}
 
-let state = { step: draft ? 'account' : 'missing', email: null, isFirstTime: null, schedule: null, selectedDate: null, selectedTime: null };
+let state = {
+  step: draft ? 'account' : 'missing', email: null, isFirstTime: null, schedule: null,
+  selectedDate: null, selectedTime: null,
+  addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
+};
 
 function money(n) { return '$' + Math.round(n).toLocaleString(); }
 
 function computeTotals() {
   const perVisit = draft.afterBooking * (state.isFirstTime ? 0.90 : 1);
-  const totalAddons = draft.addonsPerVisit * draft.visitsCount;
+  const totalAddons = draft.addonsTotalAmount;
   const subtotal = perVisit * draft.visitsCount + totalAddons;
   const grossTotal = draft.grossTotal;
   const discount = Math.max(0, grossTotal - subtotal);
@@ -148,6 +152,8 @@ function nextAvailableDays(schedule, count) {
   return out;
 }
 
+const SLOT_INCREMENT_MIN = 240;
+
 function timeSlots(start, end) {
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
@@ -155,8 +161,8 @@ function timeSlots(start, end) {
   let h = sh, m = sm;
   while (h < eh || (h === eh && m < em)) {
     slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    m += 60;
-    if (m >= 60) { h += 1; m -= 60; }
+    m += SLOT_INCREMENT_MIN;
+    while (m >= 60) { h += 1; m -= 60; }
   }
   return slots;
 }
@@ -174,10 +180,34 @@ function availableTimeSlots(date, cfg) {
   return timeSlots(cfg.start, cfg.end).filter(t => slotDateTime(date, t).getTime() - Date.now() >= MIN_NOTICE_MS);
 }
 
+function frequencyIntervalDays(page, frequency) {
+  if (page === 'residential') {
+    if (frequency.includes('4 visits')) return 7;
+    if (frequency.includes('2 visits')) return 14;
+    return 30;
+  }
+  const n = parseInt(frequency, 10) || 1;
+  return Math.max(1, Math.round(7 / n));
+}
+
+function upcomingVisitPreview(anchorDate, page, frequency, visitsCount) {
+  const interval = frequencyIntervalDays(page, frequency);
+  const count = Math.min(visitsCount, 6);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(anchorDate);
+    d.setDate(d.getDate() + i * interval);
+    out.push(d);
+  }
+  return out;
+}
+
 function renderSchedule() {
   const totals = computeTotals();
   const days = nextAvailableDays(state.schedule, 14);
   const selectedDay = days.find(d => d.date.toDateString() === (state.selectedDate && state.selectedDate.toDateString()));
+  const hasAddons = draft.addons && draft.addons.length > 0;
+  const showRecurringPreview = draft.booking !== 'One-time' && draft.visitsCount > 1 && selectedDay;
   app.innerHTML = `
     <div class="step-label">Step 2 of 3</div>
     <h1>Pick your visit</h1>
@@ -186,7 +216,8 @@ function renderSchedule() {
     <div class="card">
       <div class="row"><span>${draft.tier} price per visit</span><span>${money(totals.perVisit)}</span></div>
       <div class="row muted" style="font-size:12px">Discounts apply to the visit price only — add-ons are never discounted.</div>
-      <div class="row"><span>Add-ons</span><span>${money(draft.addonsPerVisit)}</span></div>
+      <div class="row"><span>Add-ons total</span><span>${money(totals.totalAddons)}</span></div>
+      ${(draft.addons || []).map(a => `<div class="row muted" style="font-size:12px"><span>+ ${a.name} — ${a.frequency === 'once' ? 'one-time' : `every visit ×${draft.visitsCount}`}</span><span>${money(a.total)}</span></div>`).join('')}
       <div class="row"><span>Number of visits</span><span>× ${draft.visitsCount}</span></div>
       ${totals.discount > 0 ? `<div class="row"><span class="muted">Total before discount</span><span class="struck">${money(totals.grossTotal)}</span></div>` : ''}
       <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
@@ -201,7 +232,7 @@ function renderSchedule() {
 
     <div class="card">
       <label>Choose a day</label>
-      <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice.</p>
+      <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice. This confirms your first visit; times are offered in 4-hour windows.</p>
       <div class="day-grid">
         ${days.map(d => {
           const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
@@ -216,6 +247,28 @@ function renderSchedule() {
           ${availableTimeSlots(selectedDay.date, selectedDay.cfg).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
         </select>
       ` : '<p class="muted" style="font-size:13px">Pick a day to see available times.</p>'}
+      ${showRecurringPreview ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3ded2">
+          <p style="font-size:13px;font-weight:500;margin:0 0 8px">Upcoming visits at this frequency (${draft.displayFrequency})</p>
+          <p class="muted" style="font-size:12px;margin:0 0 8px">Estimated — we'll confirm each date with you directly. Only your first visit is booked now.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${upcomingVisitPreview(selectedDay.date, draft.page, draft.frequency, draft.visitsCount).map((d, i) => `<span class="tag-date" style="font-size:12px;padding:5px 10px;border:1px solid #d8d3c8;border-radius:20px;background:${i === 0 ? '#b68235' : '#fff'};color:${i === 0 ? '#153238' : '#7a746a'}">${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`).join('')}
+            ${draft.visitsCount > 6 ? `<span class="muted" style="font-size:12px;padding:5px 2px">+ ${draft.visitsCount - 6} more</span>` : ''}
+          </div>
+        </div>
+      ` : ''}
+      ${hasAddons ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3ded2">
+          <p style="font-size:13px;font-weight:500;margin:0 0 4px">Add-ons for this visit</p>
+          <p class="muted" style="font-size:12px;margin:0 0 8px">Uncheck any add-on that doesn't apply to this particular visit. You can't apply more than what you've purchased.</p>
+          ${draft.addons.map(a => `
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px">
+              <input type="checkbox" data-addon="${a.name}" ${state.addonsApplied.includes(a.name) ? 'checked' : ''} />
+              ${a.name} <span class="muted" style="margin-left:auto">${a.frequency === 'once' ? 'one-time' : `every visit`} · ${money(a.unitPrice)}</span>
+            </label>
+          `).join('')}
+        </div>
+      ` : ''}
       <div class="error" id="err" style="display:none"></div>
       <button id="confirm" ${selectedDay && state.selectedTime ? '' : 'disabled'}>Confirm booking</button>
     </div>
@@ -229,6 +282,14 @@ function renderSchedule() {
   });
   const timeSel = $('#time');
   if (timeSel) timeSel.onchange = (e) => { state.selectedTime = e.target.value; render(); };
+  app.querySelectorAll('[data-addon]').forEach(cb => {
+    cb.onchange = (e) => {
+      const name = e.target.getAttribute('data-addon');
+      state.addonsApplied = e.target.checked
+        ? [...new Set([...state.addonsApplied, name])]
+        : state.addonsApplied.filter(n => n !== name);
+    };
+  });
   const confirmBtn = $('#confirm');
   if (confirmBtn) confirmBtn.onclick = confirmBooking;
 }
@@ -252,6 +313,7 @@ async function confirmBooking() {
         months: draft.months,
         frequency: draft.frequency,
         addons: draft.addons,
+        addonsApplied: state.addonsApplied,
         visitsCount: draft.visitsCount,
         grossTotal: totals.grossTotal,
         finalTotal: totals.finalTotal,

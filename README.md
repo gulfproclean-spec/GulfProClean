@@ -17,7 +17,7 @@ business hours.
 - `functions/api/auth/{signup,login,logout,me}.js` — password hashing (PBKDF2) + session cookies
 - `functions/api/bookings.js`, `functions/api/bookings/[id].js` — create/list/reschedule bookings; sends a confirmation email on both
 - `functions/_lib/auth.js`, `functions/_lib/email.js` — shared helpers
-- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`
+- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `004_addons_applied.sql`.
 
 ## Local preview
 
@@ -67,3 +67,15 @@ this on:
 
 Nothing else needs to change — `functions/_lib/email.js` is a no-op until
 `RESEND_API_KEY` is set, so bookings work either way.
+
+## Scheduling and add-ons
+
+- Visit times are offered in 4-hour windows (e.g. 8am/12pm/4pm), based on that day's business hours.
+- A booking captures one confirmed visit slot. If the plan recurs (e.g. weekly), the schedule step
+  shows an estimated preview of the next few visit dates based on the selected frequency — those
+  aren't individually booked yet, just previewed; only the first visit is stored.
+- Each add-on selected in the calculator gets its own frequency: "every visit" (charged once per
+  visit for the life of the plan) or "one-time" (charged once total). This is priced into the
+  quote and carried through to the final charge.
+- At scheduling, the customer picks which purchased add-ons apply to that specific visit. The
+  API rejects any add-on that wasn't actually part of the purchased quote.

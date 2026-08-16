@@ -106,6 +106,8 @@ function nextAvailableDays(schedule, count) {
   return out;
 }
 
+const SLOT_INCREMENT_MIN = 240;
+
 function timeSlots(start, end) {
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
@@ -113,8 +115,8 @@ function timeSlots(start, end) {
   let h = sh, m = sm;
   while (h < eh || (h === eh && m < em)) {
     slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    m += 60;
-    if (m >= 60) { h += 1; m -= 60; }
+    m += SLOT_INCREMENT_MIN;
+    while (m >= 60) { h += 1; m -= 60; }
   }
   return slots;
 }

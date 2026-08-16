@@ -357,7 +357,10 @@ function Calculator({ navy, gold }) {
   const [booking, setBooking] = React.useState("Monthly");
   const [months, setMonths] = React.useState(1);
   const [addons, setAddons] = React.useState([]);
+  const [addonFrequency, setAddonFrequency] = React.useState({});
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
+  const addonFreq = (name) => addonFrequency[name] || "every";
+  const setAddonFreq = (name, val) => setAddonFrequency(f => ({ ...f, [name]: val }));
   const handleBookIt = () => {
     if (!address.trim()) { alert("Enter the service address to book."); return; }
     if (priceUnavailable) { alert("This property size is priced individually — please request a quote instead."); return; }
@@ -366,8 +369,8 @@ function Calculator({ navy, gold }) {
       address: address.trim(),
       notes: notes.trim(),
       tier, booking, months, frequency, displayFrequency, bookingLabel,
-      addons: [...addons],
-      addonsPerVisit: addonsTotal,
+      addons: addons.map(name => ({ name, frequency: addonFreq(name), occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
+      addonsTotalAmount: totalAddons,
       afterFrequency, afterBooking, visitsCount, grossTotal,
       taxRate: 0,
     }));
@@ -388,7 +391,8 @@ function Calculator({ navy, gold }) {
   const bookingLabel = booking === "Monthly" ? `Monthly × ${months} mo` : booking;
   const visitsPerMonth = parseInt(frequency, 10) || 1;
   const visitsCount = booking === "One-time" ? 1 : visitsPerMonth * months;
-  const totalAddons = addonsTotal * visitsCount;
+  const addonOccurrences = (name) => addonFreq(name) === "once" ? 1 : visitsCount;
+  const totalAddons = addons.reduce((sum, name) => sum + addonPricing[name] * addonOccurrences(name), 0);
   const grossTotal = (afterFrequency * visitsCount) + totalAddons;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
   const money = (n) => Math.round(n).toLocaleString("en-US");
@@ -434,7 +438,7 @@ function Calculator({ navy, gold }) {
           )}
           <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
-              {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} from ${SIZE_TIERS[0].prices[k]}/visit</option>)}
+              {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""} — 6mo: 10% off · 12mo: 15% off</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>Cleaning frequency</span>
@@ -449,11 +453,19 @@ function Calculator({ navy, gold }) {
         </div>
         <div className="calc-two-col" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,0.9fr)", gap: 20, marginTop: 20, alignItems: "start" }}>
           <label style={{ background: "#fff", borderRadius: 8, padding: 20 }}><span style={labelStyle}>Add-ons</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
               {Object.keys(addonPricing).map(name => (
-                <label key={name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: navy }}>
-                  <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name} <span style={{ marginLeft: "auto", color: "#7a746a" }}>${addonPricing[name]}</span>
-                </label>
+                <div key={name} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "4px 0", borderBottom: "1px solid #f0ede5" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: navy }}>
+                    <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name} <span style={{ marginLeft: "auto", color: "#7a746a" }}>${addonPricing[name]}</span>
+                  </label>
+                  {addons.includes(name) && (
+                    <select value={addonFreq(name)} onChange={e => setAddonFreq(name, e.target.value)} style={{ marginLeft: 24, fontSize: 12, padding: "4px 8px", border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#faf8f3", width: "calc(100% - 24px)" }}>
+                      <option value="every">Every visit ({visitsCount}×)</option>
+                      <option value="once">One-time (1×)</option>
+                    </select>
+                  )}
+                </div>
               ))}
             </div>
           </label>
@@ -474,9 +486,9 @@ function Calculator({ navy, gold }) {
                 </div>
 
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons (per visit)</span><span>${money(addonsTotal)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons total (no discount)</span><span>${money(totalAddons)}</span></div>
                   {addons.map(name => (
-                    <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} (no discount)</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${money(addonPricing[name])}</span></div>
+                    <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} — {addonFreq(name) === "once" ? "one-time" : `every visit ×${visitsCount}`}</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${money(addonPricing[name] * addonOccurrences(name))}</span></div>
                   ))}
                 </div>
 
