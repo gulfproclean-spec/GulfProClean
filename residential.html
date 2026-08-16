@@ -20,6 +20,7 @@
     nav { flex-wrap: wrap; row-gap: 10px; }
     .calc-two-col { grid-template-columns: 1fr !important; }
     table { font-size: 13px; }
+    .addons-grid { grid-template-columns: 1fr !important; }
   }
 </style>
 </head>
@@ -231,12 +232,10 @@ function Plans({ navy, gold, booking, setBooking }) {
 
 function AddOns({ navy, gold }) {
   const residential = [
-    ["Inside refrigerator", "$40"], ["Inside oven", "$40"], ["Refrigerator + oven", "$70"],
-    ["Interior windows (package)", "$110", "$75–150+"], ["Baseboard detail", "$75", "$50–100"],
-    ["Inside cabinets", "$100", "$75–125"], ["Laundry wash/dry/fold", "$35", "per load"],
-    ["Bed linen change", "$12", "$10–15/bed"], ["Pet hair surcharge", "$37", "$25–50"],
-    ["Heavy sand removal", "$55", "$35–75"], ["Patio / balcony", "$47", "$35–60"],
-    ["Garage sweep", "$62", "$50–75"]
+    ["Interior Window Cleaning", "$110"], ["Blinds Dusting", "Ask for quote"], ["Baseboards & Trim Detailing", "$75"],
+    ["Light Fixtures & Ceiling Fans", "Ask for quote"], ["Door & Frame Detailing", "Ask for quote"], ["Cabinet Front Detailing", "$100"],
+    ["Inside Oven Cleaning", "$40"], ["Inside Refrigerator Cleaning", "$40"], ["Hard Floor Deep Cleaning", "Ask for quote"],
+    ["Carpet Deep Cleaning", "Ask for quote"], ["Shower & Tile Deep Cleaning", "Ask for quote"], ["Balcony/Patio Cleaning", "$47"]
   ];
   return (
     <section id="addons" style={{ background: CREAM, padding: "88px clamp(20px,5vw,56px)" }}>
@@ -244,12 +243,12 @@ function AddOns({ navy, gold }) {
         <Kicker gold="#8a6221">Add-ons</Kicker>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Customers on the Emerald Coast are accustomed to add-ons</h2>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 14, maxWidth: "58ch" }}>Add exactly what your space needs, on top of any one-time or subscription visit.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 1, marginTop: 40, border: "1px solid #e3ded2", background: "#e3ded2" }}>
-          {residential.map(([name, price, range]) => (
-            <div key={name} style={{ background: "#fff", padding: "20px 22px" }}>
-              <p style={{ fontSize: 14.5, color: navy, margin: 0, fontWeight: 500 }}>{name}</p>
-              <p style={{ fontSize: 22, fontWeight: 600, color: "#8a6221", margin: "8px 0 0" }}>{price}</p>
-              {range && <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{range}</p>}
+        <img src="assets/residential-addons.jpg" alt="Add-on services: interior window cleaning, blinds dusting, baseboards and trim, light fixtures and ceiling fans, door and frame detailing, cabinet fronts, inside oven, inside refrigerator, hard floor deep cleaning, carpet deep cleaning, shower and tile deep cleaning, balcony and patio cleaning" style={{ width: "100%", display: "block", marginTop: 40, borderRadius: 6 }} />
+        <div className="addons-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, marginTop: 1, border: "1px solid #e3ded2", background: "#e3ded2" }}>
+          {residential.map(([name, price]) => (
+            <div key={name} style={{ background: "#fff", padding: "16px 18px", textAlign: "center" }}>
+              <p style={{ fontSize: 13.5, color: navy, margin: 0, fontWeight: 500 }}>{name}</p>
+              <p style={{ fontSize: 20, fontWeight: 600, color: "#8a6221", margin: "6px 0 0" }}>{price}</p>
             </div>
           ))}
         </div>
