@@ -413,7 +413,7 @@ function Calculator({ navy, gold }) {
   const base = baseMap[tier];
   const complexityMult = 1 + typeAdj[propertyType] + occupancyAdj[occupancy] + (isHighRestroom ? 0.10 : 0) + hardFloorAdj[hardFloorPct] + areaAdj(areas);
   const afterComplexity = base * complexityMult;
-  const afterFrequency = afterComplexity * (1 + freqAdj[frequency]);
+  const afterFrequency = booking === "One-time" ? afterComplexity : afterComplexity * (1 + freqAdj[frequency]);
   const scopeVal = { sqft, restrooms, areas };
   const addonPrice = (name) => { const p = addonPricing[name]; return Math.round(Math.max(p.rate * scopeVal[p.unit], p.min)); };
   const addonsTotal = addons.reduce((sum, name) => sum + addonPrice(name), 0);
@@ -479,9 +479,13 @@ function Calculator({ navy, gold }) {
             </select>
           </label>
           <label><span style={labelStyle}>Cleaning frequency</span>
-            <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
-              {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
-            </select>
+            {booking === "One-time" ? (
+              <div style={{ ...selStyle, display: "flex", alignItems: "center", color: "#7a746a" }}>1 visit</div>
+            ) : (
+              <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
+                {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            )}
           </label>
           <label><span style={labelStyle}>Billing</span>
             <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>

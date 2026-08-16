@@ -354,7 +354,7 @@ function Calculator({ navy, gold }) {
   const base = baseMap[tier];
   const sizeMult = sqft <= 1500 ? 1 : sqft <= 2500 ? 1.15 : sqft <= 3500 ? 1.3 : 1.5;
   const afterSize = base * sizeMult;
-  const afterFrequency = afterSize * (1 + freqAdj[frequency]);
+  const afterFrequency = booking === "One-time" ? afterSize : afterSize * (1 + freqAdj[frequency]);
   const addonsTotal = addons.reduce((sum, name) => sum + addonPricing[name], 0);
   const afterBooking = afterFrequency * (1 + bookingAdj[booking]);
   const perVisit = afterBooking * (firstTime ? 0.90 : 1);
@@ -389,9 +389,13 @@ function Calculator({ navy, gold }) {
             </select>
           </label>
           <label><span style={labelStyle}>Cleaning frequency</span>
-            <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
-              {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
-            </select>
+            {booking === "One-time" ? (
+              <div style={{ ...selStyle, display: "flex", alignItems: "center", color: "#7a746a" }}>1 visit</div>
+            ) : (
+              <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
+                {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            )}
           </label>
           <label><span style={labelStyle}>Billing</span>
             <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>
