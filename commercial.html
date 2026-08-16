@@ -409,7 +409,7 @@ function Calculator({ navy, gold }) {
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
   const bookingLabel = booking === "Monthly" ? `Monthly × ${months} mo` : booking;
   const visitsPerWeek = parseInt(frequency, 10) || 1;
-  const visitsCount = booking === "One-time" ? 1 : Math.round(visitsPerWeek * months * 52 / 12);
+  const visitsCount = booking === "One-time" ? 1 : visitsPerWeek * months * 4;
   const totalAddons = addonsTotal * visitsCount;
   const grossTotal = (afterFrequency * visitsCount) + totalAddons;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
