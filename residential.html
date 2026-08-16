@@ -359,9 +359,15 @@ function Calculator({ navy, gold }) {
   const afterBooking = afterFrequency * (1 + bookingAdj[booking]);
   const perVisit = afterBooking * (firstTime ? 0.90 : 1);
   const discount = Math.max(0, afterFrequency - perVisit);
-  const final = perVisit + addonsTotal;
-  const grossTotal = afterFrequency + addonsTotal;
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
+  const visitsPerMonth = parseInt(frequency, 10) || 1;
+  const visitsCount = booking === "One-time" ? 1
+    : booking === "6-month prepay" ? visitsPerMonth * 6
+    : booking === "12-month prepay" ? visitsPerMonth * 12
+    : visitsPerMonth;
+  const totalAddons = addonsTotal * visitsCount;
+  const grossTotal = (afterFrequency * visitsCount) + totalAddons;
+  const finalDiscounted = (perVisit * visitsCount) + totalAddons;
 
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
@@ -425,20 +431,25 @@ function Calculator({ navy, gold }) {
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons</span><span>${Math.round(addonsTotal)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons (per visit)</span><span>${Math.round(addonsTotal)}</span></div>
               {addons.map(name => (
                 <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} (no discount)</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${addonPricing[name]}</span></div>
               ))}
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-              <span style={{ color: "rgba(255,255,255,0.75)" }}>Total (before discount)</span>
-              <span>${Math.round(grossTotal)}</span>
+              <span style={{ color: "rgba(255,255,255,0.75)" }}>Number of visits ({booking})</span>
+              <span>× {visitsCount}</span>
+            </div>
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>Total for {visitsCount} visit{visitsCount === 1 ? "" : "s"}, before discount</p>
+              <p style={{ fontSize: 22, fontWeight: 600, color: "rgba(255,255,255,0.5)", textDecoration: "line-through", margin: "4px 0 0" }}>${Math.round(grossTotal)}</p>
             </div>
 
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Final discounted price — {booking}, {displayFrequency}</p>
-              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${final.toFixed(0)}<span style={{ fontSize: 16, fontWeight: 400, color: "rgba(255,255,255,0.7)" }}> / visit</span></p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Total discounted price — {booking}, {displayFrequency}</p>
+              <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${finalDiscounted.toFixed(0)}</p>
             </div>
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
             {booked && <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)", marginTop: 10 }}>{firstTime ? "First-time address — 10% discount applied." : "Welcome back — booked at standard pricing."}</p>}
