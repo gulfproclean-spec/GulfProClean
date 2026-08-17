@@ -730,6 +730,25 @@ function HomeOperatingSystem({ navy, gold }) {
   );
 }
 
+function useScrollToHash() {
+  React.useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    const scrollToHash = () => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const navEl = document.querySelector('nav');
+      const offset = (navEl ? navEl.offsetHeight : 0) + 12;
+      const top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'auto' });
+    };
+    // Content (pricing fetch, images) can still be loading on first paint,
+    // which shifts layout — retry a couple times shortly after.
+    const timers = [50, 300, 800].map(ms => setTimeout(scrollToHash, ms));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [booking, setBooking] = React.useState(t.defaultBooking);
@@ -737,6 +756,7 @@ function App() {
   const [navy, gold] = t.palette;
   const content = useSiteContent('residential');
   const pricing = usePricing('residential', DEFAULT_PRICING_RESIDENTIAL);
+  useScrollToHash();
 
   return (
     <div style={{ background: CREAM }}>
