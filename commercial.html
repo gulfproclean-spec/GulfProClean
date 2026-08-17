@@ -52,7 +52,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 const CREAM = "#f5f2ec";
 
 function Nav({ navy, gold }) {
-  const links = [["Home", "index.html"], ["Approach", "#approach"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Pricing", "#pricing"], ["Get a Quote", "#calculator"], ["My Account", "account.html"], ["Residential →", "residential.html"]];
+  const links = [["Home", "index.html"], ["Approach", "#approach"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Get a Quote", "#calculator"], ["My Account", "account.html"], ["Residential →", "residential.html"]];
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
@@ -82,7 +82,7 @@ function Hero({ navy, gold, heroPhoto, hero }) {
   );
   const ctaRow = (
     <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 22, flexWrap: "wrap" }}>
-      <a href="#pricing" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 16, padding: "14px 24px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 8 }}>See pricing →</a>
+      <a href="#calculator" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 16, padding: "14px 24px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 8 }}>Get a quote →</a>
       <a href="#plans" style={{ color: heroPhoto ? "#fff" : navy, fontWeight: 500, fontSize: 16, textDecoration: "underline" }}>Explore service tiers</a>
     </div>
   );
@@ -192,7 +192,7 @@ function Plans({ navy, gold, booking, setBooking }) {
           <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
         </div>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 36, color: navy, margin: 0, maxWidth: 640 }}>Book once, or let us handle it on repeat</h2>
-        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with property size — <a href="#pricing" style={{ color: "#8a6221" }}>see tier pricing</a> for your square footage.</p>
+        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with property size — <a href="#calculator" style={{ color: "#8a6221" }}>get your exact quote</a> below.</p>
 
         <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
@@ -200,7 +200,7 @@ function Plans({ navy, gold, booking, setBooking }) {
               <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>One-time clean</h3>
               <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 8, maxWidth: "56ch" }}>A single visit — post-construction cleanup, event turnover or a one-off deep clean. No commitment, scheduled around your hours.</p>
             </div>
-            <a href="#pricing" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>See one-time pricing</a>
+            <a href="#calculator" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Get one-time pricing</a>
           </div>
           <div style={{ display: "flex", gap: 24, marginTop: 20, flexWrap: "wrap" }}>
             {subs.map(([name, , , price]) => (
@@ -224,7 +224,7 @@ function Plans({ navy, gold, booking, setBooking }) {
               <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{cadence}</p>
               <p style={{ fontSize: 12.5, color: "#8a6221", margin: "6px 0 0", fontWeight: 500 }}>6-month prepay: ${Math.round(parseInt(price.slice(1), 10) * 0.9)} / visit (−10%) · 12-month: ${Math.round(parseInt(price.slice(1), 10) * 0.85)} / visit (−15%)</p>
               <PlanList gold={gold} items={features} />
-              <a href="#pricing" style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name}</a>
+              <a href="#calculator" style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name}</a>
             </div>
           ))}
         </div>
@@ -251,7 +251,6 @@ function Commercial({ navy, gold }) {
   return (
     <section id="approach" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
       <div>
-        <Kicker gold="#8a6221">Approach</Kicker>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0 }}>No contracts. Cancel anytime.</h2>
         <p style={{ fontSize: 15.5, lineHeight: 1.7, color: "#3d4a4d", marginTop: 18, maxWidth: "60ch" }}>Offices, HOAs, restaurants and property-management portfolios get a written scope, a fixed schedule and one crew that learns the building — not a rotating roster starting from zero every visit. Month-to-month by default, with no long-term commitment required.</p>
       </div>
@@ -268,50 +267,6 @@ function Quote({ navy, text, caption }) {
         </blockquote>
         <figcaption style={{ fontSize: 14.5, opacity: 0.75, marginTop: 24 }}>{caption}</figcaption>
       </div>
-    </section>
-  );
-}
-
-function PricingTable({ navy, gold, pricing }) {
-  const tiers = ["Essential", "Preferred", "Premium"];
-  const badges = { Premium: "⭐ Most Popular" };
-  return (
-    <section id="pricing" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
-      <Kicker gold="#8a6221">Pricing</Kicker>
-      <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Commercial Maintenance</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginTop: 32, marginBottom: 8 }}>
-        {[["Essential", "The basics, every visit: trash, restrooms, floors and surface wipe-down."], ["Preferred", "Essential, plus interior glass, baseboards and high-touch disinfection."], ["Premium", "Preferred, plus floor scrub & burnish, interior windows and vents."]].map(([name, blurb]) => (
-          <div key={name}><p style={{ fontSize: 14.5, fontWeight: 600, color: navy, margin: 0 }}>{name}</p><p style={{ fontSize: 13, color: "#7a746a", margin: "4px 0 0" }}>{blurb}</p></div>
-        ))}
-      </div>
-      <div style={{ overflowX: "auto", marginTop: 32 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Service tier</th>
-              {pricing.map(row => (<th key={row.band_label} style={{ textAlign: "left", fontSize: 15, color: navy, fontWeight: 600, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>{row.band_label}</th>))}
-            </tr>
-          </thead>
-          <tbody>
-            {tiers.map((name, i) => (
-              <tr key={name}>
-                <td style={{ fontSize: 14, color: navy, padding: "14px 16px 14px 0", borderBottom: "1px solid #e3ded2" }}>
-                  {name}{badges[name] && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: "#8a6221" }}>{badges[name]}</span>}
-                </td>
-                {pricing.map(row => (
-                  <td key={row.band_label} style={{ fontSize: 15, fontWeight: 600, color: "#8a6221", padding: "14px 16px", borderBottom: "1px solid #e3ded2" }}>From ${Math.round([row.essential, row.preferred, row.premium][i]).toLocaleString("en-US")}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}>/visit</span></td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p style={{ fontSize: 13, color: "#7a746a", marginTop: 24, maxWidth: "70ch" }}>Pricing shown is a starting point for standard commercial properties. Final pricing is based on property size, facility type, condition, occupancy, restroom count, floor type, and service requirements.</p>
-      <div style={{ marginTop: 24, padding: "16px 20px", background: CREAM, border: "1px solid #e3ded2", borderRadius: 6 }}>
-        <p style={{ fontSize: 14.5, fontWeight: 600, color: navy, margin: 0 }}>No contracts. Cancel anytime.*</p>
-        <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>*Applied discount total is deducted from any refund.</p>
-      </div>
-      <footer style={{ marginTop: 32, fontSize: 13, color: "#7a746a" }}>Gulf ProClean — serving businesses from Pensacola to Panama City Beach.</footer>
     </section>
   );
 }
@@ -703,9 +658,9 @@ function App() {
       <AddOns navy={navy} gold={gold} />
       <Commercial navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
-      <PricingTable navy={navy} gold={gold} pricing={pricing} />
       <Calculator navy={navy} gold={gold} pricing={pricing} />
       <Contact note={content.contact.note} />
+      <footer style={{ padding: "0 clamp(20px,5vw,56px) 40px", maxWidth: 1200, margin: "0 auto", fontSize: 13, color: "#7a746a" }}>Gulf ProClean — serving businesses from Pensacola to Panama City Beach.</footer>
       <TweaksPanel>
         <TweakSection label="Theme" />
         <TweakColor label="Palette" value={t.palette}
