@@ -212,7 +212,7 @@ function Plans({ navy, gold, booking, setBooking }) {
           </div>
         </div>
 
-        <p style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0 }}>Recurring plans</p>
+        <p id="recurring-plans" style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0, scrollMarginTop: 90 }}>Recurring plans</p>
         <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for second homes, primary residences and high-use properties, billed monthly. No contracts — cancel anytime.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
           {subs.map(([name, badge, audience, price, cadence, features]) => (
@@ -391,7 +391,7 @@ function Calculator({ navy, gold, pricing }) {
           ✦ Discounts for first-time customers and subscription plans ✦
         </div>
         <Kicker gold="#d9a94a">Get a quote</Kicker>
-        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your price</h2>
+        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your residential price</h2>
         <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Base price × size adjustment × frequency adjustment + add-ons. An estimate — final pricing is confirmed on walkthrough.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
           <label><span style={labelStyle}>First name</span>
