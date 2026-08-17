@@ -41,14 +41,20 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = $('#app');
 const params = new URLSearchParams(location.search);
+const returningBookingId = params.get('bookingId');
+const returningSessionId = params.get('session_id');
+const returningCanceled = params.get('canceled') === '1';
+
 let draft = null;
 try { draft = JSON.parse(sessionStorage.getItem('gpc_booking_draft') || 'null'); } catch {}
 
 let state = {
-  step: draft ? 'account' : 'missing', email: null, isFirstTime: null, schedule: null,
+  step: returningBookingId ? 'payment' : (draft ? 'account' : 'missing'),
+  email: null, isFirstTime: null, schedule: null,
   selectedDate: null, selectedTime: null,
   addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
   extraAddons: [],
+  paymentBooking: null, paymentStatus: null, paymentError: null,
 };
 
 function money(n) { return '$' + Math.round(n).toLocaleString(); }
@@ -82,9 +88,9 @@ function render() {
     `;
     return;
   }
-  if (state.step === 'account') renderAccount();
+  if (state.step === 'payment') renderPaymentReturn();
+  else if (state.step === 'account') renderAccount();
   else if (state.step === 'schedule') renderSchedule();
-  else if (state.step === 'confirmed') renderConfirmed();
 }
 
 function renderAccount() {
@@ -360,52 +366,152 @@ async function confirmBooking() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    btn.textContent = 'Redirecting to payment…';
+    const checkoutRes = await fetch(`/api/bookings/${data.id}/checkout`, { method: 'POST' });
+    const checkoutData = await checkoutRes.json();
+    if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Could not start payment');
     sessionStorage.removeItem('gpc_booking_draft');
-    state.step = 'confirmed';
-    state.finalTotal = totals.finalTotal;
-    render();
+    window.location.href = checkoutData.url;
   } catch (e) {
     errEl.textContent = e.message;
     errEl.style.display = 'block';
     btn.disabled = false;
+    btn.textContent = 'Confirm booking';
   }
 }
 
-function refundPolicyText() {
-  if (draft.booking === 'One-time') {
+function refundPolicyTextFor(bookingType, months) {
+  if (bookingType === 'One-time') {
     return "This is a one-time visit. Contact us as soon as possible if you need to cancel — cancellations inside 24 hours of your visit may not be refundable.";
   }
-  const months = draft.months || 1;
-  if (months >= 6) {
-    const pct = months >= 12 ? '15%' : '10%';
-    return `You're on our ${months}-month subscription (${pct} discount). You can cancel early at any time — the discount already applied to your past visits is deducted from your refund (discount reconciliation).`;
+  const m = months || 1;
+  if (m >= 6) {
+    const pct = m >= 12 ? '15%' : '10%';
+    return `You're on our ${m}-month subscription (${pct} discount). You can cancel early at any time — the discount already applied to your past visits is deducted from your refund (discount reconciliation).`;
   }
   return "You're on our month-to-month Standard plan (no discount applied). Cancel anytime with 30 days' notice.";
 }
 
-function renderConfirmed() {
-  app.innerHTML = `
-    <div class="step-label">Step 3 of 3</div>
-    <h1>You're booked</h1>
-    <div class="card">
-      <p>${draft.tier} clean at ${draft.address}, scheduled for ${state.selectedDate.toLocaleDateString()} at ${state.selectedTime}.</p>
-      <p style="font-size:24px;font-weight:600;color:#8a6221">${money(state.finalTotal)}</p>
-      <p class="muted" style="font-size:13px">A confirmation email is on its way to ${state.email} with these details. Need to change the date or time? You can reschedule up until 24 hours before your visit from My Account.</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a href="account.html"><button>My Account</button></a>
-        <a href="${draft.page}.html"><button class="secondary">Back to ${draft.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>
-      </div>
-    </div>
-    <div class="card">
-      <p style="font-weight:500;margin:0 0 4px">Refund Policy</p>
-      <p class="muted" style="font-size:13.5px;line-height:1.6">No contracts — cancel anytime. ${refundPolicyText()}</p>
-      <p class="muted" style="font-size:12px;margin-top:10px">Full terms are always available under <a href="account.html" style="color:#8a6221">My Account</a>.</p>
-    </div>
-  `;
+async function retryCheckout(bookingId) {
+  const errEl = $('#err');
+  try {
+    const res = await fetch(`/api/bookings/${bookingId}/checkout`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not start payment');
+    window.location.href = data.url;
+  } catch (e) {
+    if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+  }
 }
 
-state.mode = 'signup';
-render();
+async function loadPaymentBooking() {
+  try {
+    const res = await fetch(`/api/bookings/${returningBookingId}`);
+    const data = await res.json();
+    if (res.ok) state.paymentBooking = data.booking;
+  } catch {}
+}
+
+function renderPaymentReturn() {
+  const b = state.paymentBooking;
+  if (!state.paymentStatus) {
+    app.innerHTML = `<h1>Confirming your payment…</h1><p class="muted">One moment — please don't close this page.</p>`;
+    return;
+  }
+  if (state.paymentStatus === 'paid') {
+    app.innerHTML = `
+      <div class="step-label">Booked</div>
+      <h1>You're booked</h1>
+      <div class="card">
+        ${b ? `
+          <p>${b.tier} clean at ${b.address}${b.scheduled_date ? `, scheduled for ${new Date(b.scheduled_date).toLocaleDateString()} at ${b.scheduled_time}` : ''}.</p>
+          <p style="font-size:24px;font-weight:600;color:#8a6221">${money(b.final_total)}</p>
+        ` : ''}
+        <p class="muted" style="font-size:13px">A confirmation email is on its way${state.email ? ' to ' + state.email : ''} with these details. Need to change the date or time? You can reschedule up until 24 hours before your visit from My Account.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="account.html"><button>My Account</button></a>
+          ${b ? `<a href="${b.page}.html"><button class="secondary">Back to ${b.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>` : ''}
+        </div>
+      </div>
+      <div class="card">
+        <p style="font-weight:500;margin:0 0 4px">Refund Policy</p>
+        <p class="muted" style="font-size:13.5px;line-height:1.6">No contracts — cancel anytime. ${b ? refundPolicyTextFor(b.booking_type, b.months) : ''}</p>
+        <p class="muted" style="font-size:12px;margin-top:10px">Full terms are always available under <a href="account.html" style="color:#8a6221">My Account</a>.</p>
+      </div>
+    `;
+    return;
+  }
+  if (state.paymentStatus === 'pending') {
+    app.innerHTML = `
+      <h1>Payment processing</h1>
+      <div class="card">
+        <p class="muted">Your payment is still processing — this can happen with some payment methods. We'll email you as soon as it's confirmed.</p>
+        <a href="account.html"><button>Go to My Account</button></a>
+      </div>
+    `;
+    return;
+  }
+  // canceled or error
+  app.innerHTML = `
+    <h1>${state.paymentStatus === 'canceled' ? 'Payment canceled' : 'Something went wrong'}</h1>
+    <div class="card">
+      <p class="muted">${state.paymentStatus === 'canceled' ? "You didn't complete payment, so this booking hasn't been confirmed yet." : (state.paymentError || 'We could not confirm your payment.')}</p>
+      ${b ? `<p style="margin-top:10px">${b.tier} clean at ${b.address} — <strong>${money(b.final_total)}</strong></p>` : ''}
+      <div class="error" id="err" style="display:none"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <button id="retry-pay">Try payment again</button>
+        <a href="account.html"><button class="secondary">Go to My Account</button></a>
+      </div>
+    </div>
+  `;
+  const retryBtn = $('#retry-pay');
+  if (retryBtn) retryBtn.onclick = () => retryCheckout(returningBookingId);
+}
+
+async function handlePaymentReturn() {
+  render();
+  try {
+    const meRes = await fetch('/api/auth/me');
+    const me = await meRes.json();
+    if (me.loggedIn) state.email = me.email;
+  } catch {}
+
+  if (returningCanceled) {
+    state.paymentStatus = 'canceled';
+    await loadPaymentBooking();
+    render();
+    return;
+  }
+  if (!returningSessionId) {
+    state.paymentStatus = 'error';
+    state.paymentError = 'Missing payment session.';
+    await loadPaymentBooking();
+    render();
+    return;
+  }
+  try {
+    const res = await fetch(`/api/bookings/${returningBookingId}/verify-payment?session_id=${encodeURIComponent(returningSessionId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not verify payment');
+    state.paymentStatus = data.paid ? 'paid' : 'pending';
+  } catch (e) {
+    state.paymentStatus = 'error';
+    state.paymentError = e.message;
+  }
+  await loadPaymentBooking();
+  render();
+}
+
+async function init() {
+  if (state.step === 'payment') {
+    await handlePaymentReturn();
+  } else {
+    state.mode = 'signup';
+    render();
+  }
+}
+
+init();
 </script>
 </body>
 </html>

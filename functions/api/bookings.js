@@ -1,6 +1,5 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
-import { sendBookingConfirmationEmail } from '../_lib/email.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
@@ -49,22 +48,14 @@ export async function onRequestPost({ env, request }) {
     insert into bookings (
       customer_id, page, address, notes, tier, booking_type, months, frequency,
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
-      scheduled_date, scheduled_time
+      scheduled_date, scheduled_time, payment_status
     ) values (
       ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(addons || [])}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(validExtraAddons)}::jsonb, ${visits}, ${gross}, ${final}, ${isFirstTime},
-      ${scheduledDate || null}, ${scheduledTime || null}
+      ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid'
     )
     returning id
   `;
-
-  await sendBookingConfirmationEmail(env, {
-    to: customer.email,
-    page, tier, address,
-    bookingType, months: monthsVal,
-    scheduledDate, scheduledTime,
-    finalTotal: final,
-  });
 
   return new Response(JSON.stringify({ ok: true, id: rows[0].id, isFirstTime }), {
     status: 201,
@@ -79,7 +70,7 @@ export async function onRequestGet({ env, request }) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
   }
   const rows = await sql`
-    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, created_at
+    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, payment_status, created_at
     from bookings where customer_id = ${customer.id} order by created_at desc
   `;
   return new Response(JSON.stringify({ bookings: rows }), { headers: { 'Content-Type': 'application/json' } });

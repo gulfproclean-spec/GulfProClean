@@ -13,6 +13,27 @@ function combineDateTime(dateStr, timeStr) {
   return new Date(y, mo - 1, d, h, mi, 0, 0);
 }
 
+export async function onRequestGet({ env, request, params }) {
+  const sql = neon(env.DATABASE_URL);
+  const customer = await getCustomerFromSession(sql, request);
+  if (!customer) {
+    return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
+  }
+  const rows = await sql`
+    select id, customer_id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons,
+           visits_count, gross_total, final_total, is_first_time, scheduled_date, scheduled_time, payment_status, created_at
+    from bookings where id = ${params.id}
+  `;
+  if (rows.length === 0) {
+    return new Response(JSON.stringify({ error: 'booking not found' }), { status: 404 });
+  }
+  const { customer_id, ...booking } = rows[0];
+  if (customer_id !== customer.id) {
+    return new Response(JSON.stringify({ error: 'not your booking' }), { status: 403 });
+  }
+  return new Response(JSON.stringify({ booking }), { headers: { 'Content-Type': 'application/json' } });
+}
+
 export async function onRequestPut({ env, request, params }) {
   const sql = neon(env.DATABASE_URL);
   const customer = await getCustomerFromSession(sql, request);
@@ -70,7 +91,7 @@ export async function onRequestPut({ env, request, params }) {
     where id = ${params.id}
   `;
 
-  await sendBookingConfirmationEmail(env, {
+  if (booking.payment_status === 'paid') await sendBookingConfirmationEmail(env, {
     to: customer.email,
     page: booking.page, tier: booking.tier, address: booking.address,
     bookingType: booking.booking_type, months: booking.months || 1,

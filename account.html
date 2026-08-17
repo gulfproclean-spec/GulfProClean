@@ -332,25 +332,46 @@ function renderBookings() {
     card.className = 'card';
     const scheduled = b.scheduled_date ? `${new Date(b.scheduled_date).toLocaleDateString()} at ${b.scheduled_time}` : 'Not scheduled';
     const allowed = canReschedule(b);
+    const unpaid = b.payment_status && b.payment_status !== 'paid';
     card.innerHTML = `
       <div class="booking-header">
         <div>
           <span class="tag">${b.page === 'residential' ? 'Residential' : 'Commercial'}</span>
+          ${unpaid ? '<span class="tag" style="color:#b3261e;background:#fbe9e7">Unpaid</span>' : ''}
           <p style="margin:8px 0 0;font-weight:500">${b.tier} — ${b.address}</p>
           <p class="muted" style="font-size:13px;margin-top:4px">${scheduled}</p>
         </div>
         <p style="font-size:18px;font-weight:600;color:#8a6221;margin:0">${money(b.final_total)}</p>
       </div>
+      ${unpaid ? `<p class="muted" style="font-size:12px;margin-top:8px">Payment was never completed for this booking, so it isn't confirmed yet.</p>` : ''}
       ${b.scheduled_date ? monthCalendarHtml(b.scheduled_date, b.scheduled_time) : ''}
+      <div class="error" id="pay-err-${b.id}" style="display:none"></div>
       <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        ${unpaid ? `<button data-pay-now="${b.id}">Pay now</button>` : ''}
         <button class="secondary" data-reschedule="${b.id}" ${allowed ? '' : 'disabled'}>Reschedule</button>
-        <button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>
+        ${!unpaid ? `<button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>` : ''}
       </div>
       ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
       <div id="reschedule-panel-${b.id}"></div>
       <div id="addon-panel-${b.id}"></div>
     `;
     list.appendChild(card);
+    const payBtn = card.querySelector(`[data-pay-now="${b.id}"]`);
+    if (payBtn) payBtn.onclick = async () => {
+      const errEl = $(`#pay-err-${b.id}`, card);
+      errEl.style.display = 'none';
+      payBtn.disabled = true;
+      try {
+        const res = await fetch(`/api/bookings/${b.id}/checkout`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not start payment');
+        window.location.href = data.url;
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+        payBtn.disabled = false;
+      }
+    };
     const btn = card.querySelector(`[data-reschedule="${b.id}"]`);
     btn.onclick = async () => {
       await loadSchedule();
@@ -360,7 +381,7 @@ function renderBookings() {
       render();
     };
     const addonBtn = card.querySelector(`[data-addon-toggle="${b.id}"]`);
-    addonBtn.onclick = () => {
+    if (addonBtn) addonBtn.onclick = () => {
       state.addonPanelId = state.addonPanelId === b.id ? null : b.id;
       render();
     };
