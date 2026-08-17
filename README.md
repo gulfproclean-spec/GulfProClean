@@ -90,19 +90,19 @@ If a customer starts checkout but doesn't finish it, the booking stays
 button that reopens Checkout for the same amount, rather than disappearing
 or silently double-booking the slot.
 
-**A known trade-off worth knowing about:** the amount charged is whatever
-the browser's calculator computed and sent to the server. The server does
-sanity-check it (non-negative, not wildly larger than the quoted gross),
-but it does not independently re-derive the full price from scratch — the
-residential/commercial pricing formulas are complex enough (size, property
-scope, frequency, discounts, tax) that duplicating the entire engine
-server-side was out of scope for this pass. In practice this means someone
-technical enough to tamper with the page's JavaScript could theoretically
-get a lower Stripe charge than the real quote. This mirrors how the pricing
-already worked before Stripe was added; it just matters more now that real
-money moves. If you want this hardened (full server-side price
-recomputation), that's a follow-up worth doing before relying on this for
-high-value bookings.
+**Pricing integrity:** the amount charged is computed entirely server-side
+(`functions/_lib/pricing.js`) from raw selections — property size, tier,
+frequency, add-on picks — not from a total the browser sends. The client
+never gets to state "the total is $X"; it can only state "I picked this
+tier, this frequency, these add-ons," and the server derives the price
+from those using the same formulas as the on-page calculator, pulling
+current tier pricing from `pricing_tiers` at request time. Tampering with
+the page's JavaScript can no longer produce a cheaper Stripe charge.
+One inherent limit remains: property size (sq ft) and commercial scope
+details (restroom count, etc.) are still self-reported by the customer —
+no web form can verify the true size of a building. What's closed off is
+independent manipulation of price, discounts, add-on cost, visit count,
+or tax once a stated size is given.
 
 ## Email (booking confirmations)
 
