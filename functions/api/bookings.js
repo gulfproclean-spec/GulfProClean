@@ -17,14 +17,24 @@ export async function onRequestPost({ env, request }) {
     return new Response(JSON.stringify({ error: 'invalid json' }), { status: 400 });
   }
   const {
-    page, address, notes, tier, bookingType, months, frequency,
+    page, notes, tier, bookingType, months, frequency,
     sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime,
+    firstName, lastName, phone, addressLine1, unit, city, state, zip,
   } = body;
 
-  if (!PAGES.has(page) || !address || !tier || !bookingType || !frequency) {
-    return new Response(JSON.stringify({ error: 'missing required fields' }), { status: 400 });
+  const requiredStrings = { firstName, lastName, phone, addressLine1, unit, city, state, zip };
+  const missing = Object.entries(requiredStrings).filter(([, v]) => typeof v !== 'string' || !v.trim());
+  if (!PAGES.has(page) || !tier || !bookingType || !frequency || missing.length > 0) {
+    return new Response(JSON.stringify({ error: 'Please fill in all required fields (name, phone, and full address).' }), { status: 400 });
   }
+  if (!/^[A-Za-z]{2}$/.test(state)) {
+    return new Response(JSON.stringify({ error: 'Invalid state.' }), { status: 400 });
+  }
+  if (!/^\d{5}(-\d{4})?$/.test(zip.trim())) {
+    return new Response(JSON.stringify({ error: 'Invalid zip code.' }), { status: 400 });
+  }
+  const address = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${state.toUpperCase()} ${zip.trim()}`].filter(Boolean).join(', ');
 
   const priorBookings = await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
   const isFirstTime = priorBookings.length === 0;
@@ -59,12 +69,14 @@ export async function onRequestPost({ env, request }) {
     insert into bookings (
       customer_id, page, address, notes, tier, booking_type, months, frequency,
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
-      scheduled_date, scheduled_time, payment_status, pricing_input
+      scheduled_date, scheduled_time, payment_status, pricing_input,
+      first_name, last_name, phone, address_line1, unit, city, state, zip
     ) values (
       ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
-      ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb
+      ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
+      ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unit.trim()}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()}
     )
     returning id
   `;
@@ -85,7 +97,7 @@ export async function onRequestGet({ env, request }) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
   }
   const rows = await sql`
-    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, payment_status, created_at
+    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, payment_status, first_name, last_name, phone, created_at
     from bookings where customer_id = ${customer.id} order by created_at desc
   `;
   return new Response(JSON.stringify({ bookings: rows }), { headers: { 'Content-Type': 'application/json' } });

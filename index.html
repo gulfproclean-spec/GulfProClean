@@ -15,18 +15,60 @@
   @media (max-width: 720px) {
     nav { flex-wrap: wrap; row-gap: 6px !important; column-gap: 14px !important; padding: 12px 20px !important; font-size: 12.5px !important; }
   }
+  .nav-item { position: relative; }
+  .nav-item .nav-menu {
+    display: none; position: absolute; top: 100%; left: 0; margin-top: 8px;
+    background: #fff; border: 1px solid #d8d3c8; border-radius: 6px; padding: 6px;
+    min-width: 150px; box-shadow: 0 10px 28px rgba(21,50,56,0.12); flex-direction: column; gap: 2px; z-index: 60;
+  }
+  .nav-item:hover .nav-menu, .nav-item:focus-within .nav-menu { display: flex; }
+  .nav-menu a { padding: 8px 10px; border-radius: 4px; font-size: 13.5px; color: #153238; opacity: 1 !important; }
+  .nav-menu a:hover { background: #f5f2ec; }
 </style>
 </head>
 <body>
-  <nav style="position:sticky;top:0;z-index:50;background:#f5f2ec;border-bottom:1px solid #d8d3c8;display:flex;align-items:center;gap:28px;padding:18px clamp(20px,5vw,56px);color:#153238;font-size:14px;">
-    <span style="font-family:inherit;font-weight:800;font-size:21px;letter-spacing:-0.01em;margin-right:auto;">
-      <span style="color:#153238;">Gulf</span><span style="color:#b68235;">ProClean</span>
+  <nav style="position:sticky;top:0;z-index:50;background:#f5f2ec;border-bottom:1px solid #d8d3c8;display:flex;align-items:center;gap:28px;padding:14px clamp(20px,5vw,56px);color:#153238;font-size:14px;">
+    <span style="margin-right:auto;">
+      <span style="display:block;font-family:inherit;font-weight:800;font-size:21px;letter-spacing:-0.01em;">
+        <span style="color:#153238;">Gulf</span><span style="color:#b68235;">ProClean</span>
+      </span>
+      <span style="display:block;font-size:11px;font-weight:500;letter-spacing:0.02em;color:#7a746a;margin-top:2px;">One Company. Everything Your Home Needs.</span>
     </span>
-    <a href="residential.html#tiers" style="color:inherit;opacity:0.92;">Service Tiers</a>
-    <a href="residential.html#plans" style="color:inherit;opacity:0.92;">Plans</a>
-    <a href="residential.html#addons" style="color:inherit;opacity:0.92;">Add-Ons</a>
-    <a href="residential.html#pricing" style="color:inherit;opacity:0.92;">Pricing</a>
-    <a href="residential.html#calculator" style="color:inherit;opacity:0.92;">Get a Quote</a>
+    <div class="nav-item">
+      <a href="residential.html#tiers" style="color:inherit;opacity:0.92;">Service Tiers</a>
+      <div class="nav-menu">
+        <a href="residential.html#tiers">Residential →</a>
+        <a href="commercial.html#tiers">Commercial →</a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="residential.html#plans" style="color:inherit;opacity:0.92;">Plans</a>
+      <div class="nav-menu">
+        <a href="residential.html#plans">Residential →</a>
+        <a href="commercial.html#plans">Commercial →</a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="residential.html#addons" style="color:inherit;opacity:0.92;">Add-Ons</a>
+      <div class="nav-menu">
+        <a href="residential.html#addons">Residential →</a>
+        <a href="commercial.html#addons">Commercial →</a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="residential.html#pricing" style="color:inherit;opacity:0.92;">Pricing</a>
+      <div class="nav-menu">
+        <a href="residential.html#pricing">Residential →</a>
+        <a href="commercial.html#pricing">Commercial →</a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="residential.html#calculator" style="color:inherit;opacity:0.92;">Get a Quote</a>
+      <div class="nav-menu">
+        <a href="residential.html#calculator">Residential →</a>
+        <a href="commercial.html#calculator">Commercial →</a>
+      </div>
+    </div>
     <a href="account.html" style="color:inherit;opacity:0.92;">My Account</a>
   </nav>
 

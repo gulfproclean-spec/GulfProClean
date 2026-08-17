@@ -324,6 +324,20 @@ function Contact({ note }) {
   );
 }
 
+const US_STATES = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"],
+  ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"],
+  ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"],
+  ["IA", "Iowa"], ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"],
+  ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"],
+  ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"],
+  ["NJ", "New Jersey"], ["NM", "New Mexico"], ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"],
+  ["OH", "Ohio"], ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"],
+  ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"],
+  ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"], ["WI", "Wisconsin"],
+  ["WY", "Wyoming"],
+];
+
 function Calculator({ navy, gold, pricing }) {
   const SIZE_TIERS = pricing.filter(r => !r.unavailable).map(r => ({
     max: r.max_sqft, label: r.band_label,
@@ -349,7 +363,14 @@ function Calculator({ navy, gold, pricing }) {
     "Heavy sand removal": 55, "Patio / balcony": 47, "Garage sweep": 62
   };
 
-  const [address, setAddress] = React.useState("");
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [addressLine1, setAddressLine1] = React.useState("");
+  const [unit, setUnit] = React.useState("");
+  const [city, setCity] = React.useState("");
+  const [stateVal, setStateVal] = React.useState("");
+  const [zip, setZip] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [tier, setTier] = React.useState("Premium");
   const [sqft, setSqft] = React.useState(1500);
@@ -360,12 +381,16 @@ function Calculator({ navy, gold, pricing }) {
   const [addonQty, setAddonQty] = React.useState({});
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const setAddonQtyFor = (name, val) => setAddonQty(q => ({ ...q, [name]: Number(val) }));
+  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !unit.trim() || !city.trim() || !stateVal || !zip.trim();
   const handleBookIt = () => {
-    if (!address.trim()) { alert("Enter the service address to book."); return; }
+    if (missingRequired) { alert("Please fill in all required fields (name, phone, and full address) to book."); return; }
     if (priceUnavailable) { alert("This property size is priced individually — please request a quote instead."); return; }
+    const fullAddress = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${stateVal} ${zip.trim()}`].filter(Boolean).join(", ");
     sessionStorage.setItem("gpc_booking_draft", JSON.stringify({
       page: "residential",
-      address: address.trim(),
+      firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(),
+      addressLine1: addressLine1.trim(), unit: unit.trim(), city: city.trim(), state: stateVal, zip: zip.trim(),
+      address: fullAddress,
       notes: notes.trim(),
       sqft,
       tier, booking, months, frequency, displayFrequency, bookingLabel,
@@ -412,10 +437,33 @@ function Calculator({ navy, gold, pricing }) {
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your price</h2>
         <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Base price × size adjustment × frequency adjustment + add-ons. An estimate — final pricing is confirmed on walkthrough.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={labelStyle}>Service address</span>
-            <input type="text" placeholder="123 Main St, Destin FL" value={address} onChange={e => setAddress(e.target.value)} style={selStyle} />
-          </div>
+          <label><span style={labelStyle}>First name</span>
+            <input type="text" placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>Last name</span>
+            <input type="text" placeholder="Doe" value={lastName} onChange={e => setLastName(e.target.value)} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>Phone</span>
+            <input type="tel" placeholder="(850) 555-0123" value={phone} onChange={e => setPhone(e.target.value)} style={selStyle} />
+          </label>
+          <label style={{ gridColumn: "1 / -1" }}><span style={labelStyle}>Address</span>
+            <input type="text" placeholder="123 Main St" value={addressLine1} onChange={e => setAddressLine1(e.target.value)} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>Unit / suite #</span>
+            <input type="text" placeholder="Apt 4B" value={unit} onChange={e => setUnit(e.target.value)} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>City</span>
+            <input type="text" placeholder="Destin" value={city} onChange={e => setCity(e.target.value)} style={selStyle} />
+          </label>
+          <label><span style={labelStyle}>State</span>
+            <select value={stateVal} onChange={e => setStateVal(e.target.value)} style={selStyle}>
+              <option value="">Select a state</option>
+              {US_STATES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+            </select>
+          </label>
+          <label><span style={labelStyle}>Zip code</span>
+            <input type="text" inputMode="numeric" placeholder="32541" value={zip} onChange={e => setZip(e.target.value)} style={selStyle} />
+          </label>
           <label><span style={labelStyle}>Property size (sq ft)</span>
             <input type="number" min="0" value={sqft} onChange={e => setSqft(Number(e.target.value))} style={selStyle} />
           </label>
