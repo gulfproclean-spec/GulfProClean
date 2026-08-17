@@ -14,6 +14,12 @@
   .navy { color: #153238; }
   @media (max-width: 720px) {
     nav { flex-wrap: wrap; row-gap: 6px !important; column-gap: 14px !important; padding: 12px 20px !important; font-size: 12.5px !important; }
+    .nav-item { padding-bottom: 0; margin-bottom: 0; display: flex; flex-direction: column; align-items: flex-start; }
+    .nav-item .nav-menu {
+      display: flex !important; position: static !important; box-shadow: none !important; border: none !important;
+      padding: 2px 0 0 10px !important; margin-top: 2px !important; min-width: 0 !important; background: transparent !important;
+    }
+    .nav-menu a { padding: 3px 0 !important; font-size: 12px !important; color: #7a746a !important; }
   }
   .nav-item { position: relative; padding-bottom: 14px; margin-bottom: -14px; }
   .nav-item .nav-menu {
@@ -65,6 +71,8 @@
     </div>
     <a href="account.html" style="color:inherit;opacity:0.92;">My Account</a>
   </nav>
+
+  <div style="background:linear-gradient(135deg,#b68235,#d9a94a);color:#153238;text-align:center;padding:13px 20px;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">✦ No contracts. Cancel anytime. ✦</div>
 
   <main style="padding:40px clamp(20px,5vw,56px) 0;max-width:1200px;margin:0 auto;">
     <span style="display:block;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8a6221;margin-bottom:14px;">Get started</span>
