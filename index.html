@@ -12,13 +12,22 @@
   body { font-family: 'Libre Franklin', system-ui, sans-serif; text-wrap: pretty; background: #f5f2ec; color: #153238; }
   a { text-decoration: none; }
   .navy { color: #153238; }
+  @media (max-width: 720px) {
+    nav { flex-wrap: wrap; row-gap: 6px !important; column-gap: 14px !important; padding: 12px 20px !important; font-size: 12.5px !important; }
+  }
 </style>
 </head>
 <body>
-  <nav style="position:sticky;top:0;z-index:50;background:#f5f2ec;border-bottom:1px solid #d8d3c8;display:flex;align-items:center;gap:10px;padding:18px clamp(20px,5vw,56px);">
-    <span style="font-family:inherit;font-weight:800;font-size:21px;letter-spacing:-0.01em;">
+  <nav style="position:sticky;top:0;z-index:50;background:#f5f2ec;border-bottom:1px solid #d8d3c8;display:flex;align-items:center;gap:28px;padding:18px clamp(20px,5vw,56px);color:#153238;font-size:14px;">
+    <span style="font-family:inherit;font-weight:800;font-size:21px;letter-spacing:-0.01em;margin-right:auto;">
       <span style="color:#153238;">Gulf</span><span style="color:#b68235;">ProClean</span>
     </span>
+    <a href="residential.html#tiers" style="color:inherit;opacity:0.92;">Service Tiers</a>
+    <a href="residential.html#plans" style="color:inherit;opacity:0.92;">Plans</a>
+    <a href="residential.html#addons" style="color:inherit;opacity:0.92;">Add-Ons</a>
+    <a href="residential.html#pricing" style="color:inherit;opacity:0.92;">Pricing</a>
+    <a href="residential.html#calculator" style="color:inherit;opacity:0.92;">Get a Quote</a>
+    <a href="account.html" style="color:inherit;opacity:0.92;">My Account</a>
   </nav>
 
   <main style="padding:40px clamp(20px,5vw,56px) 0;max-width:1200px;margin:0 auto;">
