@@ -52,7 +52,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 const CREAM = "#f5f2ec";
 
 function Nav({ navy, gold }) {
-  const links = [["Home", "index.html"], ["Approach", "#approach"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Get a Quote", "#calculator"], ["My Account", "account.html"], ["Residential →", "residential.html"]];
+  const links = [["Home", "index.html"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Get a Quote", "#calculator"], ["My Account", "account.html"], ["Residential →", "residential.html"]];
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
@@ -242,17 +242,6 @@ function AddOns({ navy, gold }) {
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 14, maxWidth: "58ch" }}>Actual cost is calculated from your property's square footage, restroom count and service areas in the estimate below.</p>
         <img src="assets/commercial-addons.jpg" alt="Commercial add-on services: post-construction cleanup, exterior window washing, high/low dusting, restroom deep sanitize, trash and dumpster area detail, carpet extraction, kitchen equipment degreasing, pressure washing entryways and dumpster pads" style={{ width: "100%", display: "block", marginTop: 32, borderRadius: 6 }} />
         <a href="#calculator" style={{ display: "inline-block", marginTop: 24, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Build your estimate</a>
-      </div>
-    </section>
-  );
-}
-
-function Commercial({ navy, gold }) {
-  return (
-    <section id="approach" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
-      <div>
-        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0 }}>No contracts. Cancel anytime.</h2>
-        <p style={{ fontSize: 15.5, lineHeight: 1.7, color: "#3d4a4d", marginTop: 18, maxWidth: "60ch" }}>Offices, HOAs, restaurants and property-management portfolios get a written scope, a fixed schedule and one crew that learns the building — not a rotating roster starting from zero every visit. Month-to-month by default, with no long-term commitment required.</p>
       </div>
     </section>
   );
@@ -656,7 +645,6 @@ function App() {
       <ServiceTiers navy={navy} gold={gold} />
       <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} />
       <AddOns navy={navy} gold={gold} />
-      <Commercial navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
       <Calculator navy={navy} gold={gold} pricing={pricing} />
       <Contact note={content.contact.note} />
