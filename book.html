@@ -190,12 +190,15 @@ function availableTimeSlots(date, cfg) {
 }
 
 function frequencyIntervalDays(page, frequency) {
+  const n = parseInt(frequency, 10) || 1;
+  if (frequency.toLowerCase().includes('weekly')) {
+    return Math.max(1, Math.round(7 / n));
+  }
   if (page === 'residential') {
     if (frequency.includes('4 visits')) return 7;
     if (frequency.includes('2 visits')) return 14;
     return 30;
   }
-  const n = parseInt(frequency, 10) || 1;
   return Math.max(1, Math.round(7 / n));
 }
 

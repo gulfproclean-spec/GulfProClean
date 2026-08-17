@@ -329,7 +329,16 @@ function Calculator({ navy, gold, pricing }) {
     max: r.max_sqft, label: r.band_label,
     prices: { Essential: r.essential, Preferred: r.preferred, Premium: r.premium },
   }));
-  const freqAdj = { "2 visits monthly (Biweekly Cleaning)": 0, "4 visits monthly (Weekly Cleaning)": 0 };
+  const freqAdj = {
+    "2 visits monthly (Biweekly Cleaning)": 0,
+    "4 visits monthly (Weekly Cleaning)": 0,
+    "1 visit weekly": 0,
+    "3 visits weekly": 0,
+    "4 visits weekly": 0,
+    "5 visits weekly": 0,
+    "6 visits weekly": 0,
+    "7 visits weekly": 0,
+  };
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0;
   const MONTH_OPTIONS = [1, 2, 3, 4, 5, 6, 12];
@@ -381,7 +390,8 @@ function Calculator({ navy, gold, pricing }) {
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
   const bookingLabel = booking === "Monthly" ? `Monthly × ${months} mo` : booking;
   const visitsPerMonth = parseInt(frequency, 10) || 1;
-  const visitsCount = booking === "One-time" ? 1 : visitsPerMonth * months;
+  const isWeeklyCadence = frequency.toLowerCase().includes("weekly");
+  const visitsCount = booking === "One-time" ? 1 : (isWeeklyCadence ? visitsPerMonth * months * 4 : visitsPerMonth * months);
   const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
   const totalAddons = addons.reduce((sum, name) => sum + addonPricing[name] * addonOccurrences(name), 0);
   const grossTotal = (afterFrequency * visitsCount) + totalAddons;
