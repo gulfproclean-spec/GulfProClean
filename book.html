@@ -389,18 +389,6 @@ async function confirmBooking() {
   }
 }
 
-function refundPolicyTextFor(bookingType, months) {
-  if (bookingType === 'One-time') {
-    return "This is a one-time visit. Contact us as soon as possible if you need to cancel — cancellations inside 24 hours of your visit may not be refundable.";
-  }
-  const m = months || 1;
-  if (m >= 6) {
-    const pct = m >= 12 ? '15%' : '10%';
-    return `You're on our ${m}-month subscription (${pct} discount). You can cancel early at any time — the discount already applied to your past visits is deducted from your refund (discount reconciliation).`;
-  }
-  return "You're on our month-to-month Standard plan (no discount applied). Cancel anytime with 30 days' notice.";
-}
-
 async function retryCheckout(bookingId) {
   const errEl = $('#err');
   try {
@@ -437,15 +425,11 @@ function renderPaymentReturn() {
           <p style="font-size:24px;font-weight:600;color:#8a6221">${money(b.final_total)}</p>
         ` : ''}
         <p class="muted" style="font-size:13px">A confirmation email is on its way${state.email ? ' to ' + state.email : ''} with these details. Need to change the date or time? You can reschedule up until 24 hours before your visit from My Account.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <p class="muted" style="font-size:12px;margin-top:10px">Need to cancel or request a refund? That's handled under <a href="account.html" style="color:#8a6221">My Account</a>.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
           <a href="account.html"><button>My Account</button></a>
           ${b ? `<a href="${b.page}.html"><button class="secondary">Back to ${b.page === 'residential' ? 'Residential' : 'Commercial'}</button></a>` : ''}
         </div>
-      </div>
-      <div class="card">
-        <p style="font-weight:500;margin:0 0 4px">Refund Policy</p>
-        <p class="muted" style="font-size:13.5px;line-height:1.6">No contracts — cancel anytime. ${b ? refundPolicyTextFor(b.booking_type, b.months) : ''}</p>
-        <p class="muted" style="font-size:12px;margin-top:10px">Full terms are always available under <a href="account.html" style="color:#8a6221">My Account</a>.</p>
       </div>
     `;
     return;

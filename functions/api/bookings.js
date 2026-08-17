@@ -70,13 +70,15 @@ export async function onRequestPost({ env, request }) {
       customer_id, page, address, notes, tier, booking_type, months, frequency,
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
       scheduled_date, scheduled_time, payment_status, pricing_input,
-      first_name, last_name, phone, address_line1, unit, city, state, zip
+      first_name, last_name, phone, address_line1, unit, city, state, zip,
+      per_visit_price, after_frequency_price
     ) values (
       ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
-      ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unit.trim()}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()}
+      ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unit.trim()}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
+      ${pricing.perVisit}, ${pricing.afterFrequency}
     )
     returning id
   `;

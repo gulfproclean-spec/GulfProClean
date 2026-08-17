@@ -69,7 +69,7 @@ const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
 
-let state = { step: 'loading', email: null, mode: 'login', bookings: [], schedule: null, reschedulingId: null, selectedDate: null, selectedTime: null, addonPanelId: null, addonSelection: {} };
+let state = { step: 'loading', email: null, mode: 'login', bookings: [], schedule: null, reschedulingId: null, selectedDate: null, selectedTime: null, addonPanelId: null, addonSelection: {}, refundPanelId: null, refundData: {} };
 
 const RESIDENTIAL_ADDON_CATALOG = {
   "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
@@ -350,10 +350,12 @@ function renderBookings() {
         ${unpaid ? `<button data-pay-now="${b.id}">Pay now</button>` : ''}
         <button class="secondary" data-reschedule="${b.id}" ${allowed ? '' : 'disabled'}>Reschedule</button>
         ${!unpaid ? `<button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>` : ''}
+        ${!unpaid ? `<button class="secondary" data-refund-toggle="${b.id}">Request a refund</button>` : ''}
       </div>
       ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
       <div id="reschedule-panel-${b.id}"></div>
       <div id="addon-panel-${b.id}"></div>
+      <div id="refund-panel-${b.id}"></div>
     `;
     list.appendChild(card);
     const payBtn = card.querySelector(`[data-pay-now="${b.id}"]`);
@@ -385,13 +387,85 @@ function renderBookings() {
       state.addonPanelId = state.addonPanelId === b.id ? null : b.id;
       render();
     };
+    const refundBtn = card.querySelector(`[data-refund-toggle="${b.id}"]`);
+    if (refundBtn) refundBtn.onclick = async () => {
+      const opening = state.refundPanelId !== b.id;
+      state.refundPanelId = opening ? b.id : null;
+      if (opening && !state.refundData[b.id]) {
+        await loadRefundEstimate(b.id);
+      }
+      render();
+    };
     if (state.reschedulingId === b.id) {
       renderReschedulePanel(card.querySelector(`#reschedule-panel-${b.id}`), b);
     }
     if (state.addonPanelId === b.id) {
       renderAddonPanel(card.querySelector(`#addon-panel-${b.id}`), b);
     }
+    if (state.refundPanelId === b.id) {
+      renderRefundPanel(card.querySelector(`#refund-panel-${b.id}`), b);
+    }
   });
+}
+
+async function loadRefundEstimate(bookingId) {
+  try {
+    const res = await fetch(`/api/bookings/${bookingId}/refund`);
+    const data = await res.json();
+    if (res.ok) state.refundData[bookingId] = data;
+    else state.refundData[bookingId] = { error: data.error || 'Could not load refund estimate.' };
+  } catch (e) {
+    state.refundData[bookingId] = { error: 'Could not load refund estimate.' };
+  }
+}
+
+function renderRefundPanel(container, booking) {
+  const data = state.refundData[booking.id];
+  if (!data) {
+    container.innerHTML = `<div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2"><p class="muted" style="font-size:13px">Calculating…</p></div>`;
+    return;
+  }
+  if (data.error) {
+    container.innerHTML = `<div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2"><p class="muted" style="font-size:13px;color:#b3261e">${data.error}</p></div>`;
+    return;
+  }
+  const est = data.estimate;
+  const existing = data.existingRequest;
+  container.innerHTML = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px">Refund estimate</p>
+      <div class="row"><span class="muted">Visits delivered</span><span>${est.visitsDelivered} of ${est.visitsCount}</span></div>
+      <div class="row"><span class="muted">Remaining visits value</span><span>${money(est.remainingValue)}</span></div>
+      <div class="row"><span class="muted">Less: discount already applied</span><span>−${money(est.totalDiscount)}</span></div>
+      <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:6px;padding-top:8px"><span>Estimated refund</span><span style="color:#8a6221">${money(est.refundAmount)}</span></div>
+      <p class="muted" style="font-size:12px;margin-top:8px">Based on visits not yet delivered, minus any discount you received for this plan. Requesting sends this to our team for review — it does not refund automatically.</p>
+      <div class="error" id="refund-err-${booking.id}" style="display:none"></div>
+      ${existing ? `
+        <p style="font-size:13px;margin-top:10px">
+          ${existing.status === 'pending' ? `Refund request of ${money(existing.amount)} submitted ${new Date(existing.requested_at).toLocaleDateString()} — pending review.` : `Refund request of ${money(existing.amount)}: ${existing.status}.`}
+        </p>
+      ` : `
+        <button id="confirm-refund-${booking.id}" style="margin-top:10px" ${est.refundAmount > 0 ? '' : 'disabled'}>${est.refundAmount > 0 ? `Request ${money(est.refundAmount)} refund` : 'No refund owed'}</button>
+      `}
+    </div>
+  `;
+  const confirmBtn = $(`#confirm-refund-${booking.id}`, container);
+  if (confirmBtn) confirmBtn.onclick = async () => {
+    const errEl = $(`#refund-err-${booking.id}`, container);
+    errEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/refund`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not submit refund request');
+      await loadRefundEstimate(booking.id);
+      render();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      confirmBtn.disabled = false;
+    }
+  };
 }
 
 function monthCalendarHtml(scheduledDate, scheduledTime) {

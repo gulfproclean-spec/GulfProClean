@@ -172,7 +172,7 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   const finalTotal = subtotal + tax;
 
   return {
-    tier, visitsCount, perVisit, addonsTotalAmount,
+    tier, visitsCount, perVisit, afterFrequency, addonsTotalAmount,
     resolvedAddons, resolvedExtraAddons, extraAddonsTotal,
     grossTotal, taxRate, tax, finalTotal,
   };
