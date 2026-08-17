@@ -17,13 +17,13 @@ function frequencyIntervalDays(page, frequency) {
   return 30;
 }
 
+const ONE_TIME_CANCELLATION_SURCHARGE = 50;
+
 export function estimateRefund(booking) {
   const visitsCount = Number(booking.visits_count) || 1;
   const perVisitPrice = Number(booking.per_visit_price) || 0;
   const afterFrequencyPrice = Number(booking.after_frequency_price);
   const referencePrice = Number.isFinite(afterFrequencyPrice) ? afterFrequencyPrice : perVisitPrice;
-
-  const totalDiscount = Math.max(0, (referencePrice - perVisitPrice) * visitsCount);
 
   let visitsDelivered = 0;
   if (booking.scheduled_date) {
@@ -35,6 +35,24 @@ export function estimateRefund(booking) {
     }
   }
   const visitsRemaining = Math.max(0, visitsCount - visitsDelivered);
+
+  // One-time bookings only ever have a single visit. If it was never
+  // performed, the customer gets everything they paid back minus a flat
+  // cancellation surcharge — not the general remaining-value-minus-discount
+  // math (there's no multi-visit discount to reconcile on a one-time booking).
+  if (booking.booking_type === 'One-time') {
+    const totalPaid = Number(booking.final_total) || 0;
+    const refundAmount = visitsDelivered === 0
+      ? Math.round(Math.max(0, totalPaid - ONE_TIME_CANCELLATION_SURCHARGE) * 100) / 100
+      : 0;
+    return {
+      visitsCount, visitsDelivered, visitsRemaining, perVisitPrice,
+      totalDiscount: 0, remainingValue: totalPaid, refundAmount,
+      cancellationSurcharge: visitsDelivered === 0 ? ONE_TIME_CANCELLATION_SURCHARGE : 0,
+    };
+  }
+
+  const totalDiscount = Math.max(0, (referencePrice - perVisitPrice) * visitsCount);
   const remainingValue = visitsRemaining * perVisitPrice;
   const refundAmount = Math.round(Math.max(0, remainingValue - totalDiscount) * 100) / 100;
 

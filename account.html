@@ -52,10 +52,6 @@
   .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin: 14px 0; }
   .day-btn { border: 1px solid #d8d3c8; border-radius: 4px; padding: 8px 6px; background: #fff; cursor: pointer; font-size: 12px; text-align: center; }
   .day-btn.selected { background: #b68235; border-color: #b68235; color: #153238; font-weight: 600; }
-  .terms-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  .terms-table th { text-align: left; font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #7a746a; font-weight: 500; padding: 0 12px 10px 0; border-bottom: 2px solid #153238; }
-  .terms-table td { padding: 12px 12px 12px 0; border-bottom: 1px solid #e3ded2; color: #153238; }
-  .terms-table td:first-child { font-weight: 500; }
   .day-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 </style>
 </head>
@@ -178,29 +174,6 @@ function render() {
   if (state.step === 'bookings') return renderBookings();
 }
 
-function subscriptionTermsHtml() {
-  const rows = [
-    ['Standard', 'Month-to-month', '0%', '30-day notice'],
-    ['6-Month Subscription', '6 months', '10%', 'Discount reconciliation'],
-    ['12-Month Subscription', '12 months', '15%', 'Discount reconciliation'],
-  ];
-  return `
-    <div class="card">
-      <p style="font-weight:500;margin:0 0 4px">Subscription Pricing &amp; Early Cancellation</p>
-      <p class="muted" style="font-size:13px;margin:0 0 16px">How your plan's discount and cancellation terms work.</p>
-      <div style="overflow-x:auto">
-        <table class="terms-table">
-          <thead><tr><th>Plan</th><th>Commitment</th><th>Discount</th><th>Early Cancellation</th></tr></thead>
-          <tbody>
-            ${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      <p class="muted" style="font-size:12px;margin-top:14px">"Discount reconciliation" means: if you cancel a 6- or 12-month subscription early, the discount already applied to past visits is reconciled against the standard month-to-month rate for the visits you actually received.</p>
-    </div>
-  `;
-}
-
 function dashCardHtml({ icon, title, subtitle, status, statusText, body }) {
   return `
     <div class="dash-card">
@@ -285,7 +258,6 @@ function renderLogin() {
       <button id="submit">Log in</button>
       <p class="muted" style="font-size:12.5px;margin-top:12px">Don't have an account yet? Book a service from the <a href="residential.html" style="color:#8a6221">residential</a> or <a href="commercial.html" style="color:#8a6221">commercial</a> page first.</p>
     </div>
-    ${subscriptionTermsHtml()}
   `;
   $('#submit').onclick = async () => {
     const email = $('#email').value.trim();
@@ -324,7 +296,6 @@ function renderBookings() {
     <h1 style="font-size:24px;margin-top:40px">My Bookings</h1>
     ${state.bookings.length === 0 ? '<div class="card"><p class="muted">No bookings yet.</p></div>' : ''}
     <div id="list"></div>
-    ${subscriptionTermsHtml()}
   `;
   $('#signout').onclick = signOut;
   const list = $('#list');
@@ -432,14 +403,26 @@ function renderRefundPanel(container, booking) {
   }
   const est = data.estimate;
   const existing = data.existingRequest;
-  container.innerHTML = `
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
-      <p style="font-size:13px;font-weight:500;margin:0 0 8px">Refund estimate</p>
+  const isOneTimeSurcharge = !!est.cancellationSurcharge;
+  const breakdownRows = isOneTimeSurcharge
+    ? `
+      <div class="row"><span class="muted">Amount paid</span><span>${money(est.remainingValue)}</span></div>
+      <div class="row"><span class="muted">Less: $50 cancellation fee</span><span>−${money(est.cancellationSurcharge)}</span></div>
+    `
+    : `
       <div class="row"><span class="muted">Visits delivered</span><span>${est.visitsDelivered} of ${est.visitsCount}</span></div>
       <div class="row"><span class="muted">Remaining visits value</span><span>${money(est.remainingValue)}</span></div>
       <div class="row"><span class="muted">Less: discount already applied</span><span>−${money(est.totalDiscount)}</span></div>
+    `;
+  const footnote = isOneTimeSurcharge
+    ? "This one-time visit hasn't been performed yet. Cancelling refunds what you paid, minus a $50 cancellation fee. Requesting sends this to our team for review — it does not refund automatically."
+    : "Based on visits not yet delivered, minus any discount you received for this plan. Requesting sends this to our team for review — it does not refund automatically.";
+  container.innerHTML = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px">Refund estimate</p>
+      ${breakdownRows}
       <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:6px;padding-top:8px"><span>Estimated refund</span><span style="color:#8a6221">${money(est.refundAmount)}</span></div>
-      <p class="muted" style="font-size:12px;margin-top:8px">Based on visits not yet delivered, minus any discount you received for this plan. Requesting sends this to our team for review — it does not refund automatically.</p>
+      <p class="muted" style="font-size:12px;margin-top:8px">${footnote}</p>
       <div class="error" id="refund-err-${booking.id}" style="display:none"></div>
       ${existing ? `
         <p style="font-size:13px;margin-top:10px">

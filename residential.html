@@ -173,14 +173,17 @@ function PlanList({ items, gold }) {
   );
 }
 
-function Plans({ navy, gold, booking, setBooking }) {
+function Plans({ navy, gold, booking, setBooking, onSelectPlan }) {
   const subs = [
     ["Essential", null, "Second homes · Snowbirds · Light-use", "$165", "1 cleaning / month · monthly cadence",
-      ["1 cleaning per month", "Ideal for second homes & snowbirds", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"]],
+      ["1 cleaning per month", "Ideal for second homes & snowbirds", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
+      "1 visit monthly (Essential Cleaning)"],
     ["Preferred", null, "Families · Primary residences · Pets", "$185", "2 cleanings / month · biweekly cadence",
-      ["2 cleanings per month", "Best value — most chosen", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"]],
+      ["2 cleanings per month", "Best value — most chosen", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
+      "2 visits monthly (Biweekly Cleaning)"],
     ["Premium", "Most popular", "Luxury homes · Executives · High-use", "$205", "4 cleanings / month · weekly cadence",
-      ["4 cleanings per month", "Luxury & high-use homes", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"]]
+      ["4 cleanings per month", "Luxury & high-use homes", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"],
+      "4 visits monthly (Weekly Cleaning)"]
   ];
   return (
     <section id="plans" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
@@ -215,7 +218,7 @@ function Plans({ navy, gold, booking, setBooking }) {
         <p id="recurring-plans" style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0, scrollMarginTop: 90 }}>Recurring plans</p>
         <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for second homes, primary residences and high-use properties, billed monthly. No contracts — cancel anytime.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
-          {subs.map(([name, badge, audience, price, cadence, features]) => (
+          {subs.map(([name, badge, audience, price, cadence, features, calcFrequency]) => (
             <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
               {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
               <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
@@ -224,7 +227,7 @@ function Plans({ navy, gold, booking, setBooking }) {
               <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{cadence}</p>
               <p style={{ fontSize: 12.5, color: "#8a6221", margin: "6px 0 0", fontWeight: 500 }}>6-month prepay: ${Math.round(parseInt(price.slice(1), 10) * 0.9)} / visit (−10%) · 12-month: ${Math.round(parseInt(price.slice(1), 10) * 0.85)} / visit (−15%)</p>
               <PlanList gold={gold} items={features} />
-              <a href="#calculator" style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name}</a>
+              <a href="#calculator" onClick={(e) => { e.preventDefault(); onSelectPlan({ tier: name, frequency: calcFrequency }); scrollToId('calculator', 'smooth'); }} style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name}</a>
             </div>
           ))}
         </div>
@@ -295,12 +298,13 @@ const US_STATES = [
   ["WY", "Wyoming"],
 ];
 
-function Calculator({ navy, gold, pricing }) {
+function Calculator({ navy, gold, pricing, preset }) {
   const SIZE_TIERS = pricing.filter(r => !r.unavailable).map(r => ({
     max: r.max_sqft, label: r.band_label,
     prices: { Essential: r.essential, Preferred: r.preferred, Premium: r.premium },
   }));
   const freqAdj = {
+    "1 visit monthly (Essential Cleaning)": 0,
     "2 visits monthly (Biweekly Cleaning)": 0,
     "4 visits monthly (Weekly Cleaning)": 0,
     "1 visit weekly": 0,
@@ -311,7 +315,7 @@ function Calculator({ navy, gold, pricing }) {
     "7 visits weekly": 0,
   };
   const ONE_TIME_SURCHARGE = 0.30;
-  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0;
+  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05;
   const MONTH_OPTIONS = [1, 2, 3, 4, 5, 6, 12];
   const addonPricing = {
     "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
@@ -336,6 +340,14 @@ function Calculator({ navy, gold, pricing }) {
   const [months, setMonths] = React.useState(1);
   const [addons, setAddons] = React.useState([]);
   const [addonQty, setAddonQty] = React.useState({});
+  const [presetNotice, setPresetNotice] = React.useState(false);
+  React.useEffect(() => {
+    if (!preset) return;
+    setTier(preset.tier);
+    setFrequency(preset.frequency);
+    setBooking("Monthly");
+    setPresetNotice(true);
+  }, [preset]);
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const setAddonQtyFor = (name, val) => setAddonQty(q => ({ ...q, [name]: Number(val) }));
   const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !unit.trim() || !city.trim() || !stateVal || !zip.trim();
@@ -393,6 +405,11 @@ function Calculator({ navy, gold, pricing }) {
         <Kicker gold="#d9a94a">Get a quote</Kicker>
         <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your residential price</h2>
         <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Base price × size adjustment × frequency adjustment + add-ons. An estimate — final pricing is confirmed on walkthrough.</p>
+        {presetNotice && (
+          <div style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${gold}`, borderRadius: 4, padding: "10px 14px", marginTop: 14, maxWidth: "60ch", fontSize: 13, color: "#fff" }}>
+            We've pre-filled the {preset.tier} plan below. Pricing varies based on size — enter your square footage for an exact quote.
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
           <label><span style={labelStyle}>First name</span>
             <input type="text" placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} style={selStyle} />
@@ -687,21 +704,22 @@ function HomeOperatingSystem({ navy, gold }) {
   );
 }
 
+function scrollToId(id, behavior = 'auto') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const navEl = document.querySelector('nav');
+  const offset = (navEl ? navEl.offsetHeight : 0) + 12;
+  const top = el.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top, behavior });
+}
+
 function useScrollToHash() {
   React.useEffect(() => {
     if (!location.hash) return;
     const id = location.hash.slice(1);
-    const scrollToHash = () => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const navEl = document.querySelector('nav');
-      const offset = (navEl ? navEl.offsetHeight : 0) + 12;
-      const top = el.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top, behavior: 'auto' });
-    };
     // Content (pricing fetch, images) can still be loading on first paint,
     // which shifts layout — retry a couple times shortly after.
-    const timers = [50, 300, 800].map(ms => setTimeout(scrollToHash, ms));
+    const timers = [50, 300, 800].map(ms => setTimeout(() => scrollToId(id), ms));
     return () => timers.forEach(clearTimeout);
   }, []);
 }
@@ -711,6 +729,7 @@ function App() {
   const [booking, setBooking] = React.useState(t.defaultBooking);
   React.useEffect(() => setBooking(t.defaultBooking), [t.defaultBooking]);
   const [navy, gold] = t.palette;
+  const [planPreset, setPlanPreset] = React.useState(null);
   const content = useSiteContent('residential');
   const pricing = usePricing('residential', DEFAULT_PRICING_RESIDENTIAL);
   useScrollToHash();
@@ -723,10 +742,10 @@ function App() {
       <Services navy={navy} items={content.services} />
       <HomeOperatingSystem navy={navy} gold={gold} />
       <ServiceTiers navy={navy} gold={gold} />
-      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} />
+      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} onSelectPlan={setPlanPreset} />
       <AddOns navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
-      <Calculator navy={navy} gold={gold} pricing={pricing} />
+      <Calculator navy={navy} gold={gold} pricing={pricing} preset={planPreset} />
       <Contact note={content.contact.note} />
       <footer style={{ padding: "0 clamp(20px,5vw,56px) 40px", maxWidth: 1200, margin: "0 auto", fontSize: 13, color: "#7a746a" }}>Gulf ProClean — serving homes and vacation rentals from Pensacola to Panama City Beach.</footer>
       <TweaksPanel>

@@ -120,6 +120,41 @@ this on:
 Nothing else needs to change — `functions/_lib/email.js` is a no-op until
 `RESEND_API_KEY` is set, so bookings work either way.
 
+## Renewal reminders (6- and 12-month subscriptions)
+
+`functions/api/cron/renewal-reminders.js` emails a renewal reminder at
+roughly 30 days, 15 days, and on the day a 6- or 12-month subscription's
+commitment period ends. It requires `RESEND_API_KEY` (see above) plus a
+`CRON_SECRET` environment variable, and expects to be called as:
+
+```
+POST /api/cron/renewal-reminders
+x-cron-secret: <CRON_SECRET>
+```
+
+**This route is not called automatically yet** — Cloudflare Pages Functions
+have no built-in cron trigger. Wire up a daily call yourself, e.g. a GitHub
+Actions scheduled workflow:
+
+```yaml
+# .github/workflows/renewal-reminders.yml
+on:
+  schedule:
+    - cron: '0 14 * * *'  # once daily
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS -X POST https://<your-site>.pages.dev/api/cron/renewal-reminders \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+```
+
+or a small standalone Cloudflare Worker with its own `[triggers] crons`
+entry that does the same `curl`. Either way, set the same `CRON_SECRET`
+value on both sides. Until this is wired up, the route can still be called
+manually (e.g. from a browser or curl with the header) to send reminders.
+
 ## Scheduling and add-ons
 
 - Visit times are offered in 4-hour windows (e.g. 8am/12pm/4pm), based on that day's business hours.

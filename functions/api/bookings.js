@@ -21,12 +21,16 @@ export async function onRequestPost({ env, request }) {
     sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
+    agreementAccepted,
   } = body;
 
   const requiredStrings = { firstName, lastName, phone, addressLine1, unit, city, state, zip };
   const missing = Object.entries(requiredStrings).filter(([, v]) => typeof v !== 'string' || !v.trim());
   if (!PAGES.has(page) || !tier || !bookingType || !frequency || missing.length > 0) {
     return new Response(JSON.stringify({ error: 'Please fill in all required fields (name, phone, and full address).' }), { status: 400 });
+  }
+  if (agreementAccepted !== true) {
+    return new Response(JSON.stringify({ error: 'You must agree to the Service Agreement to book.' }), { status: 400 });
   }
   if (!/^[A-Za-z]{2}$/.test(state)) {
     return new Response(JSON.stringify({ error: 'Invalid state.' }), { status: 400 });
@@ -71,14 +75,14 @@ export async function onRequestPost({ env, request }) {
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
       scheduled_date, scheduled_time, payment_status, pricing_input,
       first_name, last_name, phone, address_line1, unit, city, state, zip,
-      per_visit_price, after_frequency_price
+      per_visit_price, after_frequency_price, agreement_accepted_at
     ) values (
       ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
       ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unit.trim()}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
-      ${pricing.perVisit}, ${pricing.afterFrequency}
+      ${pricing.perVisit}, ${pricing.afterFrequency}, now()
     )
     returning id
   `;
