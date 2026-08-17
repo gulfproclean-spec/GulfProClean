@@ -197,7 +197,7 @@ function availableTimeSlots(date, cfg) {
 
 function frequencyIntervalDays(page, frequency) {
   const n = parseInt(frequency, 10) || 1;
-  if (frequency.toLowerCase().includes('weekly')) {
+  if (!frequency.toLowerCase().includes('monthly')) {
     return Math.max(1, Math.round(7 / n));
   }
   if (page === 'residential') {
@@ -337,7 +337,6 @@ function renderSchedule() {
 }
 
 async function confirmBooking() {
-  const totals = computeTotals();
   const btn = $('#confirm');
   const errEl = $('#err');
   btn.disabled = true;
@@ -354,12 +353,15 @@ async function confirmBooking() {
         bookingType: draft.booking,
         months: draft.months,
         frequency: draft.frequency,
-        addons: draft.addons,
+        sqft: draft.sqft,
+        restroomBand: draft.restroomBand,
+        areas: draft.areas,
+        propertyType: draft.propertyType,
+        occupancy: draft.occupancy,
+        hardFloorPct: draft.hardFloorPct,
+        addons: draft.addons.map(a => ({ name: a.name, occurrences: a.occurrences })),
         addonsApplied: state.addonsApplied,
-        extraAddons: state.extraAddons.map(name => ({ name, price: draft.allAddonPricing[name] })),
-        visitsCount: draft.visitsCount,
-        grossTotal: totals.grossTotal,
-        finalTotal: totals.finalTotal,
+        extraAddons: state.extraAddons.map(name => ({ name })),
         scheduledDate: state.selectedDate.toISOString().slice(0, 10),
         scheduledTime: state.selectedTime,
       }),

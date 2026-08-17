@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../../_lib/auth.js';
 import { sendBookingConfirmationEmail } from '../../../_lib/email.js';
+import { resolveSingleAddonPrice } from '../../../_lib/pricing.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -29,11 +30,21 @@ export async function onRequestPost({ env, request, params }) {
     return json({ error: 'invalid json' }, 400);
   }
   const proposed = Array.isArray(body.extraAddons) ? body.extraAddons : [];
-  const valid = proposed
-    .filter(e => e && typeof e.name === 'string' && e.name.trim() && Number.isFinite(Number(e.price)) && Number(e.price) >= 0)
-    .map(e => ({ name: e.name.trim(), price: Number(e.price) }));
-  if (valid.length === 0) {
+  const names = proposed.filter(e => e && typeof e.name === 'string' && e.name.trim()).map(e => e.name.trim());
+  if (names.length === 0) {
     return json({ error: 'no valid add-ons provided' }, 400);
+  }
+
+  // Price is resolved server-side from the booking's own stored scope
+  // (pricing_input) — never from whatever the client sends.
+  const pricingInput = booking.pricing_input && typeof booking.pricing_input === 'object' ? booking.pricing_input : {};
+  const valid = [];
+  for (const name of names) {
+    const price = resolveSingleAddonPrice(booking.page, name, pricingInput, booking.visits_count);
+    if (price == null) {
+      return json({ error: `Could not price "${name}" for this booking. Please contact us to add it.` }, 400);
+    }
+    valid.push({ name, price });
   }
 
   const addedTotal = valid.reduce((s, e) => s + e.price, 0);

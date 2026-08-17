@@ -367,6 +367,7 @@ function Calculator({ navy, gold, pricing }) {
       page: "residential",
       address: address.trim(),
       notes: notes.trim(),
+      sqft,
       tier, booking, months, frequency, displayFrequency, bookingLabel,
       addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
       addonsTotalAmount: totalAddons,
@@ -390,7 +391,7 @@ function Calculator({ navy, gold, pricing }) {
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
   const bookingLabel = booking === "Monthly" ? `Monthly × ${months} mo` : booking;
   const visitsPerMonth = parseInt(frequency, 10) || 1;
-  const isWeeklyCadence = frequency.toLowerCase().includes("weekly");
+  const isWeeklyCadence = !frequency.toLowerCase().includes("monthly");
   const visitsCount = booking === "One-time" ? 1 : (isWeeklyCadence ? visitsPerMonth * months * 4 : visitsPerMonth * months);
   const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
   const totalAddons = addons.reduce((sum, name) => sum + addonPricing[name] * addonOccurrences(name), 0);

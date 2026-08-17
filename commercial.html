@@ -385,6 +385,7 @@ function Calculator({ navy, gold, pricing }) {
       page: "commercial",
       address: fullAddress,
       notes: notes.trim(),
+      sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
       tier, booking, months, frequency, displayFrequency, bookingLabel,
       addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPrice(name), total: addonPrice(name) * addonOccurrences(name) })),
       addonsTotalAmount: totalAddons,
