@@ -92,3 +92,44 @@ export async function sendRenewalReminderEmail(env, { to, page, tier, months, en
     // Email is best-effort - never block or fail the reminder run itself.
   }
 }
+
+const CONTACT_INBOX = 'gulfproclean@gmail.com';
+
+// Notifies the business inbox when a customer submits the Contact Us form.
+// The message itself is always stored in contact_messages regardless of
+// whether this email succeeds or RESEND_API_KEY is even configured.
+export async function sendContactNotificationEmail(env, { name, email, phone, message, page }) {
+  if (!env.RESEND_API_KEY) return;
+
+  const fromEmail = env.FROM_EMAIL || 'Gulf ProClean <onboarding@resend.dev>';
+  const pageLabel = page ? page.charAt(0).toUpperCase() + page.slice(1) : 'General';
+
+  const html = `
+    <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;color:#153238">
+      <h2 style="margin:0 0 8px">New contact form submission</h2>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+        <tr><td style="padding:6px 0;color:#7a746a">From</td><td style="padding:6px 0;text-align:right">${name}</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Email</td><td style="padding:6px 0;text-align:right">${email}</td></tr>
+        ${phone ? `<tr><td style="padding:6px 0;color:#7a746a">Phone</td><td style="padding:6px 0;text-align:right">${phone}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;color:#7a746a">Page</td><td style="padding:6px 0;text-align:right">${pageLabel}</td></tr>
+      </table>
+      <p style="color:#3d4a4d;white-space:pre-wrap">${message}</p>
+    </div>
+  `;
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [CONTACT_INBOX],
+        reply_to: email,
+        subject: `New contact message from ${name}`,
+        html,
+      }),
+    });
+  } catch (e) {
+    // Email is best-effort - never block or fail the submission itself.
+  }
+}

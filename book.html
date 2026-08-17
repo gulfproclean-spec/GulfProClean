@@ -38,6 +38,71 @@
 <nav><span style="width:18px;height:1px;background:#153238;display:inline-block;"></span>GULF PROCLEAN</nav>
 <div style="background:linear-gradient(135deg,#b68235,#d9a94a);color:#153238;text-align:center;padding:13px 20px;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">✦ No contracts. Cancel anytime. ✦</div>
 <main id="app"></main>
+<main style="max-width:640px;margin:0 auto;padding:0 clamp(20px,5vw,56px) 80px;">
+  <span style="display:block;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8a6221;margin-bottom:14px;">Contact us</span>
+  <h2 style="font-family:inherit;font-weight:300;font-size:28px;color:#153238;margin:0;">Have a question or a special request?</h2>
+  <p style="font-size:14px;color:#7a746a;margin-top:8px;">Send us a note below, or email <a href="mailto:gulfproclean@gmail.com" style="color:#8a6221;">gulfproclean@gmail.com</a> directly.</p>
+  <div id="contact-form-wrap" style="margin-top:20px;"></div>
+</main>
+<script>
+(function () {
+  const wrap = document.getElementById('contact-form-wrap');
+  const inputStyle = 'min-height:40px;padding:8px 12px;font-size:14px;border:1px solid #d8d3c8;border-radius:4px;font-family:inherit;width:100%;box-sizing:border-box;';
+  const labelStyle = 'display:block;font-size:12.5px;color:#7a746a;margin-bottom:6px;';
+  wrap.innerHTML = `
+    <form id="contact-form" style="background:#fff;border:1px solid #d8d3c8;border-radius:8px;padding:24px;display:grid;gap:14px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;">
+        <label><span style="${labelStyle}">Name</span><input type="text" id="contact-name" style="${inputStyle}" placeholder="Jane Doe" /></label>
+        <label><span style="${labelStyle}">Email</span><input type="email" id="contact-email" style="${inputStyle}" placeholder="you@example.com" /></label>
+        <label><span style="${labelStyle}">Phone (optional)</span><input type="tel" id="contact-phone" style="${inputStyle}" placeholder="(850) 555-0123" /></label>
+      </div>
+      <label><span style="${labelStyle}">Comments / notes</span><textarea id="contact-message" rows="4" style="${inputStyle}resize:vertical;" placeholder="How can we help?"></textarea></label>
+      <p id="contact-error" style="color:#b3261e;font-size:13px;margin:0;display:none;"></p>
+      <p id="contact-success" style="color:#1a7a3d;font-size:13px;margin:0;display:none;">Thanks — we've got your message and will be in touch soon.</p>
+      <button type="submit" id="contact-submit" style="background:#b68235;color:#153238;font-weight:600;font-size:14px;padding:12px 22px;border-radius:3px;border:none;cursor:pointer;justify-self:start;">Send message</button>
+    </form>
+  `;
+  const form = document.getElementById('contact-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('contact-submit');
+    const errEl = document.getElementById('contact-error');
+    const okEl = document.getElementById('contact-success');
+    const name = document.getElementById('contact-name').value.trim();
+    const email = document.getElementById('contact-email').value.trim();
+    const message = document.getElementById('contact-message').value.trim();
+    errEl.style.display = 'none';
+    okEl.style.display = 'none';
+    if (!name || !email || !message) {
+      errEl.textContent = 'Please fill in your name, email, and message.';
+      errEl.style.display = 'block';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: 'book', name, email, message,
+          phone: document.getElementById('contact-phone').value.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      okEl.style.display = 'block';
+      form.reset();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send message';
+    }
+  });
+})();
+</script>
 <script>
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = $('#app');
