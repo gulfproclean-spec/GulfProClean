@@ -5,3 +5,11 @@
     "@neondatabase/serverless": "^0.10.0"
   }
 }
+{
+  ...
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  }
+  ...
+}
