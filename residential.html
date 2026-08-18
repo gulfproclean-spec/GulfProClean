@@ -177,13 +177,13 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan }) {
   const subs = [
     ["Essential", null, "Second homes · Snowbirds · Light-use", "$165", "1 cleaning / month · monthly cadence",
       ["1 cleaning per month", "Ideal for second homes & snowbirds", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
-      "2 visits monthly (Biweekly Cleaning)"],
+      "1 visit weekly"],
     ["Preferred", null, "Families · Primary residences · Pets", "$185", "2 cleanings / month · biweekly cadence",
       ["2 cleanings per month", "Best value — most chosen", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
-      "2 visits monthly (Biweekly Cleaning)"],
+      "2 visits weekly"],
     ["Premium", "Most popular", "Luxury homes · Executives · High-use", "$205", "4 cleanings / month · weekly cadence",
       ["4 cleanings per month", "Luxury & high-use homes", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"],
-      "4 visits monthly (Weekly Cleaning)"]
+      "4 visits weekly"]
   ];
   return (
     <section id="plans" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
@@ -360,8 +360,8 @@ function Calculator({ navy, gold, pricing, preset }) {
     prices: { Essential: r.essential, Preferred: r.preferred, Premium: r.premium },
   }));
   const freqAdj = {
-    "2 visits monthly (Biweekly Cleaning)": 0,
     "1 visit weekly": 0,
+    "2 visits weekly": 0,
     "3 visits weekly": 0,
     "4 visits weekly": 0,
     "5 visits weekly": 0,
@@ -371,7 +371,7 @@ function Calculator({ navy, gold, pricing, preset }) {
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05;
   const BILLING_PLANS = [
-    { key: "one-time", label: "One-time", booking: "One-time", months: 1 },
+    { key: "one-time", label: "One-time (Standard price)", booking: "One-time", months: 1 },
     { key: "monthly", label: "Monthly (5% discount)", booking: "Monthly", months: 1 },
     { key: "6-month", label: "6-Month Subscription (10% discount)", booking: "Monthly", months: 6 },
     { key: "12-month", label: "12-Month Subscription (15% discount)", booking: "Monthly", months: 12 },
@@ -394,7 +394,7 @@ function Calculator({ navy, gold, pricing, preset }) {
   const [notes, setNotes] = React.useState("");
   const [tier, setTier] = React.useState("Premium");
   const [sqft, setSqft] = React.useState(1500);
-  const [frequency, setFrequency] = React.useState("4 visits monthly (Weekly Cleaning)");
+  const [frequency, setFrequency] = React.useState("4 visits weekly");
   const [booking, setBooking] = React.useState("Monthly");
   const [months, setMonths] = React.useState(1);
   const [addons, setAddons] = React.useState([]);
@@ -537,12 +537,13 @@ function Calculator({ navy, gold, pricing, preset }) {
           <label style={{ background: "#fff", borderRadius: 8, padding: 20 }}><span style={labelStyle}>Add-ons</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
               {Object.keys(addonPricing).map(name => (
-                <div key={name} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "4px 0", borderBottom: "1px solid #f0ede5" }}>
+                <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #f0ede5", flexWrap: "wrap" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: navy }}>
-                    <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name} <span style={{ marginLeft: "auto", color: "#7a746a" }}>${addonPricing[name]}</span>
+                    <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name}
                   </label>
+                  <span style={{ marginLeft: "auto", color: "#7a746a", fontSize: 13 }}>${addonPricing[name]}</span>
                   {addons.includes(name) && (
-                    <select value={addonOccurrences(name)} onChange={e => setAddonQtyFor(name, e.target.value)} style={{ marginLeft: 24, fontSize: 12, padding: "4px 8px", border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#faf8f3", width: "calc(100% - 24px)" }}>
+                    <select value={addonOccurrences(name)} onChange={e => setAddonQtyFor(name, e.target.value)} style={{ fontSize: 12, padding: "4px 8px", border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#faf8f3", flex: "0 0 auto", width: 140 }}>
                       {Array.from({ length: visitsCount }, (_, i) => i + 1).map(n => (
                         <option key={n} value={n}>{n === visitsCount ? (visitsCount === 1 ? "1 visit" : `Every visit (${n}×)`) : n === 1 ? "One-time (1×)" : `${n} of ${visitsCount} visits`}</option>
                       ))}
