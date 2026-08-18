@@ -464,7 +464,11 @@ function Calculator({ navy, gold, pricing, preset }) {
   // The One-Time/Standard visit fee is the reference for every subscription
   // discount — a 10% discount is 10% off that standard fee, not off the
   // pre-surcharge base rate. Add-ons are never discounted (see below).
-  const standardPrice = afterFrequency * (1 + ONE_TIME_SURCHARGE);
+  // Rounded to a whole dollar here (not just for display) so it's the same
+  // number used for Total, Discount, and Final price — Total always equals
+  // Price per visit × visits (+ add-ons), with cents only appearing once
+  // percentage math (discount) is actually applied on top of it.
+  const standardPrice = Math.round(afterFrequency * (1 + ONE_TIME_SURCHARGE));
   const afterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
   const perVisit = afterBooking;
   const discount = Math.max(0, standardPrice - perVisit);
@@ -498,10 +502,6 @@ function Calculator({ navy, gold, pricing, preset }) {
       ? dollars.toLocaleString("en-US")
       : dollars.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
-  // The sticker "price per visit" is always a clean whole dollar; cents only
-  // show up once real math (discounts, totals) is actually applied.
-  const wholeMoney = (n) => Math.round(n).toLocaleString("en-US");
-
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
 
@@ -629,7 +629,7 @@ function Calculator({ navy, gold, pricing, preset }) {
               <>
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
                   <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{tier} · {bookingLabel} · {displayFrequency}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Price per visit</span><span>${wholeMoney(standardPrice)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Price per visit</span><span>${money(standardPrice)}</span></div>
                 </div>
 
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>

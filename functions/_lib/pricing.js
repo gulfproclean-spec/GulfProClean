@@ -147,7 +147,11 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   // discount" is 10% off that standard price, not off the pre-surcharge base
   // rate, so it matches what the service agreement promises Client.
   const monthlyDiscountPct = booking === 'Monthly' ? monthlyDiscountFor(monthsVal) : 0;
-  const standardPrice = afterFrequency * (1 + ONE_TIME_SURCHARGE);
+  // Rounded to a whole dollar here (not just for display) so it's the same
+  // number used for Total, Discount, and Final price — Total always equals
+  // Price per visit × visits (+ add-ons), with cents only appearing once
+  // percentage math (discount/tax) is actually applied on top of it.
+  const standardPrice = Math.round(afterFrequency * (1 + ONE_TIME_SURCHARGE));
   const afterBooking = booking === 'One-time' ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
 
   const resolveAddon = page === 'residential'
