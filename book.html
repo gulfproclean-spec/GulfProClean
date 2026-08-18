@@ -205,7 +205,7 @@ function billingPlanLabel() {
 // nothing here is information the customer hasn't already provided.
 function agreementSummaryHtml() {
   const totals = computeTotals();
-  const standardPrice = draft.afterFrequency * 1.30;
+  const standardPrice = draft.standardPrice;
   const commitmentEnd = (draft.booking === 'Monthly' && draft.months >= 6 && state.selectedDate)
     ? addMonths(state.selectedDate, draft.months).toLocaleDateString()
     : null;
@@ -404,7 +404,10 @@ function renderSchedule() {
     <p class="muted">Signed in as ${state.email}</p>
 
     <div class="card">
-      <div class="row"><span>${draft.tier} price per visit</span><span>${money(totals.perVisit)}</span></div>
+      <div class="row muted" style="font-size:12px">${draft.tier} · ${draft.bookingLabel} · ${draft.displayFrequency}</div>
+      <div class="row"><span>One-time visit fee</span><span>${money(draft.standardPrice)}</span></div>
+      <div class="row"><span>Discount</span><span>${draft.standardPrice > totals.perVisit ? `−${money(draft.standardPrice - totals.perVisit)}` : '$0'}</span></div>
+      <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:4px;padding-top:8px"><span>Discounted visit fee</span><span>${money(totals.perVisit)}</span></div>
       <div class="row muted" style="font-size:12px">Discounts apply to the visit price only — add-ons are never discounted.</div>
       <div class="row"><span>Add-ons total</span><span>${money(totals.totalAddons)}</span></div>
       ${(draft.addons || []).map(a => `<div class="row muted" style="font-size:12px"><span>+ ${a.name} — ${addonLabel(a, draft.visitsCount)}</span><span>${money(a.total)}</span></div>`).join('')}

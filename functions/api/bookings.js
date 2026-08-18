@@ -70,6 +70,10 @@ export async function onRequestPost({ env, request }) {
   const monthsVal = bookingType === 'Monthly' ? (Number(months) || 1) : 1;
   const pricingInput = { sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct };
 
+  // after_frequency_price stores the One-Time/Standard Service Price
+  // (pricing.standardPrice), not the pre-surcharge base rate — it's the
+  // refund-reconciliation reference per the service agreement, and every
+  // subscription discount is computed as a percentage off it.
   const rows = await sql`
     insert into bookings (
       customer_id, page, address, notes, tier, booking_type, months, frequency,
@@ -83,7 +87,7 @@ export async function onRequestPost({ env, request }) {
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
       ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unitVal || null}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
-      ${pricing.perVisit}, ${pricing.afterFrequency}, now()
+      ${pricing.perVisit}, ${pricing.standardPrice}, now()
     )
     returning id
   `;

@@ -425,7 +425,7 @@ function Calculator({ navy, gold, pricing, preset }) {
       addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
       addonsTotalAmount: totalAddons,
       allAddonPricing: addonPricing,
-      afterFrequency, afterBooking, visitsCount, grossTotal,
+      afterFrequency, afterBooking, standardPrice, visitsCount, grossTotal,
       taxRate: 0,
     }));
     window.location.href = "book.html";
@@ -437,10 +437,13 @@ function Calculator({ navy, gold, pricing, preset }) {
   const afterFrequency = booking === "One-time" ? afterSize : afterSize * (1 + freqAdj[frequency]);
   const addonsTotal = addons.reduce((sum, name) => sum + addonPricing[name], 0);
   const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
-  const bookingAdjValue = booking === "One-time" ? ONE_TIME_SURCHARGE : -monthlyDiscountPct;
-  const afterBooking = afterFrequency * (1 + bookingAdjValue);
+  // The One-Time/Standard visit fee is the reference for every subscription
+  // discount — a 10% discount is 10% off that standard fee, not off the
+  // pre-surcharge base rate. Add-ons are never discounted (see below).
+  const standardPrice = afterFrequency * (1 + ONE_TIME_SURCHARGE);
+  const afterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
   const perVisit = afterBooking;
-  const discount = Math.max(0, afterFrequency - perVisit);
+  const discount = Math.max(0, standardPrice - perVisit);
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
   const billingKey = booking === "One-time" ? "one-time" : (months >= 12 ? "12-month" : months >= 6 ? "6-month" : "monthly");
   const bookingLabel = booking === "One-time" ? "One-time" : (months >= 12 ? "12-Month Subscription" : months >= 6 ? "6-Month Subscription" : "Monthly");
@@ -455,7 +458,7 @@ function Calculator({ navy, gold, pricing, preset }) {
   const visitsCount = booking === "One-time" ? 1 : (isWeeklyCadence ? visitsPerMonth * months * 4 : visitsPerMonth * months);
   const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
   const totalAddons = addons.reduce((sum, name) => sum + addonPricing[name] * addonOccurrences(name), 0);
-  const grossTotal = (afterFrequency * visitsCount) + totalAddons;
+  const grossTotal = (standardPrice * visitsCount) + totalAddons;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
   const money = (n) => Math.round(n).toLocaleString("en-US");
 
@@ -563,9 +566,10 @@ function Calculator({ navy, gold, pricing, preset }) {
             ) : (
               <>
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>{tier} price per visit</span><span>${money(perVisit)}</span></div>
-                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{bookingLabel} · {displayFrequency}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Total discount</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${money(discount)}` : "$0"}</span></div>
+                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{tier} · {bookingLabel} · {displayFrequency}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.75)" }}>One-time visit fee</span><span>${money(standardPrice)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.55)" }}>Discount{monthlyDiscountPct > 0 ? ` (${Math.round(monthlyDiscountPct * 100)}%)` : ""}</span><span style={{ color: discount > 0 ? "#9ee6a8" : "rgba(255,255,255,0.55)" }}>{discount > 0 ? `−$${money(discount)}` : "$0"}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, borderTop: "1px solid rgba(255,255,255,0.12)", marginTop: 4, paddingTop: 4 }}><span style={{ color: "#fff" }}>Discounted visit fee</span><span>${money(perVisit)}</span></div>
                   <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Discounts apply to the visit price only — add-ons are never discounted.</p>
                 </div>
 

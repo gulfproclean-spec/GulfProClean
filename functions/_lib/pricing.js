@@ -142,9 +142,13 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
     throw new PricingError('Invalid page.');
   }
 
+  // The One-Time/Standard Service Price — what a single non-committed visit
+  // costs — is the reference for every subscription discount. A 10% "6-month
+  // discount" is 10% off that standard price, not off the pre-surcharge base
+  // rate, so it matches what the service agreement promises Client.
   const monthlyDiscountPct = booking === 'Monthly' ? monthlyDiscountFor(monthsVal) : 0;
-  const bookingAdjValue = booking === 'One-time' ? ONE_TIME_SURCHARGE : -monthlyDiscountPct;
-  const afterBooking = afterFrequency * (1 + bookingAdjValue);
+  const standardPrice = afterFrequency * (1 + ONE_TIME_SURCHARGE);
+  const afterBooking = booking === 'One-time' ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
 
   const resolveAddon = page === 'residential'
     ? (name, occ) => resolveResidentialAddon(name, occ, visitsCount)
@@ -162,16 +166,18 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   });
   const extraAddonsTotal = resolvedExtraAddons.reduce((s, a) => s + a.total, 0);
 
+  // First-time and subscription discounts apply to the cleaning visit price
+  // only — add-ons (below) are never discounted.
   const perVisit = afterBooking * (isFirstTime ? 0.90 : 1);
   const plannedSubtotal = perVisit * visitsCount + addonsTotalAmount;
   const subtotal = plannedSubtotal + extraAddonsTotal;
-  const grossTotal = afterFrequency * visitsCount + addonsTotalAmount;
+  const grossTotal = standardPrice * visitsCount + addonsTotalAmount;
   const taxRate = page === 'commercial' ? 0.06 : 0;
   const tax = subtotal * taxRate;
   const finalTotal = subtotal + tax;
 
   return {
-    tier, visitsCount, perVisit, afterFrequency, addonsTotalAmount,
+    tier, visitsCount, perVisit, afterFrequency, standardPrice, addonsTotalAmount,
     resolvedAddons, resolvedExtraAddons, extraAddonsTotal,
     grossTotal, taxRate, tax, finalTotal,
   };
