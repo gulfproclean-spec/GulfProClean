@@ -21,7 +21,7 @@ export async function onRequestPost({ env, request }) {
     sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
-    agreementAccepted,
+    billingAddress, agreementAccepted,
   } = body;
 
   const requiredStrings = { firstName, lastName, phone, addressLine1, city, state, zip };
@@ -40,6 +40,9 @@ export async function onRequestPost({ env, request }) {
     return new Response(JSON.stringify({ error: 'Invalid zip code.' }), { status: 400 });
   }
   const address = [addressLine1.trim(), unitVal, `${city.trim()}, ${state.toUpperCase()} ${zip.trim()}`].filter(Boolean).join(', ');
+  // billingAddress is null when the client chose "same as service address";
+  // otherwise it's a pre-formatted string built the same way as `address`.
+  const billingAddressVal = typeof billingAddress === 'string' && billingAddress.trim() ? billingAddress.trim() : null;
 
   // First-time-customer discount eligibility is checked against both the
   // account and the service address — a new account at an address that's
@@ -86,13 +89,13 @@ export async function onRequestPost({ env, request }) {
   // subscription discount is computed as a percentage off it.
   const rows = await sql`
     insert into bookings (
-      customer_id, page, address, notes, tier, booking_type, months, frequency,
+      customer_id, page, address, billing_address, notes, tier, booking_type, months, frequency,
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
       scheduled_date, scheduled_time, payment_status, pricing_input,
       first_name, last_name, phone, address_line1, unit, city, state, zip,
       per_visit_price, after_frequency_price, agreement_accepted_at
     ) values (
-      ${customer.id}, ${page}, ${address}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
+      ${customer.id}, ${page}, ${address}, ${billingAddressVal}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
