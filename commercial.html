@@ -571,11 +571,13 @@ function Calculator({ navy, gold, pricing, preset }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
           <label><span style={labelStyle}>Select billing plan</span>
             <select style={selStyle} value={billingKey} onChange={e => setBillingPlan(e.target.value)}>
+              <option value="" disabled hidden></option>
               {BILLING_PLANS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
+              <option value="" disabled hidden></option>
               {Object.keys(baseMap).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""}</option>)}
             </select>
           </label>
@@ -584,6 +586,7 @@ function Calculator({ navy, gold, pricing, preset }) {
               <div style={{ ...selStyle, display: "flex", alignItems: "center", color: "#7a746a" }}>1 visit</div>
             ) : (
               <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
+                <option value="" disabled hidden></option>
                 {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             )}
