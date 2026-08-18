@@ -114,15 +114,65 @@ const returningCanceled = params.get('canceled') === '1';
 let draft = null;
 try { draft = JSON.parse(sessionStorage.getItem('gpc_booking_draft') || 'null'); } catch {}
 
+const US_STATES = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"],
+  ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"],
+  ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"],
+  ["IA", "Iowa"], ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"],
+  ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"],
+  ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"],
+  ["NJ", "New Jersey"], ["NM", "New Mexico"], ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"],
+  ["OH", "Ohio"], ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"],
+  ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"],
+  ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"], ["WI", "Wisconsin"],
+  ["WY", "Wyoming"],
+];
+
 let state = {
   step: returningBookingId ? 'payment' : (draft ? 'account' : 'missing'),
   email: null, isFirstTime: null, schedule: null,
   selectedDate: null, selectedTime: null,
   addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
   extraAddons: [],
+  billingSameAsService: true,
+  billingAddressLine1: '', billingUnit: '', billingCity: '', billingState: '', billingZip: '',
   agreed: false,
   paymentBooking: null, paymentStatus: null, paymentError: null,
 };
+
+// null when billing address is the same as the service address — matches
+// the shape functions/api/bookings.js already expects.
+function billingAddressValue() {
+  if (state.billingSameAsService) return null;
+  return [state.billingAddressLine1.trim(), state.billingUnit.trim(), `${state.billingCity.trim()}, ${state.billingState} ${state.billingZip.trim()}`].filter(Boolean).join(', ');
+}
+
+function billingAddressHtml() {
+  return `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 10px">Billing address</p>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#153238;margin-bottom:${state.billingSameAsService ? '0' : '14px'}">
+        <input type="checkbox" id="billing-same" style="width:auto;min-height:auto;margin:0" ${state.billingSameAsService ? 'checked' : ''} />
+        Billing address is the same as the service address
+      </label>
+      ${!state.billingSameAsService ? `
+        <label>Billing address</label>
+        <input type="text" id="billing-address-line1" value="${state.billingAddressLine1}" />
+        <label>Unit / suite # (optional)</label>
+        <input type="text" id="billing-unit" value="${state.billingUnit}" />
+        <label>City</label>
+        <input type="text" id="billing-city" value="${state.billingCity}" />
+        <label>State</label>
+        <select id="billing-state">
+          <option value="">Select a state</option>
+          ${US_STATES.map(([code, name]) => `<option value="${code}" ${state.billingState === code ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
+        <label>Zip code</label>
+        <input type="text" inputMode="numeric" id="billing-zip" value="${state.billingZip}" />
+      ` : ''}
+    </div>
+  `;
+}
 
 function money(n) {
   const cents = Math.round(n * 100);
@@ -146,8 +196,8 @@ function addonLabel(a, visitsCount) {
 
 function computeTotals() {
   // Discounts — first-time and subscription alike — only ever apply to a
-  // Monthly/6-Month/12-Month visit price, never to a One-time booking or to
-  // add-ons.
+  // Biweekly/Monthly/6-Month/12-Month visit price, never to a One-time
+  // booking or to add-ons.
   const applyFirstTimeDiscount = state.isFirstTime && draft.booking === 'Monthly';
   const perVisit = draft.afterBooking * (applyFirstTimeDiscount ? 0.90 : 1);
   const totalAddons = draft.addonsTotalAmount;
@@ -169,15 +219,15 @@ function computeTotals() {
 const AGREEMENT_SECTIONS = [
   ["SERVICES", "Gulf ProClean LLC (“Gulf ProClean,” “Company,” “we,” “us,” or “our”) agrees to provide the cleaning and related property services selected by the customer identified in this booking (“Client,” “you,” or “your”), as identified in the service selections, pricing, schedule, and add-ons captured at the time of booking. Services outside the agreed scope may be billed separately."],
   ["SERVICE PRICING", "Gulf ProClean maintains separate pricing for One-Time services, Monthly (No-Commitment) recurring services, 6-Month Subscriptions, and 12-Month Subscriptions. The applicable price is shown in the pricing summary for this booking. The One-Time/Standard Service Price is Gulf ProClean's regular price for a single visit at the applicable tier, size, and frequency, before any subscription discount. The Subscription Price is the discounted price offered in exchange for Client's selected billing plan."],
-  ["BILLING PLANS", "Gulf ProClean offers: One-Time (a single visit, billed at the Standard Service Price plus a one-time service surcharge); Monthly, No-Commitment (recurring service billed monthly with no minimum term, at a 5% discount from the Standard Service Price); a 6-Month Subscription (a six-month commitment at a 10% discount); and a 12-Month Subscription (a twelve-month commitment at a 15% discount). Monthly billing is a payment schedule — for a 6-Month or 12-Month Subscription, being billed monthly does not shorten or waive the commitment period."],
-  ["SUBSCRIPTION DISCOUNT", "The 10% and 15% subscription discounts are conditional on Client completing the applicable 6-month or 12-month commitment. If Client cancels a 6-Month or 12-Month Subscription before completing that commitment, Gulf ProClean reconciles the discount already received against services actually performed, as described below. The 5% Monthly (No-Commitment) discount has no minimum-term condition and is not subject to reconciliation."],
+  ["BILLING PLANS", "Gulf ProClean offers: One-Time (a single visit, billed at the Standard Service Price plus a one-time service surcharge); Biweekly, No-Commitment (recurring service billed every two weeks with no minimum term, at a 5% discount from the Standard Service Price); Monthly, No-Commitment (recurring service billed monthly with no minimum term, at a 7% discount from the Standard Service Price); a 6-Month Subscription (a six-month commitment at a 10% discount); and a 12-Month Subscription (a twelve-month commitment at a 15% discount). Biweekly and Monthly billing are payment schedules — for a 6-Month or 12-Month Subscription, being billed on a shorter schedule does not shorten or waive the commitment period."],
+  ["SUBSCRIPTION DISCOUNT", "The 10% and 15% subscription discounts are conditional on Client completing the applicable 6-month or 12-month commitment. If Client cancels a 6-Month or 12-Month Subscription before completing that commitment, Gulf ProClean reconciles the discount already received against services actually performed, as described below. The 5% Biweekly (No-Commitment) and 7% Monthly (No-Commitment) discounts have no minimum-term condition and are not subject to reconciliation."],
   ["CANCELLATION", "Client may cancel a subscription or recurring service at any time by notifying Gulf ProClean. There is no minimum notice period. Cancellation takes effect when Gulf ProClean receives the request. Client will not be charged for any future visit that has not yet occurred as of that date."],
   ["ONE-TIME/STANDARD PRICE CONTROLS REFUND CALCULATION", "For any cancellation, refund, or subscription reconciliation, the One-Time/Standard Service Price — not the discounted Subscription Price — is used to determine the value of services already performed. This reverses the subscription discount only for commitments Client did not complete; it does not reduce the amount refundable to Client below what this Agreement provides."],
   ["MONTHLY-BILLED SUBSCRIPTIONS — REFUNDS", "For monthly-billed subscriptions, Client is responsible only for services actually performed through the effective cancellation date, subject to the Subscription Discount Reconciliation above. Any amount already paid in excess of what is properly owed is refunded. No refund is issued for services already properly performed except as required by this Agreement."],
   ["PREPAID SUBSCRIPTIONS — REFUND CALCULATION", "If Client has prepaid for subscription services and cancels before completing the applicable commitment, Gulf ProClean calculates the refund as: Total Amount Paid + Total Subscription Discount Previously Applied − (One-Time/Standard Service Price × Eligible Completed Visits) = Refund Balance. “Eligible completed visits” means visits Gulf ProClean's records show were actually performed between the first service date and the effective cancellation date — it excludes future scheduled visits and visits never performed. A positive balance is refunded to Client; a negative balance is due from Client. The effective cancellation date is the date Gulf ProClean receives Client's cancellation request."],
   ["ONE-TIME SERVICES — CANCELLATION REFUND", "A One-Time service is a single visit. If Client cancels before that visit has been performed, Gulf ProClean refunds the full amount paid, less a $50 cancellation fee. If the visit has already been performed, no refund is owed."],
   ["NO REFUND FOR FUTURE SERVICES AS A PENALTY", "Gulf ProClean will not charge Client for future services that were not performed solely because Client canceled. Any financial adjustment from cancellation is limited to the reconciliation described above, together with any other amounts properly owed under this Agreement."],
-  ["MONTHLY (NO-COMMITMENT) & STANDARD SERVICES", "Clients who select Monthly (No-Commitment) billing receive a 5% discount and may cancel at any time as described above. Clients who do not select a recurring billing plan are billed at the One-Time/Standard Service Price for each visit."],
+  ["BIWEEKLY & MONTHLY (NO-COMMITMENT) SERVICES", "Clients who select Biweekly (No-Commitment) billing receive a 5% discount, and clients who select Monthly (No-Commitment) billing receive a 7% discount; both may cancel at any time as described above. Clients who do not select a recurring billing plan are billed at the One-Time/Standard Service Price for each visit."],
   ["SERVICE FREQUENCY", "The service frequency selected by Client is shown in the booking. Available frequencies vary by service type. Service frequency does not, by itself, alter the applicable billing plan."],
   ["PRICE CHANGES", "Gulf ProClean may update its standard pricing for future services upon reasonable notice. The price applicable to an existing subscription commitment is the price stated when Client booked that subscription."],
   ["SERVICE CREDITS", "Gulf ProClean may, at its discretion, offer a service credit instead of a cash refund where permitted by law. A service credit does not extend a subscription commitment unless stated when issued."],
@@ -213,7 +263,8 @@ function billingPlanLabel() {
   if (draft.booking === 'One-time') return 'One-Time';
   if (draft.months >= 12) return '12-Month Subscription — 15% discount';
   if (draft.months >= 6) return '6-Month Subscription — 10% discount';
-  return 'Monthly, No-Commitment — 5% discount';
+  if (draft.months >= 1) return 'Monthly, No-Commitment — 7% discount';
+  return 'Biweekly, No-Commitment — 5% discount';
 }
 
 // Auto-filled entirely from what was already captured at the estimate step
@@ -494,6 +545,7 @@ function renderSchedule() {
           `).join('')}
         </div>
       ` : ''}
+      ${billingAddressHtml()}
       ${agreementHtml()}
       <div class="error" id="err" style="display:none"></div>
       <button id="confirm" ${selectedDay && state.selectedTime && state.agreed ? '' : 'disabled'}>Confirm booking</button>
@@ -527,6 +579,22 @@ function renderSchedule() {
   });
   const agreeCb = $('#agree-terms');
   if (agreeCb) agreeCb.onchange = (e) => { state.agreed = e.target.checked; render(); };
+  const billingSameCb = $('#billing-same');
+  if (billingSameCb) billingSameCb.onchange = (e) => { state.billingSameAsService = e.target.checked; render(); };
+  // These update state silently (no render()) so typing doesn't lose focus —
+  // a full render() replaces the whole innerHTML, which would reset the
+  // cursor mid-keystroke. The values still persist across renders triggered
+  // by other controls (day/time, checkboxes) since they read back from state.
+  const billAddr = $('#billing-address-line1');
+  if (billAddr) billAddr.oninput = (e) => { state.billingAddressLine1 = e.target.value; };
+  const billUnit = $('#billing-unit');
+  if (billUnit) billUnit.oninput = (e) => { state.billingUnit = e.target.value; };
+  const billCity = $('#billing-city');
+  if (billCity) billCity.oninput = (e) => { state.billingCity = e.target.value; };
+  const billState = $('#billing-state');
+  if (billState) billState.onchange = (e) => { state.billingState = e.target.value; };
+  const billZip = $('#billing-zip');
+  if (billZip) billZip.oninput = (e) => { state.billingZip = e.target.value; };
   const confirmBtn = $('#confirm');
   if (confirmBtn) confirmBtn.onclick = confirmBooking;
 }
@@ -534,8 +602,13 @@ function renderSchedule() {
 async function confirmBooking() {
   const btn = $('#confirm');
   const errEl = $('#err');
-  btn.disabled = true;
   errEl.style.display = 'none';
+  if (!state.billingSameAsService && (!state.billingAddressLine1.trim() || !state.billingCity.trim() || !state.billingState || !state.billingZip.trim())) {
+    errEl.textContent = 'Please fill in your billing address, or check "same as service address."';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
   try {
     const res = await fetch('/api/bookings', {
       method: 'POST',
@@ -550,7 +623,7 @@ async function confirmBooking() {
         city: draft.city,
         state: draft.state,
         zip: draft.zip,
-        billingAddress: draft.billingAddress,
+        billingAddress: billingAddressValue(),
         notes: draft.notes,
         tier: draft.tier,
         bookingType: draft.booking,

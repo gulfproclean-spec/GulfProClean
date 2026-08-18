@@ -1,4 +1,4 @@
-import { sendBookingConfirmationEmail } from './email.js';
+import { sendBookingConfirmationEmail, sendBookingNotificationEmail } from './email.js';
 
 // Idempotent: only flips payment_status + sends the confirmation email the
 // first time a booking is marked paid (webhook and the client-side
@@ -24,5 +24,13 @@ export async function markBookingPaid(sql, env, bookingId, { customerEmail, paym
       finalTotal: booking.final_total,
     });
   }
+  await sendBookingNotificationEmail(env, {
+    page: booking.page, tier: booking.tier, address: booking.address, billingAddress: booking.billing_address,
+    bookingType: booking.booking_type, months: booking.months || 1, frequency: booking.frequency,
+    visitsCount: booking.visits_count, scheduledDate: booking.scheduled_date, scheduledTime: booking.scheduled_time,
+    finalTotal: booking.final_total, grossTotal: booking.gross_total,
+    firstName: booking.first_name, lastName: booking.last_name, phone: booking.phone, customerEmail: email,
+    notes: booking.notes,
+  });
   return { justPaid: true, booking };
 }

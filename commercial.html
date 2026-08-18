@@ -334,30 +334,17 @@ function Contact({ note, page }) {
   );
 }
 
-const US_STATES = [
-  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"],
-  ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"],
-  ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"],
-  ["IA", "Iowa"], ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"],
-  ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"],
-  ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"],
-  ["NJ", "New Jersey"], ["NM", "New Mexico"], ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"],
-  ["OH", "Ohio"], ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"],
-  ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"],
-  ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"], ["WI", "Wisconsin"],
-  ["WY", "Wyoming"],
-];
-
 function Calculator({ navy, gold, pricing, preset }) {
   const base1x = pricing[0] || { essential: 175, preferred: 225, premium: 325 };
   const baseMap = { Essential: base1x.essential, Preferred: base1x.preferred, Premium: base1x.premium };
   const typeAdj = { "Standard office": 0, "Retail / high traffic": 0.10, "Medical": 0.25, "Restaurant": 0.30 };
   const freqAdj = { "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "4 visits weekly": 0, "5 visits weekly": 0, "6 visits weekly": 0, "7 visits weekly": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
-  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05;
+  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05;
   const BILLING_PLANS = [
     { key: "one-time", label: "One-time (Standard price)", booking: "One-time", months: 1 },
-    { key: "monthly", label: "Monthly (5% discount)", booking: "Monthly", months: 1 },
+    { key: "biweekly", label: "Biweekly (5% discount)", booking: "Monthly", months: 0.5 },
+    { key: "monthly", label: "Monthly (7% discount)", booking: "Monthly", months: 1 },
     { key: "6-month", label: "6-Month Subscription (10% discount)", booking: "Monthly", months: 6 },
     { key: "12-month", label: "12-Month Subscription (15% discount)", booking: "Monthly", months: 12 },
   ];
@@ -390,17 +377,17 @@ function Calculator({ navy, gold, pricing, preset }) {
   };
   const highRestroomThreshold = (s) => s <= 2500 ? 4 : s <= 5000 ? 6 : s <= 10000 ? 10 : s <= 20000 ? 15 : 25;
 
-  const [sqft, setSqft] = React.useState(2500);
-  const [restroomBand, setRestroomBand] = React.useState("3–5");
-  const [areas, setAreas] = React.useState(1);
-  const [tier, setTier] = React.useState("Premium");
-  const [propertyType, setPropertyType] = React.useState("Standard office");
-  const [occupancy, setOccupancy] = React.useState("Moderate");
-  const [hardFloorPct, setHardFloorPct] = React.useState("0–25%");
-  const [frequency, setFrequency] = React.useState("5 visits weekly");
+  const [sqft, setSqft] = React.useState("");
+  const [restroomBand, setRestroomBand] = React.useState("");
+  const [areas, setAreas] = React.useState("");
+  const [tier, setTier] = React.useState("");
+  const [propertyType, setPropertyType] = React.useState("");
+  const [occupancy, setOccupancy] = React.useState("");
+  const [hardFloorPct, setHardFloorPct] = React.useState("");
+  const [frequency, setFrequency] = React.useState("");
   const [addons, setAddons] = React.useState([]);
   const [addonQty, setAddonQty] = React.useState({});
-  const [booking, setBooking] = React.useState("Monthly");
+  const [booking, setBooking] = React.useState("");
   const [months, setMonths] = React.useState(1);
   const [presetNotice, setPresetNotice] = React.useState(false);
   React.useEffect(() => {
@@ -419,26 +406,18 @@ function Calculator({ navy, gold, pricing, preset }) {
   const stateVal = "FL"; // service area is Florida-only
   const [zip, setZip] = React.useState("");
   const [notes, setNotes] = React.useState("");
-  const [billingSameAsService, setBillingSameAsService] = React.useState(true);
-  const [billingAddressLine1, setBillingAddressLine1] = React.useState("");
-  const [billingUnit, setBillingUnit] = React.useState("");
-  const [billingCity, setBillingCity] = React.useState("");
-  const [billingState, setBillingState] = React.useState("");
-  const [billingZip, setBillingZip] = React.useState("");
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const setAddonQtyFor = (name, val) => setAddonQty(q => ({ ...q, [name]: Number(val) }));
-  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !city.trim() || !zip.trim()
-    || (!billingSameAsService && (!billingAddressLine1.trim() || !billingCity.trim() || !billingState || !billingZip.trim()));
+  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !city.trim() || !zip.trim();
   const handleBookIt = () => {
-    if (missingRequired) { alert("Please fill in all required fields (name, phone, full address, and billing address) to book."); return; }
+    if (missingRequired) { alert("Please fill in all required fields (name, phone, and full address) to book."); return; }
+    if (!hasAllInputs) { alert("Please fill in the property scope, service tier, frequency, and billing plan to see your price before booking."); return; }
     const fullAddress = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${stateVal} ${zip.trim()}`].filter(Boolean).join(", ");
-    const billingAddress = billingSameAsService ? null : [billingAddressLine1.trim(), billingUnit.trim(), `${billingCity.trim()}, ${billingState} ${billingZip.trim()}`].filter(Boolean).join(", ");
     sessionStorage.setItem("gpc_booking_draft", JSON.stringify({
       page: "commercial",
       firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(),
       addressLine1: addressLine1.trim(), unit: unit.trim(), city: city.trim(), state: stateVal, zip: zip.trim(),
       address: fullAddress,
-      billingAddress,
       notes: notes.trim(),
       sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
       tier, booking, months, frequency, displayFrequency, bookingLabel,
@@ -451,13 +430,18 @@ function Calculator({ navy, gold, pricing, preset }) {
     window.location.href = "book.html";
   };
 
-  const restrooms = restroomBandCount[restroomBand];
-  const isHighRestroom = restrooms >= highRestroomThreshold(sqft);
-  const base = baseMap[tier];
-  const complexityMult = 1 + typeAdj[propertyType] + occupancyAdj[occupancy] + (isHighRestroom ? 0.10 : 0) + hardFloorAdj[hardFloorPct] + areaAdj(areas);
+  // Nothing is pre-filled — no price shows until the customer has provided
+  // every scope input and chosen a frequency and billing plan.
+  const sqftNum = Number(sqft) || 0;
+  const areasNum = Number(areas) || 0;
+  const hasAllInputs = !!tier && sqft !== "" && sqftNum > 0 && !!restroomBand && areas !== "" && !!propertyType && !!occupancy && !!hardFloorPct && !!booking && (booking === "One-time" || !!frequency);
+  const restrooms = restroomBand ? restroomBandCount[restroomBand] : 0;
+  const isHighRestroom = sqftNum > 0 && restrooms >= highRestroomThreshold(sqftNum);
+  const base = tier ? baseMap[tier] : 0;
+  const complexityMult = 1 + (propertyType ? typeAdj[propertyType] : 0) + (occupancy ? occupancyAdj[occupancy] : 0) + (isHighRestroom ? 0.10 : 0) + (hardFloorPct ? hardFloorAdj[hardFloorPct] : 0) + areaAdj(areasNum);
   const afterComplexity = base * complexityMult;
-  const afterFrequency = booking === "One-time" ? afterComplexity : afterComplexity * (1 + freqAdj[frequency]);
-  const scopeVal = { sqft, restrooms, areas };
+  const afterFrequency = booking === "One-time" ? afterComplexity : afterComplexity * (1 + (freqAdj[frequency] || 0));
+  const scopeVal = { sqft: sqftNum, restrooms, areas: areasNum };
   const addonPrice = (name) => { const p = addonPricing[name]; return Math.round(Math.max(p.rate * scopeVal[p.unit], p.min)); };
   const addonsTotal = addons.reduce((sum, name) => sum + addonPrice(name), 0);
   const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
@@ -473,16 +457,17 @@ function Calculator({ navy, gold, pricing, preset }) {
   const perVisit = afterBooking;
   const discount = Math.max(0, standardPrice - perVisit);
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
-  const billingKey = booking === "One-time" ? "one-time" : (months >= 12 ? "12-month" : months >= 6 ? "6-month" : "monthly");
-  const bookingLabel = booking === "One-time" ? "One-time" : (months >= 12 ? "12-Month Subscription" : months >= 6 ? "6-Month Subscription" : "Monthly");
+  const billingKey = !booking ? "" : booking === "One-time" ? "one-time" : (months >= 12 ? "12-month" : months >= 6 ? "6-month" : months >= 1 ? "monthly" : "biweekly");
+  const bookingLabel = !booking ? "" : booking === "One-time" ? "One-time" : (months >= 12 ? "12-Month Subscription" : months >= 6 ? "6-Month Subscription" : months >= 1 ? "Monthly" : "Biweekly");
   const setBillingPlan = (key) => {
+    if (!key) { setBooking(""); setMonths(1); return; }
     const plan = BILLING_PLANS.find(p => p.key === key);
     if (!plan) return;
     setBooking(plan.booking);
     setMonths(plan.months);
   };
   const visitsPerWeek = parseInt(frequency, 10) || 1;
-  const visitsCount = booking === "One-time" ? 1 : visitsPerWeek * months * 4;
+  const visitsCount = !booking ? 0 : booking === "One-time" ? 1 : visitsPerWeek * months * 4;
   const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
   const totalAddons = addons.reduce((sum, name) => sum + addonPrice(name) * addonOccurrences(name), 0);
   // grossTotal is visit fees only (no add-ons — they're never discounted, so
@@ -547,68 +532,44 @@ function Calculator({ navy, gold, pricing, preset }) {
             <input type="text" inputMode="numeric" placeholder="32541" value={zip} onChange={e => setZip(e.target.value)} style={selStyle} />
           </label>
           <label><span style={labelStyle}>Property size (sq ft)</span>
-            <input type="number" min="0" value={sqft} onChange={e => setSqft(Number(e.target.value))} style={selStyle} />
+            <input type="number" min="0" value={sqft} onChange={e => setSqft(e.target.value)} style={selStyle} />
           </label>
           <label><span style={labelStyle}>Restroom count</span>
             <select style={selStyle} value={restroomBand} onChange={e => setRestroomBand(e.target.value)}>
+              <option value="">Select</option>
               {Object.keys(restroomBandCount).map(k => <option key={k} value={k}>{k}</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>Service areas (trash/kitchen)</span>
-            <input type="number" min="0" value={areas} onChange={e => setAreas(Number(e.target.value))} style={selStyle} />
+            <input type="number" min="0" value={areas} onChange={e => setAreas(e.target.value)} style={selStyle} />
           </label>
           <label><span style={labelStyle}>Property type</span>
             <select style={selStyle} value={propertyType} onChange={e => setPropertyType(e.target.value)}>
+              <option value="">Select</option>
               {Object.keys(typeAdj).map(k => <option key={k} value={k}>{k}</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>How busy is the facility?</span>
             <select style={selStyle} value={occupancy} onChange={e => setOccupancy(e.target.value)}>
+              <option value="">Select</option>
               {Object.keys(occupancyAdj).map(k => <option key={k} value={k}>{k}</option>)}
             </select>
-            <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{occupancyDesc[occupancy]}</p>
+            {occupancy && <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{occupancyDesc[occupancy]}</p>}
           </label>
           <label><span style={labelStyle}>Percent hard flooring</span>
             <select style={selStyle} value={hardFloorPct} onChange={e => setHardFloorPct(e.target.value)}>
+              <option value="">Select</option>
               {Object.keys(hardFloorAdj).map(k => <option key={k} value={k}>{k}</option>)}
             </select>
-            <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{hardFloorDesc[hardFloorPct]}</p>
+            {hardFloorPct && <p style={{ fontSize: 12, color: "#7a746a", margin: "6px 0 0" }}>{hardFloorDesc[hardFloorPct]}</p>}
           </label>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
             <span style={labelStyle}>Notes for your cleaning crew (optional)</span>
             <textarea placeholder="Access instructions, alarm codes, areas to avoid, special requests…" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...selStyle, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} />
           </div>
-          <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3ded2", paddingTop: 16, marginTop: 4 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#153238" }}>
-              <input type="checkbox" checked={billingSameAsService} onChange={e => setBillingSameAsService(e.target.checked)} />
-              Billing address is the same as the service address
-            </label>
-          </div>
-          {!billingSameAsService && (
-            <>
-              <label style={{ gridColumn: "1 / -1" }}><span style={labelStyle}>Billing address</span>
-                <input type="text" placeholder="123 Main St" value={billingAddressLine1} onChange={e => setBillingAddressLine1(e.target.value)} style={selStyle} />
-              </label>
-              <label><span style={labelStyle}>Unit / suite # (optional)</span>
-                <input type="text" placeholder="Suite 200" value={billingUnit} onChange={e => setBillingUnit(e.target.value)} style={selStyle} />
-              </label>
-              <label><span style={labelStyle}>City</span>
-                <input type="text" placeholder="Atlanta" value={billingCity} onChange={e => setBillingCity(e.target.value)} style={selStyle} />
-              </label>
-              <label><span style={labelStyle}>State</span>
-                <select value={billingState} onChange={e => setBillingState(e.target.value)} style={selStyle}>
-                  <option value="">Select a state</option>
-                  {US_STATES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
-                </select>
-              </label>
-              <label><span style={labelStyle}>Zip code</span>
-                <input type="text" inputMode="numeric" placeholder="30301" value={billingZip} onChange={e => setBillingZip(e.target.value)} style={selStyle} />
-              </label>
-            </>
-          )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
-          <label><span style={labelStyle}>Billing</span>
+          <label><span style={labelStyle}>Select billing plan</span>
             <select style={selStyle} value={billingKey} onChange={e => setBillingPlan(e.target.value)}>
               {BILLING_PLANS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
@@ -651,6 +612,12 @@ function Calculator({ navy, gold, pricing, preset }) {
           <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "24px 28px", color: "#fff", position: "sticky", top: 20 }}>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Summary</p>
 
+            {!hasAllInputs ? (
+              <div style={{ marginTop: 14 }}>
+                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>Fill in the property scope, service tier, frequency, and billing plan to see your price.</p>
+              </div>
+            ) : (
+              <>
             <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
               <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{tier} · {bookingLabel} · {displayFrequency}</div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Price per visit</span><span>${money(standardPrice)}</span></div>
@@ -698,6 +665,8 @@ function Calculator({ navy, gold, pricing, preset }) {
               <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Final price — {bookingLabel}, {displayFrequency}</p>
               <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${money(totalWithTax)}</p>
             </div>
+              </>
+            )}
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
             <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>You'll create an account and pick a visit time next. First-time discounts are confirmed there.</p>
           </div>

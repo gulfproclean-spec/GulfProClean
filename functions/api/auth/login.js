@@ -14,30 +14,41 @@ export async function onRequestPost({ env, request }) {
   if (!isValidEmail(email) || !password) {
     return new Response(JSON.stringify({ error: 'enter your email and password' }), { status: 400 });
   }
-
-  const sql = neon(env.DATABASE_URL);
-  const rows = await sql`select id, password_hash, password_salt from customers where email = ${email}`;
-  if (rows.length === 0) {
-    return new Response(JSON.stringify({ error: 'no account with that email' }), { status: 401 });
-  }
-  const customer = rows[0];
-  const ok = await verifyPassword(password, customer.password_hash, customer.password_salt);
-  if (!ok) {
-    return new Response(JSON.stringify({ error: 'incorrect password' }), { status: 401 });
+  if (!env.DATABASE_URL) {
+    return new Response(JSON.stringify({ error: 'Server is not configured (missing DATABASE_URL). Please contact us to complete your booking.' }), { status: 500 });
   }
 
-  // This is only an estimate for the pre-payment preview — the authoritative
-  // check (functions/api/bookings.js) also matches on the service address.
-  const bookingRows = address
-    ? await sql`select 1 from bookings where customer_id = ${customer.id} or lower(address) = lower(${address}) limit 1`
-    : await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
-  const isFirstTime = bookingRows.length === 0;
+  // Everything past this point can fail (bad connection string, DB
+  // unreachable, etc.) — without this, an uncaught error here returns an
+  // empty response body, which shows up client-side as a cryptic
+  // "Unexpected end of JSON input" instead of a readable error.
+  try {
+    const sql = neon(env.DATABASE_URL);
+    const rows = await sql`select id, password_hash, password_salt from customers where email = ${email}`;
+    if (rows.length === 0) {
+      return new Response(JSON.stringify({ error: 'no account with that email' }), { status: 401 });
+    }
+    const customer = rows[0];
+    const ok = await verifyPassword(password, customer.password_hash, customer.password_salt);
+    if (!ok) {
+      return new Response(JSON.stringify({ error: 'incorrect password' }), { status: 401 });
+    }
 
-  const token = newSessionToken();
-  await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customer.id}, ${sessionExpiry()})`;
+    // This is only an estimate for the pre-payment preview — the authoritative
+    // check (functions/api/bookings.js) also matches on the service address.
+    const bookingRows = address
+      ? await sql`select 1 from bookings where customer_id = ${customer.id} or lower(address) = lower(${address}) limit 1`
+      : await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
+    const isFirstTime = bookingRows.length === 0;
 
-  return new Response(JSON.stringify({ email, isFirstTime }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', 'Set-Cookie': sessionCookie(token) },
-  });
+    const token = newSessionToken();
+    await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customer.id}, ${sessionExpiry()})`;
+
+    return new Response(JSON.stringify({ email, isFirstTime }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Set-Cookie': sessionCookie(token) },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message || 'Something went wrong logging you in.' }), { status: 500 });
+  }
 }

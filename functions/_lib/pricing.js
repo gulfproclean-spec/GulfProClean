@@ -7,7 +7,8 @@
 export class PricingError extends Error {}
 
 const ONE_TIME_SURCHARGE = 0.30;
-const monthlyDiscountFor = (m) => (m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05);
+const monthlyDiscountFor = (m) => (m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05);
+const VALID_MONTHS = [0.5, 1, 6, 12];
 
 const RESIDENTIAL_FREQ_ADJ = {
   "1 visit weekly": 0,
@@ -97,7 +98,7 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   requireTier(tier);
   if (booking !== 'One-time' && booking !== 'Monthly') throw new PricingError('Invalid billing type.');
   const monthsVal = booking === 'Monthly' ? Number(months) : 1;
-  if (!Number.isFinite(monthsVal) || monthsVal < 1) throw new PricingError('Invalid number of months.');
+  if (booking === 'Monthly' && !VALID_MONTHS.includes(monthsVal)) throw new PricingError('Invalid number of months.');
 
   let afterSize, afterFrequency, visitsCount, scopeVal;
 
