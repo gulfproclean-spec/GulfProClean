@@ -179,7 +179,6 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
   // hardcoded copy — so this section never drifts from what the calculator
   // actually charges.
   const ONE_TIME_SURCHARGE = 0.30;
-  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05;
   const startingBand = (pricing && pricing[0]) || { essential: 175, preferred: 225, premium: 325 };
   const basePriceFor = { Essential: Number(startingBand.essential), Preferred: Number(startingBand.preferred), Premium: Number(startingBand.premium) };
   const standardPriceFor = (name) => basePriceFor[name] * (1 + ONE_TIME_SURCHARGE);
@@ -228,24 +227,16 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
         <p id="recurring-plans" style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0, scrollMarginTop: 90 }}>Recurring plans</p>
         <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for offices, restaurants and multi-site portfolios, billed monthly. No contracts — cancel anytime.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
-          {subs.map(([name, badge, audience, cadence, features, calcFrequency]) => {
-            const standard = standardPriceFor(name);
-            const monthlyPrice = standard * (1 - monthlyDiscountFor(1));
-            const sixMonthPrice = standard * (1 - monthlyDiscountFor(6));
-            const twelveMonthPrice = standard * (1 - monthlyDiscountFor(12));
-            return (
-              <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
-                {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
-                <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
-                <p style={{ fontSize: 12.5, color: "#7a746a", margin: "6px 0 0" }}>{audience}</p>
-                <p style={{ margin: "16px 0 0" }}><span style={{ fontSize: 13, fontWeight: 500, color: "#7a746a" }}>Starting at </span><span style={{ fontSize: 26, fontWeight: 600, color: "#8a6221" }}>${Math.round(monthlyPrice)}</span><span style={{ fontSize: 13, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
-                <p style={{ fontSize: 12.5, color: "#7a746a", margin: "4px 0 0" }}>{cadence}</p>
-                <p style={{ fontSize: 12.5, color: "#8a6221", margin: "6px 0 0", fontWeight: 500 }}>6-month prepay: ${Math.round(sixMonthPrice)} / visit (−10%) · 12-month: ${Math.round(twelveMonthPrice)} / visit (−15%)</p>
-                <PlanList gold={gold} items={features} />
-                <a href="#calculator" onClick={(e) => { e.preventDefault(); onSelectPlan({ tier: name, frequency: calcFrequency }); scrollToId('calculator', 'smooth'); }} style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name}</a>
-              </div>
-            );
-          })}
+          {subs.map(([name, badge, audience, cadence, features, calcFrequency]) => (
+            <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
+              {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
+              <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
+              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "6px 0 0" }}>{audience}</p>
+              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "16px 0 0" }}>{cadence}</p>
+              <PlanList gold={gold} items={features} />
+              <a href="#calculator" onClick={(e) => { e.preventDefault(); onSelectPlan({ tier: name, frequency: calcFrequency }); scrollToId('calculator', 'smooth'); }} style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name} — get your price</a>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -513,6 +504,9 @@ function Calculator({ navy, gold, pricing, preset }) {
       ? dollars.toLocaleString("en-US")
       : dollars.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+  // Always shows cents, even when they're zero — used for the discounted
+  // subtotal, the last figure before tax is applied.
+  const moneyFixed = (n) => (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
 
@@ -690,7 +684,7 @@ function Calculator({ navy, gold, pricing, preset }) {
                 <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Applies to the visit price only, never to one-time bookings — add-ons are never discounted.</p>
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
                   <span style={{ color: "rgba(255,255,255,0.75)" }}>Subtotal (discounted)</span>
-                  <span>${money(finalDiscounted)}</span>
+                  <span>${moneyFixed(finalDiscounted)}</span>
                 </div>
               </>
             )}
