@@ -21,7 +21,7 @@ export async function onRequestPost({ env, request }) {
     sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
-    billingAddress, agreementAccepted,
+    billingName, billingAddress, agreementAccepted,
   } = body;
 
   const requiredStrings = { firstName, lastName, phone, addressLine1, city, state, zip };
@@ -40,8 +40,10 @@ export async function onRequestPost({ env, request }) {
     return new Response(JSON.stringify({ error: 'Invalid zip code.' }), { status: 400 });
   }
   const address = [addressLine1.trim(), unitVal, `${city.trim()}, ${state.toUpperCase()} ${zip.trim()}`].filter(Boolean).join(', ');
-  // billingAddress is null when the client chose "same as service address";
-  // otherwise it's a pre-formatted string built the same way as `address`.
+  // billingName/billingAddress are null when the client chose "same as
+  // [customer name]"/"same as service address"; otherwise billingAddress is
+  // a pre-formatted string built the same way as `address`.
+  const billingNameVal = typeof billingName === 'string' && billingName.trim() ? billingName.trim() : null;
   const billingAddressVal = typeof billingAddress === 'string' && billingAddress.trim() ? billingAddress.trim() : null;
 
   // First-time-customer discount eligibility is checked against both the
@@ -89,13 +91,13 @@ export async function onRequestPost({ env, request }) {
   // subscription discount is computed as a percentage off it.
   const rows = await sql`
     insert into bookings (
-      customer_id, page, address, billing_address, notes, tier, booking_type, months, frequency,
+      customer_id, page, address, billing_name, billing_address, notes, tier, booking_type, months, frequency,
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
       scheduled_date, scheduled_time, payment_status, pricing_input,
       first_name, last_name, phone, address_line1, unit, city, state, zip,
       per_visit_price, after_frequency_price, agreement_accepted_at
     ) values (
-      ${customer.id}, ${page}, ${address}, ${billingAddressVal}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
+      ${customer.id}, ${page}, ${address}, ${billingNameVal}, ${billingAddressVal}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
@@ -106,15 +108,15 @@ export async function onRequestPost({ env, request }) {
   `;
 
   // Keep the customer record's service address, contact info, and billing
-  // address in sync with their most recent booking, so the account itself
-  // carries this info independent of any single booking (e.g. for account
-  // management or pre-filling a future booking).
+  // name/address in sync with their most recent booking, so the account
+  // itself carries this info independent of any single booking (e.g. for
+  // account management or pre-filling a future booking).
   await sql`
     update customers set
       first_name = ${firstName.trim()}, last_name = ${lastName.trim()}, phone = ${phone.trim()},
       address_line1 = ${addressLine1.trim()}, unit = ${unitVal || null}, city = ${city.trim()},
       state = ${state.toUpperCase()}, zip = ${zip.trim()}, address = ${address},
-      billing_address = ${billingAddressVal}
+      billing_name = ${billingNameVal}, billing_address = ${billingAddressVal}
     where id = ${customer.id}
   `;
 

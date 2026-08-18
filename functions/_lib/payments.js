@@ -25,7 +25,8 @@ export async function markBookingPaid(sql, env, bookingId, { customerEmail, paym
     });
   }
   await sendBookingNotificationEmail(env, {
-    page: booking.page, tier: booking.tier, address: booking.address, billingAddress: booking.billing_address,
+    page: booking.page, tier: booking.tier, address: booking.address,
+    billingName: booking.billing_name, billingAddress: booking.billing_address,
     bookingType: booking.booking_type, months: booking.months || 1, frequency: booking.frequency,
     visitsCount: booking.visits_count, scheduledDate: booking.scheduled_date, scheduledTime: booking.scheduled_time,
     finalTotal: booking.final_total, grossTotal: booking.gross_total,

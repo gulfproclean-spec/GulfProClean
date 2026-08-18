@@ -150,7 +150,7 @@ export async function sendRenewalReminderEmail(env, { to, page, tier, months, en
 // company-facing counterpart to sendBookingConfirmationEmail, which only
 // goes to the customer.
 export async function sendBookingNotificationEmail(env, {
-  page, tier, address, billingAddress, scheduledDate, scheduledTime, finalTotal, grossTotal,
+  page, tier, address, billingName, billingAddress, scheduledDate, scheduledTime, finalTotal, grossTotal,
   bookingType, months, frequency, visitsCount, firstName, lastName, phone, customerEmail, notes,
 }) {
   const dateStr = formatDate(scheduledDate);
@@ -167,6 +167,7 @@ export async function sendBookingNotificationEmail(env, {
         ${phone ? `<tr><td style="padding:6px 0;color:#7a746a">Phone</td><td style="padding:6px 0;text-align:right">${phone}</td></tr>` : ''}
         <tr><td style="padding:6px 0;color:#7a746a">Service</td><td style="padding:6px 0;text-align:right">${tier} (${pageLabel})</td></tr>
         <tr><td style="padding:6px 0;color:#7a746a">Address</td><td style="padding:6px 0;text-align:right">${address}</td></tr>
+        ${billingName ? `<tr><td style="padding:6px 0;color:#7a746a">Billing name</td><td style="padding:6px 0;text-align:right">${billingName}</td></tr>` : ''}
         ${billingAddress ? `<tr><td style="padding:6px 0;color:#7a746a">Billing address</td><td style="padding:6px 0;text-align:right">${billingAddress}</td></tr>` : ''}
         <tr><td style="padding:6px 0;color:#7a746a">Billing</td><td style="padding:6px 0;text-align:right">${billingLabel}</td></tr>
         <tr><td style="padding:6px 0;color:#7a746a">Frequency</td><td style="padding:6px 0;text-align:right">${frequency || '—'}</td></tr>

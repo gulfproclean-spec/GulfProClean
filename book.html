@@ -134,23 +134,39 @@ let state = {
   selectedDate: null, selectedTime: null,
   addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
   extraAddons: [],
+  billingNameSame: true, billingName: '',
   billingSameAsService: true,
   billingAddressLine1: '', billingUnit: '', billingCity: '', billingState: '', billingZip: '',
   agreed: false,
   paymentBooking: null, paymentStatus: null, paymentError: null,
 };
 
-// null when billing address is the same as the service address — matches
-// the shape functions/api/bookings.js already expects.
+// null when the billing name/address is the same as the customer's own
+// name/service address — matches the shape functions/api/bookings.js
+// already expects for billingAddress, mirrored here for billingName.
+function billingNameValue() {
+  if (state.billingNameSame) return null;
+  return state.billingName.trim() || null;
+}
+
 function billingAddressValue() {
   if (state.billingSameAsService) return null;
   return [state.billingAddressLine1.trim(), state.billingUnit.trim(), `${state.billingCity.trim()}, ${state.billingState} ${state.billingZip.trim()}`].filter(Boolean).join(', ');
 }
 
-function billingAddressHtml() {
+function billingInfoHtml() {
+  const customerName = `${draft.firstName} ${draft.lastName}`;
   return `
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3ded2">
-      <p style="font-size:13px;font-weight:500;margin:0 0 10px">Billing address</p>
+      <p style="font-size:13px;font-weight:500;margin:0 0 10px">Billing information</p>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#153238;margin-bottom:14px">
+        <input type="checkbox" id="billing-name-same" style="width:auto;min-height:auto;margin:0" ${state.billingNameSame ? 'checked' : ''} />
+        Billing name is the same as ${customerName}
+      </label>
+      ${!state.billingNameSame ? `
+        <label>Billing name</label>
+        <input type="text" id="billing-name" value="${state.billingName}" />
+      ` : ''}
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#153238;margin-bottom:${state.billingSameAsService ? '0' : '14px'}">
         <input type="checkbox" id="billing-same" style="width:auto;min-height:auto;margin:0" ${state.billingSameAsService ? 'checked' : ''} />
         Billing address is the same as the service address
@@ -278,6 +294,8 @@ function agreementSummaryHtml() {
   const commitmentEnd = (draft.booking === 'Monthly' && draft.months >= 6 && state.selectedDate)
     ? addMonths(state.selectedDate, draft.months).toLocaleDateString()
     : null;
+  const billingName = billingNameValue();
+  const billingAddress = billingAddressValue();
   return `
     <div style="margin-top:12px">
       <p style="font-size:12.5px;font-weight:500;margin:0 0 6px">Service &amp; subscription information</p>
@@ -285,6 +303,8 @@ function agreementSummaryHtml() {
       <div class="row"><span class="muted">Email</span><span>${state.email}</span></div>
       <div class="row"><span class="muted">Property type</span><span>${draft.page === 'residential' ? 'Residential' : 'Commercial'}</span></div>
       <div class="row"><span class="muted">Billing plan</span><span>${billingPlanLabel()}</span></div>
+      ${billingName ? `<div class="row"><span class="muted">Billing name</span><span>${billingName}</span></div>` : ''}
+      ${billingAddress ? `<div class="row"><span class="muted">Billing address</span><span>${billingAddress}</span></div>` : ''}
       <div class="row"><span class="muted">Service frequency</span><span>${draft.displayFrequency}</span></div>
       <div class="row"><span class="muted">One-Time/Standard price (per visit)</span><span>${money(standardPrice)}</span></div>
       <div class="row"><span class="muted">Your price (per visit)</span><span>${money(totals.perVisit)}</span></div>
@@ -547,7 +567,7 @@ function renderSchedule() {
           `).join('')}
         </div>
       ` : ''}
-      ${billingAddressHtml()}
+      ${billingInfoHtml()}
       ${agreementHtml()}
       <div class="error" id="err" style="display:none"></div>
       <button id="confirm" ${selectedDay && state.selectedTime && state.agreed ? '' : 'disabled'}>Confirm booking</button>
@@ -581,12 +601,16 @@ function renderSchedule() {
   });
   const agreeCb = $('#agree-terms');
   if (agreeCb) agreeCb.onchange = (e) => { state.agreed = e.target.checked; render(); };
+  const billingNameSameCb = $('#billing-name-same');
+  if (billingNameSameCb) billingNameSameCb.onchange = (e) => { state.billingNameSame = e.target.checked; render(); };
   const billingSameCb = $('#billing-same');
   if (billingSameCb) billingSameCb.onchange = (e) => { state.billingSameAsService = e.target.checked; render(); };
   // These update state silently (no render()) so typing doesn't lose focus —
   // a full render() replaces the whole innerHTML, which would reset the
   // cursor mid-keystroke. The values still persist across renders triggered
   // by other controls (day/time, checkboxes) since they read back from state.
+  const billName = $('#billing-name');
+  if (billName) billName.oninput = (e) => { state.billingName = e.target.value; };
   const billAddr = $('#billing-address-line1');
   if (billAddr) billAddr.oninput = (e) => { state.billingAddressLine1 = e.target.value; };
   const billUnit = $('#billing-unit');
@@ -605,6 +629,11 @@ async function confirmBooking() {
   const btn = $('#confirm');
   const errEl = $('#err');
   errEl.style.display = 'none';
+  if (!state.billingNameSame && !state.billingName.trim()) {
+    errEl.textContent = 'Please fill in the billing name, or check "same as [customer name]."';
+    errEl.style.display = 'block';
+    return;
+  }
   if (!state.billingSameAsService && (!state.billingAddressLine1.trim() || !state.billingCity.trim() || !state.billingState || !state.billingZip.trim())) {
     errEl.textContent = 'Please fill in your billing address, or check "same as service address."';
     errEl.style.display = 'block';
@@ -625,6 +654,7 @@ async function confirmBooking() {
         city: draft.city,
         state: draft.state,
         zip: draft.zip,
+        billingName: billingNameValue(),
         billingAddress: billingAddressValue(),
         notes: draft.notes,
         tier: draft.tier,
