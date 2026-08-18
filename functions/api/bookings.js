@@ -105,6 +105,19 @@ export async function onRequestPost({ env, request }) {
     returning id
   `;
 
+  // Keep the customer record's service address, contact info, and billing
+  // address in sync with their most recent booking, so the account itself
+  // carries this info independent of any single booking (e.g. for account
+  // management or pre-filling a future booking).
+  await sql`
+    update customers set
+      first_name = ${firstName.trim()}, last_name = ${lastName.trim()}, phone = ${phone.trim()},
+      address_line1 = ${addressLine1.trim()}, unit = ${unitVal || null}, city = ${city.trim()},
+      state = ${state.toUpperCase()}, zip = ${zip.trim()}, address = ${address},
+      billing_address = ${billingAddressVal}
+    where id = ${customer.id}
+  `;
+
   return new Response(JSON.stringify({
     ok: true, id: rows[0].id, isFirstTime,
     finalTotal: pricing.finalTotal, grossTotal: pricing.grossTotal, visitsCount: pricing.visitsCount,
