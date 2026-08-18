@@ -348,7 +348,12 @@ function Calculator({ navy, gold, pricing, preset }) {
   const freqAdj = { "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "4 visits weekly": 0, "5 visits weekly": 0, "6 visits weekly": 0, "7 visits weekly": 0 };
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05;
-  const MONTH_OPTIONS = [1, 2, 3, 4, 5, 6, 12];
+  const BILLING_PLANS = [
+    { key: "one-time", label: "One-time", booking: "One-time", months: 1 },
+    { key: "monthly", label: "Monthly (5% discount)", booking: "Monthly", months: 1 },
+    { key: "6-month", label: "6-Month Subscription (10% discount)", booking: "Monthly", months: 6 },
+    { key: "12-month", label: "12-Month Subscription (15% discount)", booking: "Monthly", months: 12 },
+  ];
   const addonPricing = {
     "Post-construction cleanup": { rate: 0.25, unit: "sqft", min: 750 },
     "Exterior window washing": { rate: 0.75, unit: "sqft", min: 350 },
@@ -409,7 +414,7 @@ function Calculator({ navy, gold, pricing, preset }) {
   const [notes, setNotes] = React.useState("");
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const setAddonQtyFor = (name, val) => setAddonQty(q => ({ ...q, [name]: Number(val) }));
-  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !unit.trim() || !city.trim() || !stateVal || !zip.trim();
+  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !city.trim() || !stateVal || !zip.trim();
   const handleBookIt = () => {
     if (missingRequired) { alert("Please fill in all required fields (name, phone, and full address) to book."); return; }
     const fullAddress = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${stateVal} ${zip.trim()}`].filter(Boolean).join(", ");
@@ -445,7 +450,14 @@ function Calculator({ navy, gold, pricing, preset }) {
   const perVisit = afterBooking;
   const discount = Math.max(0, afterFrequency - perVisit);
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
-  const bookingLabel = booking === "Monthly" ? `Monthly × ${months} mo` : booking;
+  const billingKey = booking === "One-time" ? "one-time" : (months >= 12 ? "12-month" : months >= 6 ? "6-month" : "monthly");
+  const bookingLabel = booking === "One-time" ? "One-time" : (months >= 12 ? "12-Month Subscription" : months >= 6 ? "6-Month Subscription" : "Monthly");
+  const setBillingPlan = (key) => {
+    const plan = BILLING_PLANS.find(p => p.key === key);
+    if (!plan) return;
+    setBooking(plan.booking);
+    setMonths(plan.months);
+  };
   const visitsPerWeek = parseInt(frequency, 10) || 1;
   const visitsCount = booking === "One-time" ? 1 : visitsPerWeek * months * 4;
   const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
@@ -487,7 +499,7 @@ function Calculator({ navy, gold, pricing, preset }) {
           <label style={{ gridColumn: "1 / -1" }}><span style={labelStyle}>Address</span>
             <input type="text" placeholder="123 Main St" value={addressLine1} onChange={e => setAddressLine1(e.target.value)} style={selStyle} />
           </label>
-          <label><span style={labelStyle}>Unit / suite #</span>
+          <label><span style={labelStyle}>Unit / suite # (optional)</span>
             <input type="text" placeholder="Suite 200" value={unit} onChange={e => setUnit(e.target.value)} style={selStyle} />
           </label>
           <label><span style={labelStyle}>City</span>
@@ -537,18 +549,10 @@ function Calculator({ navy, gold, pricing, preset }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
           <label><span style={labelStyle}>Billing</span>
-            <select style={selStyle} value={booking} onChange={e => setBooking(e.target.value)}>
-              <option value="One-time">One-time</option>
-              <option value="Monthly">Monthly</option>
+            <select style={selStyle} value={billingKey} onChange={e => setBillingPlan(e.target.value)}>
+              {BILLING_PLANS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </label>
-          {booking === "Monthly" && (
-            <label><span style={labelStyle}>Number of months{monthlyDiscountPct > 0 ? ` (${Math.round(monthlyDiscountPct * 100)}% discount)` : ""}</span>
-              <select style={selStyle} value={months} onChange={e => setMonths(Number(e.target.value))}>
-                {MONTH_OPTIONS.map(m => <option key={m} value={m}>{m} month{m === 1 ? "" : "s"}{monthlyDiscountFor(m) > 0 ? ` (${Math.round(monthlyDiscountFor(m) * 100)}% discount)` : ""}</option>)}
-              </select>
-            </label>
-          )}
           <label><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
               {Object.keys(baseMap).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""}</option>)}

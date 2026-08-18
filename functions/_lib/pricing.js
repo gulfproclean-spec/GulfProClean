@@ -10,9 +10,7 @@ const ONE_TIME_SURCHARGE = 0.30;
 const monthlyDiscountFor = (m) => (m >= 12 ? 0.15 : m >= 6 ? 0.10 : 0.05);
 
 const RESIDENTIAL_FREQ_ADJ = {
-  "1 visit monthly (Essential Cleaning)": 0,
   "2 visits monthly (Biweekly Cleaning)": 0,
-  "4 visits monthly (Weekly Cleaning)": 0,
   "1 visit weekly": 0,
   "3 visits weekly": 0,
   "4 visits weekly": 0,

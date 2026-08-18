@@ -24,11 +24,12 @@ export async function onRequestPost({ env, request }) {
     agreementAccepted,
   } = body;
 
-  const requiredStrings = { firstName, lastName, phone, addressLine1, unit, city, state, zip };
+  const requiredStrings = { firstName, lastName, phone, addressLine1, city, state, zip };
   const missing = Object.entries(requiredStrings).filter(([, v]) => typeof v !== 'string' || !v.trim());
   if (!PAGES.has(page) || !tier || !bookingType || !frequency || missing.length > 0) {
     return new Response(JSON.stringify({ error: 'Please fill in all required fields (name, phone, and full address).' }), { status: 400 });
   }
+  const unitVal = typeof unit === 'string' ? unit.trim() : '';
   if (agreementAccepted !== true) {
     return new Response(JSON.stringify({ error: 'You must agree to the Service Agreement to book.' }), { status: 400 });
   }
@@ -38,7 +39,7 @@ export async function onRequestPost({ env, request }) {
   if (!/^\d{5}(-\d{4})?$/.test(zip.trim())) {
     return new Response(JSON.stringify({ error: 'Invalid zip code.' }), { status: 400 });
   }
-  const address = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${state.toUpperCase()} ${zip.trim()}`].filter(Boolean).join(', ');
+  const address = [addressLine1.trim(), unitVal, `${city.trim()}, ${state.toUpperCase()} ${zip.trim()}`].filter(Boolean).join(', ');
 
   const priorBookings = await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
   const isFirstTime = priorBookings.length === 0;
@@ -81,7 +82,7 @@ export async function onRequestPost({ env, request }) {
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
-      ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unit.trim()}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
+      ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unitVal || null}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
       ${pricing.perVisit}, ${pricing.afterFrequency}, now()
     )
     returning id
