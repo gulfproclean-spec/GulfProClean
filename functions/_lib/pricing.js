@@ -171,10 +171,11 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   });
   const extraAddonsTotal = resolvedExtraAddons.reduce((s, a) => s + a.total, 0);
 
-  // Discounts — first-time and subscription alike — never apply to One-time
-  // bookings, and never apply to add-ons (below), only to the cleaning
-  // visit price on a Monthly/6-Month/12-Month plan.
-  const perVisit = afterBooking * (isFirstTime && booking === 'Monthly' ? 0.90 : 1);
+  // The first-time-customer discount applies to every booking type,
+  // including One-time — eligibility is based on the service address never
+  // having been serviced before (see isFirstTime's caller), not on which
+  // plan was picked. Never applies to add-ons.
+  const perVisit = afterBooking * (isFirstTime ? 0.90 : 1);
   const plannedSubtotal = perVisit * visitsCount + addonsTotalAmount;
   const subtotal = plannedSubtotal + extraAddonsTotal;
   const grossTotal = standardPrice * visitsCount + addonsTotalAmount;
