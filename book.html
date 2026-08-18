@@ -132,6 +132,8 @@ let state = {
   step: returningBookingId ? 'payment' : (draft ? 'account' : 'missing'),
   email: null, isFirstTime: null, schedule: null,
   selectedDate: null, selectedTime: null,
+  scheduleMode: 'recurring', // 'recurring' (same day/time every visit) | 'individual' (pick each visit's date)
+  visitDates: [], // used when scheduleMode === 'individual': array of { date, time }, one per visit
   addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
   extraAddons: [],
   billingNameSame: true, billingName: '',
@@ -479,14 +481,56 @@ function upcomingVisitPreview(anchorDate, page, frequency, visitsCount) {
   return out;
 }
 
+function individualVisitsComplete(visitsCount) {
+  return Array.from({ length: visitsCount }, (_, i) => state.visitDates[i])
+    .every(v => v && v.date && v.time);
+}
+
+function dayPickerHtml(days, selectedDay, indexAttr, timeIndexAttr, selectedTime) {
+  return `
+    <div class="day-grid">
+      ${days.map(d => {
+        const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
+        const isSelected = selectedDay && selectedDay.date.toDateString() === d.date.toDateString();
+        return `<button type="button" class="day-btn ${isSelected ? 'selected' : ''}" ${indexAttr} data-date="${d.date.toISOString()}" ${hasSlots ? '' : 'disabled'}>${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`;
+      }).join('')}
+    </div>
+    ${selectedDay ? `
+      <select ${timeIndexAttr}>
+        <option value="">Select a time</option>
+        ${availableTimeSlots(selectedDay.date, selectedDay.cfg).map(t => `<option value="${t}" ${selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
+      </select>
+    ` : '<p class="muted" style="font-size:12.5px;margin-top:6px">Pick a day to see available times.</p>'}
+  `;
+}
+
+function individualVisitsHtml(days) {
+  return `
+    <div style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px;margin-top:10px">
+      ${Array.from({ length: draft.visitsCount }, (_, i) => {
+        const vd = state.visitDates[i] || {};
+        const selectedDay = vd.date ? days.find(d => d.date.toDateString() === new Date(vd.date).toDateString()) : null;
+        return `
+          <div style="border:1px solid #e3ded2;border-radius:4px;padding:10px">
+            <p style="font-size:12.5px;font-weight:600;margin:0 0 8px">Visit ${i + 1} of ${draft.visitsCount}</p>
+            ${dayPickerHtml(days, selectedDay, `data-visit-index="${i}"`, `data-visit-time-index="${i}"`, vd.time)}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function renderSchedule() {
   const totals = computeTotals();
   const days = nextAvailableDays(state.schedule, 14);
   const selectedDay = days.find(d => d.date.toDateString() === (state.selectedDate && state.selectedDate.toDateString()));
   const hasAddons = draft.addons && draft.addons.length > 0;
-  const showRecurringPreview = draft.booking !== 'One-time' && draft.visitsCount > 1 && selectedDay;
+  const canChooseIndividually = draft.booking !== 'One-time' && draft.visitsCount > 1;
+  const individualMode = canChooseIndividually && state.scheduleMode === 'individual';
+  const showRecurringPreview = draft.booking !== 'One-time' && draft.visitsCount > 1 && selectedDay && !individualMode;
   const purchasedNames = new Set((draft.addons || []).map(a => a.name));
-  const extraOptions = Object.keys(draft.allAddonPricing || {}).filter(name => !purchasedNames.has(name));
+  const extraOptions = Object.keys(draft.allAddonPricing || {}).filter(name => !purchasedNames.has(name)).sort((a, b) => a.localeCompare(b));
   app.innerHTML = `
     <div class="step-label">Step 2 of 3</div>
     <h1>Pick your visit</h1>
@@ -517,22 +561,34 @@ function renderSchedule() {
     </div>
 
     <div class="card">
-      <label>Choose a day</label>
-      <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice. This confirms your first visit; times are offered in 4-hour windows.</p>
-      <div class="day-grid">
-        ${days.map(d => {
-          const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
-          const isSelected = selectedDay && selectedDay.date.toDateString() === d.date.toDateString();
-          return `<button type="button" class="day-btn ${isSelected ? 'selected' : ''}" data-date="${d.date.toISOString()}" ${hasSlots ? '' : 'disabled'}>${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`;
-        }).join('')}
-      </div>
-      ${selectedDay ? `
-        <label>Choose a time</label>
-        <select id="time">
-          <option value="">Select a time</option>
-          ${availableTimeSlots(selectedDay.date, selectedDay.cfg).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
-        </select>
-      ` : '<p class="muted" style="font-size:13px">Pick a day to see available times.</p>'}
+      ${canChooseIndividually ? `
+        <div class="tabs">
+          <div class="tab ${!individualMode ? 'active' : ''}" id="mode-recurring">Same day &amp; time, recurring</div>
+          <div class="tab ${individualMode ? 'active' : ''}" id="mode-individual">Choose each visit's date</div>
+        </div>
+      ` : ''}
+      ${individualMode ? `
+        <label>Choose each visit</label>
+        <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice; times are offered in 4-hour windows. Pick a date and time for all ${draft.visitsCount} visits.</p>
+        ${individualVisitsHtml(days)}
+      ` : `
+        <label>Choose a day</label>
+        <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice. This confirms your first visit; times are offered in 4-hour windows.</p>
+        <div class="day-grid">
+          ${days.map(d => {
+            const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
+            const isSelected = selectedDay && selectedDay.date.toDateString() === d.date.toDateString();
+            return `<button type="button" class="day-btn ${isSelected ? 'selected' : ''}" data-date="${d.date.toISOString()}" ${hasSlots ? '' : 'disabled'}>${DAY_LABELS[d.key]}<br>${d.date.getMonth() + 1}/${d.date.getDate()}</button>`;
+          }).join('')}
+        </div>
+        ${selectedDay ? `
+          <label>Choose a time</label>
+          <select id="time">
+            <option value="">Select a time</option>
+            ${availableTimeSlots(selectedDay.date, selectedDay.cfg).map(t => `<option value="${t}" ${state.selectedTime === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        ` : '<p class="muted" style="font-size:13px">Pick a day to see available times.</p>'}
+      `}
       ${showRecurringPreview ? `
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3ded2">
           <p style="font-size:13px;font-weight:500;margin:0 0 8px">Upcoming visits at this frequency (${draft.displayFrequency})</p>
@@ -570,10 +626,17 @@ function renderSchedule() {
       ${billingInfoHtml()}
       ${agreementHtml()}
       <div class="error" id="err" style="display:none"></div>
-      <button id="confirm" ${selectedDay && state.selectedTime && state.agreed ? '' : 'disabled'}>Confirm booking</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button id="confirm" ${(individualMode ? individualVisitsComplete(draft.visitsCount) : (selectedDay && state.selectedTime)) && state.agreed ? '' : 'disabled'}>Confirm booking</button>
+        <button type="button" id="cancel-booking" class="secondary">Cancel</button>
+      </div>
     </div>
   `;
-  app.querySelectorAll('.day-btn').forEach(btn => {
+  const modeRecurring = $('#mode-recurring');
+  if (modeRecurring) modeRecurring.onclick = () => { state.scheduleMode = 'recurring'; render(); };
+  const modeIndividual = $('#mode-individual');
+  if (modeIndividual) modeIndividual.onclick = () => { state.scheduleMode = 'individual'; render(); };
+  app.querySelectorAll('.day-btn:not([data-visit-index])').forEach(btn => {
     btn.onclick = () => {
       state.selectedDate = new Date(btn.getAttribute('data-date'));
       state.selectedTime = null;
@@ -582,6 +645,21 @@ function renderSchedule() {
   });
   const timeSel = $('#time');
   if (timeSel) timeSel.onchange = (e) => { state.selectedTime = e.target.value; render(); };
+  app.querySelectorAll('[data-visit-index]').forEach(btn => {
+    btn.onclick = () => {
+      const i = Number(btn.getAttribute('data-visit-index'));
+      state.visitDates[i] = { date: new Date(btn.getAttribute('data-date')), time: null };
+      render();
+    };
+  });
+  app.querySelectorAll('[data-visit-time-index]').forEach(sel => {
+    sel.onchange = (e) => {
+      const i = Number(sel.getAttribute('data-visit-time-index'));
+      if (!state.visitDates[i]) state.visitDates[i] = {};
+      state.visitDates[i].time = e.target.value;
+      render();
+    };
+  });
   app.querySelectorAll('[data-addon]').forEach(cb => {
     cb.onchange = (e) => {
       const name = e.target.getAttribute('data-addon');
@@ -623,6 +701,11 @@ function renderSchedule() {
   if (billZip) billZip.oninput = (e) => { state.billingZip = e.target.value; };
   const confirmBtn = $('#confirm');
   if (confirmBtn) confirmBtn.onclick = confirmBooking;
+  const cancelBtn = $('#cancel-booking');
+  if (cancelBtn) cancelBtn.onclick = () => {
+    sessionStorage.removeItem('gpc_booking_draft');
+    window.location.href = `${draft.page}.html#calculator`;
+  };
 }
 
 async function confirmBooking() {
@@ -639,6 +722,18 @@ async function confirmBooking() {
     errEl.style.display = 'block';
     return;
   }
+  const canChooseIndividually = draft.booking !== 'One-time' && draft.visitsCount > 1;
+  const individualMode = canChooseIndividually && state.scheduleMode === 'individual';
+  if (individualMode && !individualVisitsComplete(draft.visitsCount)) {
+    errEl.textContent = 'Please choose a date and time for every visit.';
+    errEl.style.display = 'block';
+    return;
+  }
+  // The first visit's date/time always populate scheduledDate/scheduledTime
+  // (what every other part of the app — refunds, reschedule — reads as "the"
+  // scheduled visit); visitDates additionally carries the full list only
+  // when the customer chose to pick each visit's date individually.
+  const firstVisit = individualMode ? state.visitDates[0] : { date: state.selectedDate, time: state.selectedTime };
   btn.disabled = true;
   try {
     const res = await fetch('/api/bookings', {
@@ -670,8 +765,11 @@ async function confirmBooking() {
         addons: draft.addons.map(a => ({ name: a.name, occurrences: a.occurrences })),
         addonsApplied: state.addonsApplied,
         extraAddons: state.extraAddons.map(name => ({ name })),
-        scheduledDate: state.selectedDate.toISOString().slice(0, 10),
-        scheduledTime: state.selectedTime,
+        scheduledDate: firstVisit.date.toISOString().slice(0, 10),
+        scheduledTime: firstVisit.time,
+        visitDates: individualMode
+          ? state.visitDates.slice(0, draft.visitsCount).map(v => ({ date: v.date.toISOString().slice(0, 10), time: v.time }))
+          : null,
         agreementAccepted: state.agreed,
       }),
     });

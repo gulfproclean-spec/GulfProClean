@@ -56,76 +56,10 @@
 </style>
 </head>
 <body>
-<nav><span style="width:18px;height:1px;background:#153238;display:inline-block;"></span>GULF PROCLEAN<a href="index.html" style="margin-left:auto;color:#153238;font-weight:600;font-size:13px;letter-spacing:0.04em;">Home</a><a href="#contact" style="color:#153238;font-weight:600;font-size:13px;letter-spacing:0.04em;">Contact</a></nav>
+<nav><span style="width:18px;height:1px;background:#153238;display:inline-block;"></span>GULF PROCLEAN<a href="index.html" style="margin-left:auto;color:#153238;font-weight:600;font-size:13px;letter-spacing:0.04em;">Home</a><a href="mailto:gulfproclean@gmail.com" style="color:#153238;font-weight:600;font-size:13px;letter-spacing:0.04em;">Contact</a></nav>
 <div style="background:linear-gradient(135deg,#b68235,#d9a94a);color:#153238;text-align:center;padding:13px 20px;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">✦ No contracts. Cancel anytime. ✦</div>
+<div style="text-align:center;padding:9px 20px;font-size:13px;color:#7a746a;border-bottom:1px solid #e3ded2;">Have a question or a special request? Email us at <a href="mailto:gulfproclean@gmail.com" style="color:#8a6221;font-weight:600;">gulfproclean@gmail.com</a>.</div>
 <main id="app"></main>
-<main id="contact" style="max-width:960px;margin:0 auto;padding:0 clamp(20px,5vw,56px) 80px;scroll-margin-top:70px;">
-  <div style="max-width:640px;margin:0 auto;">
-    <span style="display:block;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8a6221;margin-bottom:14px;">Contact us</span>
-    <h2 style="font-family:inherit;font-weight:300;font-size:28px;color:#153238;margin:0;">Have a question or a special request?</h2>
-    <p style="font-size:14px;color:#7a746a;margin-top:8px;">Send us a note below, or email <a href="mailto:gulfproclean@gmail.com" style="color:#8a6221;">gulfproclean@gmail.com</a> directly.</p>
-    <div id="contact-form-wrap" style="margin-top:20px;"></div>
-  </div>
-</main>
-<script>
-(function () {
-  const wrap = document.getElementById('contact-form-wrap');
-  const inputStyle = 'min-height:40px;padding:8px 12px;font-size:14px;border:1px solid #d8d3c8;border-radius:4px;font-family:inherit;width:100%;box-sizing:border-box;';
-  const labelStyle = 'display:block;font-size:12.5px;color:#7a746a;margin-bottom:6px;';
-  wrap.innerHTML = `
-    <form id="contact-form" style="background:#fff;border:1px solid #d8d3c8;border-radius:8px;padding:24px;display:grid;gap:14px;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;">
-        <label><span style="${labelStyle}">Name</span><input type="text" id="contact-name" style="${inputStyle}" placeholder="Jane Doe" /></label>
-        <label><span style="${labelStyle}">Email</span><input type="email" id="contact-email" style="${inputStyle}" placeholder="you@example.com" /></label>
-        <label><span style="${labelStyle}">Phone (optional)</span><input type="tel" id="contact-phone" style="${inputStyle}" placeholder="(850) 555-0123" /></label>
-      </div>
-      <label><span style="${labelStyle}">Comments / notes</span><textarea id="contact-message" rows="4" style="${inputStyle}resize:vertical;" placeholder="How can we help?"></textarea></label>
-      <p id="contact-error" style="color:#b3261e;font-size:13px;margin:0;display:none;"></p>
-      <p id="contact-success" style="color:#1a7a3d;font-size:13px;margin:0;display:none;">Thanks — we've got your message and will be in touch soon.</p>
-      <button type="submit" id="contact-submit" style="background:#b68235;color:#153238;font-weight:600;font-size:14px;padding:12px 22px;border-radius:3px;border:none;cursor:pointer;justify-self:start;">Send message</button>
-    </form>
-  `;
-  const form = document.getElementById('contact-form');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('contact-submit');
-    const errEl = document.getElementById('contact-error');
-    const okEl = document.getElementById('contact-success');
-    const name = document.getElementById('contact-name').value.trim();
-    const email = document.getElementById('contact-email').value.trim();
-    const message = document.getElementById('contact-message').value.trim();
-    errEl.style.display = 'none';
-    okEl.style.display = 'none';
-    if (!name || !email || !message) {
-      errEl.textContent = 'Please fill in your name, email, and message.';
-      errEl.style.display = 'block';
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Sending…';
-    try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          page: 'account', name, email, message,
-          phone: document.getElementById('contact-phone').value.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Something went wrong');
-      okEl.style.display = 'block';
-      form.reset();
-    } catch (err) {
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Send message';
-    }
-  });
-})();
-</script>
 <script>
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = $('#app');
@@ -555,24 +489,39 @@ function addonOptionsFor(booking) {
       if (!purchasedNames.has(name)) options.push({ name, price: RESIDENTIAL_ADDON_CATALOG[name], alreadyOwned: false });
     });
   }
-  return options;
+  return options.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// state.addonSelection[booking.id] maps name -> quantity (not price — the
+// server always resolves price itself; quantity just controls how many
+// {name} entries get sent, one per occurrence).
 function renderAddonPanel(container, booking) {
   const options = addonOptionsFor(booking);
   const selected = state.addonSelection[booking.id] || {};
-  const selectedTotal = Object.values(selected).reduce((s, p) => s + p, 0);
+  const selectedTotal = Object.entries(selected).reduce((s, [name, qty]) => {
+    const opt = options.find(o => o.name === name);
+    return s + (opt ? opt.price * qty : 0);
+  }, 0);
   container.innerHTML = `
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
       <p style="font-size:13px;font-weight:500;margin:0 0 4px">Add an add-on to this booking</p>
       <p class="muted" style="font-size:12px;margin:0 0 8px">Charged immediately to this booking's total.</p>
-      ${options.map(o => `
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px">
-          <input type="checkbox" data-addon-name="${o.name}" ${selected[o.name] != null ? 'checked' : ''} />
-          ${o.name}${o.alreadyOwned ? ' <span class="muted" style="font-size:11px">(more of this)</span>' : ''}
-          <span class="muted" style="margin-left:auto">+${money(o.price)}</span>
-        </label>
-      `).join('')}
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;border:1px solid #d8d3c8;border-radius:3px;padding:10px">
+        ${options.map(o => `
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0ede5;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+              <input type="checkbox" data-addon-name="${o.name}" ${selected[o.name] != null ? 'checked' : ''} />
+              ${o.name}${o.alreadyOwned ? ' <span class="muted" style="font-size:11px">(more of this)</span>' : ''}
+            </label>
+            <span class="muted" style="margin-left:auto;font-size:13px">${money(o.price)} each</span>
+            ${selected[o.name] != null ? `
+              <select data-addon-qty="${o.name}" style="font-size:12px;padding:4px 8px;border:1px solid #d8d3c8;border-radius:3px;font-family:inherit;background:#faf8f3;width:110px;min-height:auto;margin-bottom:0">
+                ${Array.from({ length: 10 }, (_, i) => i + 1).map(n => `<option value="${n}" ${selected[o.name] === n ? 'selected' : ''}>${n}× (${money(o.price * n)})</option>`).join('')}
+              </select>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
       ${booking.page === 'commercial' ? `<p class="muted" style="font-size:12px;margin-top:6px">Want a service not listed here? <a href="mailto:hello@gulfproclean.com" style="color:#8a6221">Contact us</a> for accurate pricing based on your property.</p>` : ''}
       <div class="error" id="addon-err-${booking.id}" style="display:none"></div>
       <button id="confirm-addon-${booking.id}" ${selectedTotal > 0 ? '' : 'disabled'}>${selectedTotal > 0 ? `Add & charge ${money(selectedTotal)}` : 'Select an add-on'}</button>
@@ -581,10 +530,16 @@ function renderAddonPanel(container, booking) {
   container.querySelectorAll('[data-addon-name]').forEach(cb => {
     cb.onchange = (e) => {
       const name = e.target.getAttribute('data-addon-name');
-      const opt = options.find(o => o.name === name);
       if (!state.addonSelection[booking.id]) state.addonSelection[booking.id] = {};
-      if (e.target.checked) state.addonSelection[booking.id][name] = opt.price;
+      if (e.target.checked) state.addonSelection[booking.id][name] = 1;
       else delete state.addonSelection[booking.id][name];
+      render();
+    };
+  });
+  container.querySelectorAll('[data-addon-qty]').forEach(sel => {
+    sel.onchange = (e) => {
+      const name = e.target.getAttribute('data-addon-qty');
+      if (state.addonSelection[booking.id]) state.addonSelection[booking.id][name] = Number(e.target.value);
       render();
     };
   });
@@ -594,7 +549,8 @@ function renderAddonPanel(container, booking) {
     errEl.style.display = 'none';
     confirmBtn.disabled = true;
     try {
-      const extraAddons = Object.entries(state.addonSelection[booking.id] || {}).map(([name, price]) => ({ name, price }));
+      const extraAddons = Object.entries(state.addonSelection[booking.id] || {})
+        .flatMap(([name, qty]) => Array.from({ length: qty }, () => ({ name })));
       const res = await fetch(`/api/bookings/${booking.id}/addons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

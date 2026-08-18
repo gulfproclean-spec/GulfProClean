@@ -19,7 +19,7 @@ export async function onRequestPost({ env, request }) {
   const {
     page, notes, tier, bookingType, months, frequency,
     sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
-    addons, addonsApplied, extraAddons, scheduledDate, scheduledTime,
+    addons, addonsApplied, extraAddons, scheduledDate, scheduledTime, visitDates,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
     billingName, billingAddress, agreementAccepted,
   } = body;
@@ -82,6 +82,19 @@ export async function onRequestPost({ env, request }) {
     return new Response(JSON.stringify({ error: 'add-ons applied to this visit must be ones you paid for' }), { status: 400 });
   }
 
+  // visitDates is optional — only present when the customer chose to pick
+  // each visit's date individually instead of one recurring day/time. When
+  // present, it must cover every visit actually paid for (server-computed
+  // pricing.visitsCount, not whatever the client claims).
+  let visitDatesVal = null;
+  if (visitDates != null) {
+    const isValidEntry = (v) => v && typeof v.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && typeof v.time === 'string' && v.time;
+    if (!Array.isArray(visitDates) || visitDates.length !== pricing.visitsCount || !visitDates.every(isValidEntry)) {
+      return new Response(JSON.stringify({ error: 'Please choose a valid date and time for every visit.' }), { status: 400 });
+    }
+    visitDatesVal = visitDates.map(v => ({ date: v.date, time: v.time }));
+  }
+
   const monthsVal = bookingType === 'Monthly' ? (Number(months) || 1) : 1;
   const pricingInput = { sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct };
 
@@ -93,14 +106,14 @@ export async function onRequestPost({ env, request }) {
     insert into bookings (
       customer_id, page, address, billing_name, billing_address, notes, tier, booking_type, months, frequency,
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
-      scheduled_date, scheduled_time, payment_status, pricing_input,
+      scheduled_date, scheduled_time, visit_dates, payment_status, pricing_input,
       first_name, last_name, phone, address_line1, unit, city, state, zip,
       per_visit_price, after_frequency_price, agreement_accepted_at
     ) values (
       ${customer.id}, ${page}, ${address}, ${billingNameVal}, ${billingAddressVal}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
-      ${scheduledDate || null}, ${scheduledTime || null}, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
+      ${scheduledDate || null}, ${scheduledTime || null}, ${visitDatesVal ? JSON.stringify(visitDatesVal) : null}::jsonb, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
       ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unitVal || null}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
       ${pricing.perVisit}, ${pricing.standardPrice}, now()
     )
@@ -136,7 +149,7 @@ export async function onRequestGet({ env, request }) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
   }
   const rows = await sql`
-    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, payment_status, first_name, last_name, phone, created_at
+    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, visit_dates, payment_status, first_name, last_name, phone, created_at
     from bookings where customer_id = ${customer.id} order by created_at desc
   `;
   return new Response(JSON.stringify({ bookings: rows }), { headers: { 'Content-Type': 'application/json' } });
