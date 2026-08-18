@@ -10,6 +10,7 @@ export async function onRequestPost({ env, request }) {
   }
   const email = (body.email || '').trim().toLowerCase();
   const password = body.password || '';
+  const address = typeof body.address === 'string' ? body.address.trim() : '';
   if (!isValidEmail(email)) {
     return new Response(JSON.stringify({ error: 'enter a valid email address' }), { status: 400 });
   }
@@ -34,7 +35,17 @@ export async function onRequestPost({ env, request }) {
   const token = newSessionToken();
   await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customerId}, ${sessionExpiry()})`;
 
-  return new Response(JSON.stringify({ email, isFirstTime: true }), {
+  // A brand-new account is otherwise always "first-time," but this is only
+  // an estimate — the authoritative check (functions/api/bookings.js) also
+  // matches on the service address, so mirror that here for an accurate
+  // pre-payment preview.
+  let isFirstTime = true;
+  if (address) {
+    const priorAtAddress = await sql`select 1 from bookings where lower(address) = lower(${address}) limit 1`;
+    isFirstTime = priorAtAddress.length === 0;
+  }
+
+  return new Response(JSON.stringify({ email, isFirstTime }), {
     status: 201,
     headers: { 'Content-Type': 'application/json', 'Set-Cookie': sessionCookie(token) },
   });

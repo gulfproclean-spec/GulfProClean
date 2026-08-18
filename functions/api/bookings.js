@@ -41,7 +41,17 @@ export async function onRequestPost({ env, request }) {
   }
   const address = [addressLine1.trim(), unitVal, `${city.trim()}, ${state.toUpperCase()} ${zip.trim()}`].filter(Boolean).join(', ');
 
-  const priorBookings = await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
+  // First-time-customer discount eligibility is checked against both the
+  // account and the service address — a new account at an address that's
+  // already been serviced isn't a first-time customer, even if the email
+  // is new. This is the authoritative check; the pre-payment estimate on
+  // book.html mirrors it via signup/login but this is what actually gets
+  // charged.
+  const priorBookings = await sql`
+    select 1 from bookings
+    where customer_id = ${customer.id} or lower(address) = lower(${address})
+    limit 1
+  `;
   const isFirstTime = priorBookings.length === 0;
 
   // Price is derived entirely server-side from raw selections — nothing

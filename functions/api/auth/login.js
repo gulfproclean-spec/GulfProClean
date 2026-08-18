@@ -10,6 +10,7 @@ export async function onRequestPost({ env, request }) {
   }
   const email = (body.email || '').trim().toLowerCase();
   const password = body.password || '';
+  const address = typeof body.address === 'string' ? body.address.trim() : '';
   if (!isValidEmail(email) || !password) {
     return new Response(JSON.stringify({ error: 'enter your email and password' }), { status: 400 });
   }
@@ -25,7 +26,11 @@ export async function onRequestPost({ env, request }) {
     return new Response(JSON.stringify({ error: 'incorrect password' }), { status: 401 });
   }
 
-  const bookingRows = await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
+  // This is only an estimate for the pre-payment preview — the authoritative
+  // check (functions/api/bookings.js) also matches on the service address.
+  const bookingRows = address
+    ? await sql`select 1 from bookings where customer_id = ${customer.id} or lower(address) = lower(${address}) limit 1`
+    : await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
   const isFirstTime = bookingRows.length === 0;
 
   const token = newSessionToken();

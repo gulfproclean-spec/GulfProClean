@@ -6,7 +6,11 @@ function formatDate(dateStr) {
 }
 
 function money(n) {
-  return '$' + Math.round(n).toLocaleString('en-US');
+  const cents = Math.round(n * 100);
+  const dollars = cents / 100;
+  return '$' + (cents % 100 === 0
+    ? dollars.toLocaleString('en-US')
+    : dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 }
 
 // Best-effort: never throws. If RESEND_API_KEY isn't configured, this is a no-op
