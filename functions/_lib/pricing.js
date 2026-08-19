@@ -7,8 +7,8 @@
 export class PricingError extends Error {}
 
 const ONE_TIME_SURCHARGE = 0.30;
-const monthlyDiscountFor = (m) => (m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05);
-const VALID_MONTHS = [0.5, 1, 6, 12];
+export const monthlyDiscountFor = (m) => (m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05);
+export const VALID_MONTHS = [0.5, 1, 6, 12];
 
 const RESIDENTIAL_FREQ_ADJ = {
   "1 visit weekly": 0,

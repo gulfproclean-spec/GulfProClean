@@ -66,7 +66,20 @@ const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
 
-let state = { step: 'loading', email: null, mode: 'login', bookings: [], schedule: null, reschedulingId: null, selectedDate: null, selectedTime: null, addonPanelId: null, addonSelection: {}, refundPanelId: null, refundData: {} };
+let state = {
+  step: 'loading', email: null, mode: 'login', bookings: [], schedule: null,
+  reschedulingId: null, selectedDate: null, selectedTime: null,
+  addonPanelId: null, addonSelection: {},
+  refundPanelId: null, refundData: {},
+  planChangePanelId: null, planChangeSelection: {}, planChangeData: {},
+};
+
+const PLAN_OPTIONS = [
+  { months: 0.5, label: 'Biweekly (5% discount)' },
+  { months: 1, label: 'Monthly (7% discount)' },
+  { months: 6, label: '6-Month Subscription (10% discount)' },
+  { months: 12, label: '12-Month Subscription (15% discount)' },
+];
 
 const RESIDENTIAL_ADDON_CATALOG = {
   "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
@@ -311,29 +324,53 @@ function renderBookings() {
     const scheduled = b.scheduled_date ? `${new Date(b.scheduled_date).toLocaleDateString()} at ${b.scheduled_time}` : 'Not scheduled';
     const allowed = canReschedule(b);
     const unpaid = b.payment_status && b.payment_status !== 'paid';
+    const canceled = !!b.canceled_at;
+    const categoryLabelStyle = 'font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#7a746a;margin:0 0 6px';
     card.innerHTML = `
       <div class="booking-header">
         <div>
           <span class="tag">${b.page === 'residential' ? 'Residential' : 'Commercial'}</span>
           ${unpaid ? '<span class="tag" style="color:#b3261e;background:#fbe9e7">Unpaid</span>' : ''}
+          ${canceled ? '<span class="tag" style="color:#7a746a;background:#f0ede5">Canceled</span>' : ''}
           <p style="margin:8px 0 0;font-weight:500">${b.tier} — ${b.address}</p>
           <p class="muted" style="font-size:13px;margin-top:4px">${scheduled}</p>
         </div>
         <p style="font-size:18px;font-weight:600;color:#8a6221;margin:0">${money(b.final_total)}</p>
       </div>
       ${unpaid ? `<p class="muted" style="font-size:12px;margin-top:8px">Payment was never completed for this booking, so it isn't confirmed yet.</p>` : ''}
-      ${b.scheduled_date ? monthCalendarHtml(b.scheduled_date, b.scheduled_time) : ''}
+      ${canceled ? `<p class="muted" style="font-size:12px;margin-top:8px">This booking was canceled${b.canceled_at ? ' on ' + new Date(b.canceled_at).toLocaleDateString() : ''}. Any refund is handled separately.</p>` : ''}
+      ${b.scheduled_date && !canceled ? monthCalendarHtml(b.scheduled_date, b.scheduled_time) : ''}
       <div class="error" id="pay-err-${b.id}" style="display:none"></div>
-      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-        ${unpaid ? `<button data-pay-now="${b.id}">Pay now</button>` : ''}
-        <button class="secondary" data-reschedule="${b.id}" ${allowed ? '' : 'disabled'}>Reschedule</button>
-        ${!unpaid ? `<button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>` : ''}
-        ${!unpaid ? `<button class="secondary" data-refund-toggle="${b.id}">Request a refund</button>` : ''}
-      </div>
-      ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
+      ${unpaid ? `<div style="margin-top:14px"><button data-pay-now="${b.id}">Pay now</button></div>` : ''}
+      ${!unpaid && !canceled ? `
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <p style="${categoryLabelStyle}">Schedule</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="secondary" data-reschedule="${b.id}" ${allowed ? '' : 'disabled'}>Change service date</button>
+            </div>
+            ${!allowed ? '<p class="muted" style="font-size:12px;margin-top:8px">This appointment is less than 24 hours away and can no longer be rescheduled. Please contact us directly.</p>' : ''}
+          </div>
+          <div>
+            <p style="${categoryLabelStyle}">Billing &amp; Plan</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>
+              <button class="secondary" data-refund-toggle="${b.id}">Request a refund</button>
+              ${b.booking_type === 'Monthly' ? `<button class="secondary" data-planchange-toggle="${b.id}">Change subscription billing</button>` : ''}
+            </div>
+          </div>
+          <div>
+            <p style="${categoryLabelStyle}">Support</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a href="contact.html"><button type="button" class="secondary">Contact us</button></a>
+            </div>
+          </div>
+        </div>
+      ` : ''}
       <div id="reschedule-panel-${b.id}"></div>
       <div id="addon-panel-${b.id}"></div>
       <div id="refund-panel-${b.id}"></div>
+      <div id="planchange-panel-${b.id}"></div>
     `;
     list.appendChild(card);
     const payBtn = card.querySelector(`[data-pay-now="${b.id}"]`);
@@ -353,7 +390,7 @@ function renderBookings() {
       }
     };
     const btn = card.querySelector(`[data-reschedule="${b.id}"]`);
-    btn.onclick = async () => {
+    if (btn) btn.onclick = async () => {
       await loadSchedule();
       state.reschedulingId = state.reschedulingId === b.id ? null : b.id;
       state.selectedDate = null;
@@ -374,6 +411,11 @@ function renderBookings() {
       }
       render();
     };
+    const planChangeBtn = card.querySelector(`[data-planchange-toggle="${b.id}"]`);
+    if (planChangeBtn) planChangeBtn.onclick = () => {
+      state.planChangePanelId = state.planChangePanelId === b.id ? null : b.id;
+      render();
+    };
     if (state.reschedulingId === b.id) {
       renderReschedulePanel(card.querySelector(`#reschedule-panel-${b.id}`), b);
     }
@@ -382,6 +424,9 @@ function renderBookings() {
     }
     if (state.refundPanelId === b.id) {
       renderRefundPanel(card.querySelector(`#refund-panel-${b.id}`), b);
+    }
+    if (state.planChangePanelId === b.id) {
+      renderPlanChangePanel(card.querySelector(`#planchange-panel-${b.id}`), b);
     }
   });
 }
@@ -449,6 +494,78 @@ function renderRefundPanel(container, booking) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not submit refund request');
       await loadRefundEstimate(booking.id);
+      render();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      confirmBtn.disabled = false;
+    }
+  };
+}
+
+function renderPlanChangePanel(container, booking) {
+  const currentMonths = Number(booking.months);
+  const selected = state.planChangeSelection[booking.id];
+  const data = selected != null ? state.planChangeData[booking.id] : null;
+  const options = PLAN_OPTIONS.filter(o => o.months !== currentMonths);
+  container.innerHTML = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px">Change subscription billing</p>
+      <p class="muted" style="font-size:12px;margin:0 0 8px">Only affects visits not yet delivered — past visits stay at the price you already paid.</p>
+      <select id="planchange-select-${booking.id}">
+        <option value="">Select a new plan</option>
+        ${options.map(o => `<option value="${o.months}" ${selected === o.months ? 'selected' : ''}>${o.label}</option>`).join('')}
+      </select>
+      ${data && !data.error ? `
+        <div class="row"><span class="muted">Current plan</span><span>${data.currentPlan}</span></div>
+        <div class="row"><span class="muted">New plan</span><span>${data.newPlan}</span></div>
+        <div class="row"><span class="muted">Visits delivered</span><span>${data.visitsDelivered} of ${data.visitsDelivered + data.visitsRemaining}</span></div>
+        <div class="row"><span class="muted">Current price / visit</span><span>${money(data.oldPerVisit)}</span></div>
+        <div class="row"><span class="muted">New price / visit</span><span>${money(data.newPerVisit)}</span></div>
+        <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:6px;padding-top:8px">
+          <span>${data.priceDifference >= 0 ? 'Additional amount owed' : 'Credit due'}</span>
+          <span style="color:#8a6221">${money(Math.abs(data.priceDifference))}</span>
+        </div>
+        <p class="muted" style="font-size:12px;margin-top:8px">For the ${data.visitsRemaining} visit${data.visitsRemaining === 1 ? '' : 's'} not yet delivered, at the new plan's discount. Requesting sends this to our team for review — it does not change your billing automatically.</p>
+        <div class="error" id="planchange-err-${booking.id}" style="display:none"></div>
+        ${data.submitted
+          ? `<p style="font-size:13px;color:#1a7a3d;margin-top:10px">Plan change requested — our team will review and follow up.</p>`
+          : `<button id="confirm-planchange-${booking.id}" style="margin-top:10px">Request this plan change</button>`
+        }
+      ` : (data && data.error ? `<p class="muted" style="font-size:13px;color:#b3261e;margin-top:8px">${data.error}</p>` : '')}
+    </div>
+  `;
+  const select = $(`#planchange-select-${booking.id}`, container);
+  if (select) select.onchange = async (e) => {
+    const val = e.target.value ? Number(e.target.value) : null;
+    state.planChangeSelection[booking.id] = val;
+    state.planChangeData[booking.id] = null;
+    render();
+    if (val != null) {
+      try {
+        const res = await fetch(`/api/bookings/${booking.id}/plan-change?newMonths=${val}`);
+        const resData = await res.json();
+        state.planChangeData[booking.id] = res.ok ? resData : { error: resData.error || 'Could not load estimate.' };
+      } catch (err) {
+        state.planChangeData[booking.id] = { error: 'Could not load estimate.' };
+      }
+      render();
+    }
+  };
+  const confirmBtn = $(`#confirm-planchange-${booking.id}`, container);
+  if (confirmBtn) confirmBtn.onclick = async () => {
+    const errEl = $(`#planchange-err-${booking.id}`, container);
+    errEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/plan-change`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newMonths: state.planChangeSelection[booking.id] }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || 'Could not submit plan change request');
+      state.planChangeData[booking.id] = { ...state.planChangeData[booking.id], submitted: true };
       render();
     } catch (e) {
       errEl.textContent = e.message;
