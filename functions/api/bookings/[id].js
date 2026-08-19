@@ -98,7 +98,7 @@ export async function onRequestPut({ env, request, params }) {
   `;
 
   if (booking.payment_status === 'paid') await sendBookingConfirmationEmail(env, {
-    to: customer.email,
+    to: customer.email, bookingId: booking.id,
     page: booking.page, tier: booking.tier, address: booking.address,
     bookingType: booking.booking_type, months: booking.months || 1,
     scheduledDate, scheduledTime,

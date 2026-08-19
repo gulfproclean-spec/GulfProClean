@@ -60,7 +60,7 @@ export async function onRequestPost({ env, request, params }) {
   `;
 
   await sendBookingConfirmationEmail(env, {
-    to: customer.email,
+    to: customer.email, bookingId: booking.id,
     page: booking.page, tier: booking.tier, address: booking.address,
     bookingType: booking.booking_type, months: booking.months || 1,
     scheduledDate: booking.scheduled_date, scheduledTime: booking.scheduled_time,

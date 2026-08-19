@@ -1,9 +1,17 @@
 const GMAIL_ADDRESS = 'gulfproclean@gmail.com';
 const CONTACT_INBOX = GMAIL_ADDRESS;
 
+// The neon serverless driver normally returns a `date` column as a plain
+// 'YYYY-MM-DD' string, but callers of this module (e.g. functions/_lib/
+// payments.js passing booking.scheduled_date straight through) don't all
+// guarantee that, so every date-formatting helper below accepts either.
+function toDateStr(d) {
+  return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return null;
-  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+  const [y, m, d] = toDateStr(dateStr).split('-').map(Number);
   const date = new Date(y, m - 1, d);
   return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
@@ -13,6 +21,63 @@ function billingLabelFor(bookingType, months) {
   if (months < 1) return 'Biweekly';
   if (months > 1) return `Monthly × ${months} mo`;
   return 'Monthly';
+}
+
+// -- .ics calendar attachment ---------------------------------------------
+// Floating local time (no Z suffix, no TZID) — matches how scheduled_date/
+// scheduled_time are treated everywhere else in this app (naive values,
+// never converted through an explicit timezone). Calendar apps display a
+// floating time as-is, which is correct here since the customer's own
+// calendar app runs in the same timezone as the service address.
+
+function icsPad(n) { return String(n).padStart(2, '0'); }
+
+function icsDateTime(dateStr, timeStr) {
+  return `${toDateStr(dateStr).replace(/-/g, '')}T${timeStr.replace(':', '')}00`;
+}
+
+function addHours(dateStr, timeStr, hours) {
+  const [y, m, d] = toDateStr(dateStr).split('-').map(Number);
+  const [h, mi] = timeStr.split(':').map(Number);
+  const dt = new Date(y, m - 1, d, h, mi);
+  dt.setHours(dt.getHours() + hours);
+  return {
+    date: `${dt.getFullYear()}-${icsPad(dt.getMonth() + 1)}-${icsPad(dt.getDate())}`,
+    time: `${icsPad(dt.getHours())}:${icsPad(dt.getMinutes())}`,
+  };
+}
+
+function escapeIcsText(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+// Same UID across a booking's confirmation and any later reschedule emails,
+// so calendar apps that support it treat the follow-up .ics as an update to
+// the same event rather than a duplicate.
+function buildBookingIcs({ bookingId, summary, description, location, scheduledDate, scheduledTime, durationHours = 4 }) {
+  const dtStart = icsDateTime(scheduledDate, scheduledTime);
+  const end = addHours(scheduledDate, scheduledTime, durationHours);
+  const dtEnd = icsDateTime(end.date, end.time);
+  const now = new Date();
+  const dtStamp = `${now.getUTCFullYear()}${icsPad(now.getUTCMonth() + 1)}${icsPad(now.getUTCDate())}T${icsPad(now.getUTCHours())}${icsPad(now.getUTCMinutes())}${icsPad(now.getUTCSeconds())}Z`;
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Gulf ProClean//Booking//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:booking-${bookingId}@gulfproclean.com`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${escapeIcsText(summary)}`,
+    `DESCRIPTION:${escapeIcsText(description)}`,
+    `LOCATION:${escapeIcsText(location)}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
 }
 
 function money(n) {
@@ -65,20 +130,42 @@ function utf8ToBase64Url(str) {
   return utf8ToBase64(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function buildRawMessage({ to, subject, html, replyTo }) {
+// attachment: { filename, mimeType, content } — content is a plain string,
+// base64-encoded here (RFC 2045 76-char line wrapping).
+function buildRawMessage({ to, subject, html, replyTo, attachment }) {
   const headers = [
     `From: Gulf ProClean <${GMAIL_ADDRESS}>`,
     `To: ${to}`,
     `Subject: =?UTF-8?B?${utf8ToBase64(subject)}?=`,
     'MIME-Version: 1.0',
-    'Content-Type: text/html; charset="UTF-8"',
   ];
   if (replyTo) headers.push(`Reply-To: ${replyTo}`);
-  const message = headers.join('\r\n') + '\r\n\r\n' + html;
-  return utf8ToBase64Url(message);
+
+  if (!attachment) {
+    headers.push('Content-Type: text/html; charset="UTF-8"');
+    return utf8ToBase64Url(headers.join('\r\n') + '\r\n\r\n' + html);
+  }
+
+  const boundary = `gpc_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+  const attachmentB64 = utf8ToBase64(attachment.content).replace(/(.{76})/g, '$1\r\n');
+  const body = [
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    '',
+    html,
+    `--${boundary}`,
+    `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename="${attachment.filename}"`,
+    '',
+    attachmentB64,
+    `--${boundary}--`,
+  ].join('\r\n');
+  return utf8ToBase64Url(headers.join('\r\n') + '\r\n\r\n' + body);
 }
 
-async function sendGmail(env, { to, subject, html, replyTo }) {
+async function sendGmail(env, { to, subject, html, replyTo, attachment }) {
   if (!to) return;
   const accessToken = await getGmailAccessToken(env);
   if (!accessToken) return;
@@ -86,7 +173,7 @@ async function sendGmail(env, { to, subject, html, replyTo }) {
     await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ raw: buildRawMessage({ to, subject, html, replyTo }) }),
+      body: JSON.stringify({ raw: buildRawMessage({ to, subject, html, replyTo, attachment }) }),
     });
   } catch (e) {
     // Email is best-effort - never block or fail the caller.
@@ -96,7 +183,7 @@ async function sendGmail(env, { to, subject, html, replyTo }) {
 // -- Messages ------------------------------------------------------------
 
 export async function sendBookingConfirmationEmail(env, {
-  to, page, tier, address, scheduledDate, scheduledTime, finalTotal, bookingType, months,
+  to, bookingId, page, tier, address, scheduledDate, scheduledTime, finalTotal, bookingType, months,
 }) {
   const dateStr = formatDate(scheduledDate);
   const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
@@ -121,10 +208,23 @@ export async function sendBookingConfirmationEmail(env, {
       </table>
       <p style="font-size:13px;color:#7a746a">No contracts — cancel anytime. ${refundNote}</p>
       <p style="font-size:13px;color:#7a746a">Manage or reschedule this booking anytime from your account.</p>
+      ${scheduledDate && scheduledTime ? '<p style="font-size:13px;color:#7a746a">A calendar invite for your first visit is attached.</p>' : ''}
     </div>
   `;
 
-  await sendGmail(env, { to, subject: 'Your Gulf ProClean booking is confirmed', html });
+  const attachment = (bookingId && scheduledDate && scheduledTime) ? {
+    filename: 'gulf-proclean-visit.ics',
+    mimeType: 'text/calendar; method=PUBLISH',
+    content: buildBookingIcs({
+      bookingId,
+      summary: `Gulf ProClean — ${tier} ${pageLabel} Cleaning`,
+      description: `${tier} ${pageLabel} cleaning visit. Billing: ${billingLabel}.`,
+      location: address,
+      scheduledDate, scheduledTime,
+    }),
+  } : undefined;
+
+  await sendGmail(env, { to, subject: 'Your Gulf ProClean booking is confirmed', html, attachment });
 }
 
 // Sent by functions/api/cron/renewal-reminders.js at ~30 days, ~15 days,

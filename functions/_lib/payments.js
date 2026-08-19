@@ -17,7 +17,7 @@ export async function markBookingPaid(sql, env, bookingId, { customerEmail, paym
   const email = customerEmail || (await sql`select email from customers where id = ${booking.customer_id}`)[0]?.email;
   if (email) {
     await sendBookingConfirmationEmail(env, {
-      to: email,
+      to: email, bookingId: booking.id,
       page: booking.page, tier: booking.tier, address: booking.address,
       bookingType: booking.booking_type, months: booking.months || 1,
       scheduledDate: booking.scheduled_date, scheduledTime: booking.scheduled_time,
