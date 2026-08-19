@@ -52,7 +52,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 const CREAM = "#f5f2ec";
 
 function Nav({ navy, gold }) {
-  const links = [["Home", "index.html"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Get a Quote", "#calculator"], ["Contact", "#contact"], ["My Account", "account.html"], ["Commercial →", "commercial.html"]];
+  const links = [["Home", "index.html"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Get a Quote", "#calculator"], ["Contact Us", "contact.html"], ["My Account", "account.html"], ["Commercial →", "commercial.html"]];
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
@@ -106,70 +106,6 @@ function Hero({ navy, gold, heroPhoto, hero }) {
 
 function Kicker({ children, gold }) {
   return <span style={{ display: "block", fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: gold, marginBottom: 14 }}>{children}</span>;
-}
-
-function Contact({ note, page }) {
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [message, setMessage] = React.useState("");
-  const [status, setStatus] = React.useState("idle");
-  const [error, setError] = React.useState("");
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim() || !message.trim()) {
-      setError("Please fill in your name, email, and message.");
-      return;
-    }
-    setError("");
-    setStatus("sending");
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page, name, email, phone, message }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
-      setStatus("sent");
-      setName(""); setEmail(""); setPhone(""); setMessage("");
-    } catch (err) {
-      setStatus("idle");
-      setError(err.message);
-    }
-  };
-
-  const inputStyle = { minHeight: 40, padding: "8px 12px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 4, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
-  const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
-
-  return (
-    <section id="contact" style={{ padding: "32px clamp(20px,5vw,56px) 40px", background: CREAM, scrollMarginTop: 70 }}>
-      <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <Kicker gold="#8a6221">Contact us</Kicker>
-        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#153238", margin: 0 }}>Have a question or a special request?</h2>
-        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 8 }}>{note} Send us a note below, or <a href="mailto:gulfproclean@gmail.com" style={{ color: "#8a6221" }}>contact us</a> directly.</p>
-        {status === "sent" ? (
-          <div style={{ background: "#fff", border: "1px solid #d8d3c8", borderRadius: 8, padding: 24, marginTop: 20, textAlign: "center" }}>
-            <p style={{ fontSize: 15, color: "#153238", margin: 0 }}>Thanks — we've got your message and will be in touch soon.</p>
-          </div>
-        ) : (
-          <form onSubmit={submit} style={{ background: "#fff", border: "1px solid #d8d3c8", borderRadius: 8, padding: 24, marginTop: 20, display: "grid", gap: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-              <label><span style={labelStyle}>Name</span><input type="text" value={name} onChange={e => setName(e.target.value)} style={inputStyle} /></label>
-              <label><span style={labelStyle}>Email</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} /></label>
-              <label><span style={labelStyle}>Phone (optional)</span><input type="tel" value={phone} onChange={e => setPhone(e.target.value)} style={inputStyle} /></label>
-            </div>
-            <label><span style={labelStyle}>Comments / notes</span><textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></label>
-            {error && <p style={{ color: "#b3261e", fontSize: 13, margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={status === "sending"} style={{ background: "#b68235", color: "#153238", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 3, border: "none", cursor: "pointer", justifySelf: "start" }}>
-              {status === "sending" ? "Sending…" : "Send message"}
-            </button>
-          </form>
-        )}
-      </div>
-    </section>
-  );
 }
 
 function Services({ navy, items }) {
@@ -824,7 +760,6 @@ function App() {
     <div style={{ background: CREAM }}>
       <Nav navy={navy} gold={gold} />
       <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, textAlign: "center", padding: "13px 20px", fontWeight: 700, fontSize: 14.5, letterSpacing: "0.02em" }}>✦ No contracts. Cancel anytime. ✦</div>
-      <Contact note={content.contact.note} page="residential" />
       <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero} />
       <Services navy={navy} items={content.services} />
       <HomeOperatingSystem navy={navy} gold={gold} />

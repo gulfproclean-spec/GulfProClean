@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf ProClean — contact us</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Libre Franklin', system-ui, sans-serif; text-wrap: pretty; background: #f5f2ec; color: #153238; }
+  a { text-decoration: none; }
+  @media (max-width: 720px) {
+    nav { flex-wrap: wrap; row-gap: 6px !important; column-gap: 14px !important; padding: 12px 20px !important; font-size: 12.5px !important; }
+  }
+</style>
+</head>
+<body>
+  <nav style="position:sticky;top:0;z-index:50;background:#f5f2ec;border-bottom:1px solid #d8d3c8;display:flex;align-items:center;gap:28px;padding:14px clamp(20px,5vw,56px);color:#153238;font-size:14px;">
+    <a href="index.html" style="margin-right:auto;color:inherit;">
+      <span style="display:block;font-family:inherit;font-weight:800;font-size:21px;letter-spacing:-0.01em;">
+        <span style="color:#153238;">Gulf</span><span style="color:#b68235;">ProClean</span>
+      </span>
+      <span style="display:block;font-size:11px;font-weight:500;letter-spacing:0.02em;color:#7a746a;margin-top:2px;">One Company. Everything Your Property Needs.</span>
+    </a>
+    <a href="residential.html" style="color:inherit;opacity:0.92;">Residential</a>
+    <a href="commercial.html" style="color:inherit;opacity:0.92;">Commercial</a>
+    <a href="contact.html" style="color:inherit;opacity:0.92;">Contact Us</a>
+    <a href="account.html" style="color:inherit;opacity:0.92;">My Account</a>
+  </nav>
+
+  <div style="background:linear-gradient(135deg,#b68235,#d9a94a);color:#153238;text-align:center;padding:13px 20px;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">✦ No contracts. Cancel anytime. ✦</div>
+
+  <main style="padding:40px clamp(20px,5vw,56px) 80px;max-width:1200px;margin:0 auto;">
+    <div style="max-width:640px;margin:0 auto;">
+      <span style="display:block;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8a6221;margin-bottom:14px;">Contact us</span>
+      <h1 style="font-family:inherit;font-weight:300;font-size:clamp(32px,4.5vw,44px);color:#153238;margin:0;">Have a question or a special request?</h1>
+      <p style="font-size:15px;color:#7a746a;margin-top:10px;">Tell us what you need and we'll get back to you.</p>
+      <div id="contact-form-wrap" style="margin-top:24px;"></div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const wrap = document.getElementById('contact-form-wrap');
+    const inputStyle = 'min-height:40px;padding:8px 12px;font-size:14px;border:1px solid #d8d3c8;border-radius:4px;font-family:inherit;width:100%;box-sizing:border-box;';
+    const labelStyle = 'display:block;font-size:12.5px;color:#7a746a;margin-bottom:6px;';
+    wrap.innerHTML = `
+      <form id="contact-form" style="background:#fff;border:1px solid #d8d3c8;border-radius:8px;padding:24px;display:grid;gap:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;">
+          <label><span style="${labelStyle}">Name</span><input type="text" id="contact-name" style="${inputStyle}" /></label>
+          <label><span style="${labelStyle}">Email</span><input type="email" id="contact-email" style="${inputStyle}" /></label>
+          <label><span style="${labelStyle}">Phone (optional)</span><input type="tel" id="contact-phone" style="${inputStyle}" /></label>
+        </div>
+        <label><span style="${labelStyle}">Comments / notes</span><textarea id="contact-message" rows="4" style="${inputStyle}resize:vertical;"></textarea></label>
+        <p id="contact-error" style="color:#b3261e;font-size:13px;margin:0;display:none;"></p>
+        <p id="contact-success" style="color:#1a7a3d;font-size:13px;margin:0;display:none;">Thanks — we've got your message and will be in touch soon.</p>
+        <button type="submit" id="contact-submit" style="background:#b68235;color:#153238;font-weight:600;font-size:14px;padding:12px 22px;border-radius:3px;border:none;cursor:pointer;justify-self:start;">Send message</button>
+      </form>
+    `;
+    const form = document.getElementById('contact-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('contact-submit');
+      const errEl = document.getElementById('contact-error');
+      const okEl = document.getElementById('contact-success');
+      const name = document.getElementById('contact-name').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const message = document.getElementById('contact-message').value.trim();
+      errEl.style.display = 'none';
+      okEl.style.display = 'none';
+      if (!name || !email || !message) {
+        errEl.textContent = 'Please fill in your name, email, and message.';
+        errEl.style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: 'contact', name, email, message,
+            phone: document.getElementById('contact-phone').value.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Something went wrong');
+        okEl.style.display = 'block';
+        form.reset();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send message';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
