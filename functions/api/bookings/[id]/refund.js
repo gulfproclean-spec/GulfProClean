@@ -34,18 +34,24 @@ export async function onRequestGet({ env, request, params }) {
   return json({ estimate, existingRequest: existing[0] || null });
 }
 
-// POST: create a refund request at the current computed amount. This does
-// NOT move any money — it records the request (amount, visit breakdown) for
-// the business to review and process manually (e.g. via the Stripe
-// dashboard). Auto-issuing a real refund on request, with no human review,
-// was deliberately left out given that's real money moving on a brand-new
-// calculation.
+// POST: create a refund request at the current computed amount, and cancel
+// the booking. This does NOT move any money — it records the request
+// (amount, visit breakdown) for the business to review and process manually
+// (e.g. via the Stripe dashboard). Auto-issuing a real refund on request,
+// with no human review, was deliberately left out given that's real money
+// moving on a brand-new calculation. Cancellation itself is immediate,
+// though — it frees the booking's calendar slot(s) right away, per the
+// Service Agreement's "cancel anytime, no notice period" terms, independent
+// of how long the refund itself takes to process.
 export async function onRequestPost({ env, request, params }) {
   const sql = neon(env.DATABASE_URL);
   const { error, customer, booking } = await loadOwnedBooking(sql, request, params.id);
   if (error) return error;
   if (booking.payment_status !== 'paid') {
     return json({ error: 'This booking has not been paid for yet.' }, 400);
+  }
+  if (booking.canceled_at) {
+    return json({ error: 'This booking is already canceled.' }, 400);
   }
 
   const existing = await sql`
@@ -66,5 +72,6 @@ export async function onRequestPost({ env, request, params }) {
     values (${booking.id}, ${customer.id}, ${estimate.refundAmount}, ${estimate.visitsDelivered}, ${estimate.visitsRemaining})
     returning id, amount, status, requested_at
   `;
+  await sql`update bookings set canceled_at = now() where id = ${booking.id}`;
   return json({ ok: true, request: rows[0] }, 201);
 }

@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
 import { computeBookingPricing, PricingError } from '../_lib/pricing.js';
+import { getBookedSlots, findSlotConflict } from '../_lib/scheduling.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
@@ -94,6 +95,20 @@ export async function onRequestPost({ env, request }) {
     }
     visitDatesVal = visitDates.map(v => ({ date: v.date, time: v.time }));
   }
+  if (typeof scheduledDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate) || typeof scheduledTime !== 'string' || !scheduledTime) {
+    return new Response(JSON.stringify({ error: 'Please choose a date and time for your first visit.' }), { status: 400 });
+  }
+
+  // Authoritative double-booking guard: every slot this booking would
+  // occupy (the first visit, plus every entry in visitDatesVal) must be
+  // free of any other non-canceled booking. A slot holds from the moment a
+  // booking row is created, not just once it's paid.
+  const wantedSlots = [{ date: scheduledDate, time: scheduledTime }, ...(visitDatesVal || [])];
+  const bookedSlots = await getBookedSlots(sql);
+  const conflict = findSlotConflict(bookedSlots, wantedSlots);
+  if (conflict) {
+    return new Response(JSON.stringify({ error: `The ${conflict.time} slot on ${conflict.date} was just booked by someone else — please pick another time.` }), { status: 409 });
+  }
 
   const monthsVal = bookingType === 'Monthly' ? (Number(months) || 1) : 1;
   const pricingInput = { sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct };
@@ -149,7 +164,7 @@ export async function onRequestGet({ env, request }) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
   }
   const rows = await sql`
-    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, visit_dates, payment_status, first_name, last_name, phone, created_at
+    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, visit_dates, payment_status, canceled_at, first_name, last_name, phone, created_at
     from bookings where customer_id = ${customer.id} order by created_at desc
   `;
   return new Response(JSON.stringify({ bookings: rows }), { headers: { 'Content-Type': 'application/json' } });

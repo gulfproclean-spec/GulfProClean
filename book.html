@@ -67,6 +67,7 @@ let state = {
   step: returningBookingId ? 'payment' : (draft ? 'account' : 'missing'),
   email: null, isFirstTime: null, schedule: null,
   selectedDate: null, selectedTime: null,
+  bookedSlots: [], // [{date: 'YYYY-MM-DD', time: 'HH:MM'}, ...] — slots already held by another (non-canceled) booking
   scheduleMode: 'recurring', // 'recurring' (same day/time every visit) | 'individual' (pick each visit's date)
   visitDates: [], // used when scheduleMode === 'individual': array of { date, time }, one per visit
   addonsApplied: draft && draft.addons ? draft.addons.map(a => a.name) : [],
@@ -344,6 +345,11 @@ async function loadSchedule() {
   const res = await fetch('/api/schedule');
   const data = await res.json();
   state.schedule = data.days;
+  state.bookedSlots = Array.isArray(data.bookedSlots) ? data.bookedSlots : [];
+}
+
+function isSlotBooked(dateStr, time) {
+  return state.bookedSlots.some(b => b.date === dateStr && b.time === time);
 }
 
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -388,7 +394,10 @@ function slotDateTime(date, timeStr) {
 }
 
 function availableTimeSlots(date, cfg) {
-  return timeSlots(cfg.start, cfg.end).filter(t => slotDateTime(date, t).getTime() - Date.now() >= MIN_NOTICE_MS);
+  const dateStr = date.toISOString().slice(0, 10);
+  return timeSlots(cfg.start, cfg.end).filter(t =>
+    slotDateTime(date, t).getTime() - Date.now() >= MIN_NOTICE_MS && !isSlotBooked(dateStr, t)
+  );
 }
 
 function frequencyIntervalDays(page, frequency) {

@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { getBookedSlots } from '../_lib/scheduling.js';
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -14,7 +15,8 @@ export async function onRequestGet({ env }) {
   const sql = neon(env.DATABASE_URL);
   const rows = await sql`select days from schedule_settings where id = 1`;
   const days = rows[0] ? rows[0].days : null;
-  return new Response(JSON.stringify({ days }), { headers: { 'Content-Type': 'application/json' } });
+  const bookedSlots = await getBookedSlots(sql);
+  return new Response(JSON.stringify({ days, bookedSlots }), { headers: { 'Content-Type': 'application/json' } });
 }
 
 export async function onRequestPut({ env, request }) {

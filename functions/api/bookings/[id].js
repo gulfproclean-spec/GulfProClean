@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../_lib/auth.js';
 import { sendBookingConfirmationEmail } from '../../_lib/email.js';
+import { getBookedSlots, findSlotConflict } from '../../_lib/scheduling.js';
 
 const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -83,6 +84,11 @@ export async function onRequestPut({ env, request, params }) {
   const dayCfg = days ? days[dayKey] : null;
   if (!dayCfg || !dayCfg.enabled || scheduledTime < dayCfg.start || scheduledTime >= dayCfg.end) {
     return new Response(JSON.stringify({ error: 'That day or time is outside available service hours.' }), { status: 400 });
+  }
+
+  const bookedSlots = await getBookedSlots(sql, { excludeBookingId: params.id });
+  if (findSlotConflict(bookedSlots, [{ date: scheduledDate, time: scheduledTime }])) {
+    return new Response(JSON.stringify({ error: 'That slot is already booked — please pick another time.' }), { status: 409 });
   }
 
   await sql`
