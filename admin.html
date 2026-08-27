@@ -27,6 +27,11 @@
   .pricing-row label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #7a746a; }
   .pricing-row button { padding: 6px 8px; background: #e3ded2; color: #153238; }
   .pricing-head { display: grid; grid-template-columns: 1fr 100px 90px 90px 90px 110px 32px; gap: 8px; font-size: 11px; color: #7a746a; text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 6px; }
+  .visits-summary { font-size: 14px; color: #7a746a; }
+  .visits-total { font-size: 26px; font-weight: 600; color: #153238; }
+  table.visits-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13.5px; }
+  table.visits-table th { text-align: left; font-size: 11px; color: #7a746a; text-transform: uppercase; letter-spacing: 0.04em; padding: 0 0 8px; border-bottom: 1px solid #d8d3c8; }
+  table.visits-table td { padding: 8px 0; border-bottom: 1px solid #e3ded2; text-transform: capitalize; }
 </style>
 </head>
 <body>
@@ -37,6 +42,15 @@
     <button id="unlock">Unlock</button>
   </div>
   <div id="editors" style="display:none">
+    <div class="page-block">
+      <h2>Site visits</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Anonymous page-view counts — no IPs, cookies, or visitor identity stored.</p>
+      <div id="visits-summary" class="visits-summary">Loading…</div>
+      <table id="visits-table" class="visits-table" style="display:none">
+        <thead><tr><th>Page</th><th>Views</th></tr></thead>
+        <tbody id="visits-tbody"></tbody>
+      </table>
+    </div>
     <div class="page-block">
       <h2>Residential page</h2>
       <textarea id="residential"></textarea>
@@ -73,6 +87,28 @@
 </main>
 <script>
 let token = '';
+
+async function loadVisits() {
+  const summaryEl = document.getElementById('visits-summary');
+  const tableEl = document.getElementById('visits-table');
+  const tbody = document.getElementById('visits-tbody');
+  try {
+    const res = await fetch('/api/admin/visits', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    const data = await res.json();
+    const last7 = (data.last7Days || []).reduce((sum, d) => sum + d.count, 0);
+    summaryEl.innerHTML = `<span class="visits-total">${data.total.toLocaleString()}</span> total page views`
+      + (data.last7Days && data.last7Days.length ? ` &middot; ${last7.toLocaleString()} in the last 7 days` : '');
+    if (data.byPage && data.byPage.length) {
+      tbody.innerHTML = data.byPage.map(r => `<tr><td>${r.page}</td><td>${r.count.toLocaleString()}</td></tr>`).join('');
+      tableEl.style.display = 'table';
+    } else {
+      tableEl.style.display = 'none';
+    }
+  } catch (e) {
+    summaryEl.textContent = 'Failed to load visits: ' + e.message;
+  }
+}
 
 async function loadPage(page) {
   const res = await fetch('/api/content/' + page);
@@ -220,7 +256,7 @@ document.getElementById('unlock').addEventListener('click', async () => {
   token = document.getElementById('token').value.trim();
   if (!token) return;
   document.getElementById('editors').style.display = 'block';
-  await Promise.all(['residential', 'commercial'].map(loadPage).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
+  await Promise.all([loadVisits()].concat(['residential', 'commercial'].map(loadPage)).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
 });
 
 document.querySelectorAll('button[data-page]').forEach(btn => {
