@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gulf ProClean — residential cleaning</title>
+<meta name="description" content="Standard and deep cleaning, vacation rental turnovers and move-in/move-out cleans for homes and condos from Pensacola to Panama City Beach." />
 <script src="./ds-base.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
@@ -13,7 +14,7 @@
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { font-family: 'Libre Franklin', system-ui, sans-serif; text-wrap: pretty; }
+  body { font-family: 'Libre Franklin', system-ui, sans-serif; text-wrap: pretty; background: #f5f2ec; }
   a { text-decoration: none; }
   #root { min-height: 100vh; }
   @media (max-width: 720px) {
@@ -30,751 +31,55 @@
 <body>
 <div id="root"></div>
 <script>
+// Every marketing page is assembled from the same JSX modules plus its own
+// app-script. They are concatenated and evaluated as ONE script on purpose:
+// `const` declarations inside an indirect eval stay in that eval's own lexical
+// scope, so separate evals would not see each other's constants.
 (async () => {
+  const MODULES = ["tweaks-panel.jsx", "gulfproclean-shared.jsx"];
   try {
-    const src = await (await fetch('tweaks-panel.jsx')).text();
-    (0, eval)(Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code);
-  } catch (e) { console.error('tweaks-panel.jsx failed:', e); }
-  try {
-    const src = document.getElementById('app-script').textContent;
-    (0, eval)(Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code);
-  } catch (e) { console.error('app script failed:', e); }
+    const parts = await Promise.all(MODULES.map(p => fetch(p).then(r => {
+      if (!r.ok) throw new Error('could not load ' + p);
+      return r.text();
+    })));
+    parts.push(document.getElementById('app-script').textContent);
+    const code = Babel.transform(parts.join('\n'), { presets: [['react', { runtime: 'classic' }]] }).code;
+    (0, eval)(code);
+  } catch (e) {
+    console.error('page failed to load:', e);
+    document.getElementById('root').innerHTML =
+      '<p style="padding:56px 24px;font:16px/1.6 system-ui;color:#153238">This page could not load. Please refresh, or <a href="contact.html" style="color:#8a6221">contact us</a>.</p>';
+  }
 })();
 </script>
 <script type="text/plain" id="app-script">
 
+// residential.html is now the overview page for the residential side. The sections that used to
+// scroll underneath it — service tiers, plans, add-ons, the quote calculator, the Home Operating System —
+// each live on their own page now and are listed by <SectionIndex>. Their code
+// is in residential-sections.jsx.
+
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "palette": ["#153238", "#b68235"],
-  "defaultBooking": "Subscription",
   "heroPhoto": true
 }/*EDITMODE-END*/;
 
-const CREAM = "#f5f2ec";
-
-function Nav({ navy, gold }) {
-  const links = [["Home", "index.html"], ["Service Tiers", "#tiers"], ["Plans", "#plans"], ["Add-Ons", "#addons"], ["Get a Quote", "#calculator"], ["Contact Us", "contact.html"], ["My Account", "account.html"], ["Commercial →", "commercial.html"]];
-  return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 28, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2" }}>
-      <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto" }}>
-        <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-          <circle cx="14" cy="14" r="12.5" stroke={gold} strokeWidth="1.3" />
-          <circle cx="14" cy="7.4" r="1.7" stroke={gold} strokeWidth="1.4" />
-          <path d="M14 9.1V20.5" stroke={gold} strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M9.4 11.6h9.2" stroke={gold} strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M6.8 15.2c0 3.9 3.2 6.5 7.2 6.5s7.2-2.6 7.2-6.5" stroke={gold} strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-        GULF PROCLEAN
-      </span>
-      {links.map(([label, href]) => (
-        <a key={label} href={href} style={{ color: "inherit", opacity: 0.92 }}>{label}</a>
-      ))}
-    </nav>
-  );
-}
-
-function Hero({ navy, gold, heroPhoto, hero }) {
-  const headline = (
-    <h1 style={{ fontFamily: "'Libre Franklin', sans-serif", fontWeight: 300, fontSize: "clamp(40px, 6vw, 74px)", lineHeight: 1.08, letterSpacing: "-0.01em", margin: 0, color: heroPhoto ? "#fff" : navy, maxWidth: 780 }}>
-      {hero.headline}
-    </h1>
-  );
-  const subhead = (
-    <p style={{ display: "block", color: heroPhoto ? "#fff" : navy, fontWeight: 500, fontSize: 17, lineHeight: 1.5, marginTop: 28, maxWidth: 620, textShadow: heroPhoto ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
-      {hero.subhead}
-    </p>
-  );
-  const bookNow = (
-    <a href="#calculator" style={{ display: "inline-block", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 600, padding: "14px 30px", borderRadius: 3, marginTop: 28, background: gold, color: navy }}>{hero.ctaLabel}</a>
-  );
-  const ctaRow = (
-    <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 22, flexWrap: "wrap" }}>
-      <a href="#calculator" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 16, padding: "14px 24px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 8 }}>Get a quote →</a>
-      <a href="#plans" style={{ color: heroPhoto ? "#fff" : navy, fontWeight: 500, fontSize: 16, textDecoration: "underline" }}>Explore service tiers</a>
-    </div>
-  );
-  if (!heroPhoto) {
-    return (
-      <header style={{ background: CREAM, padding: "0 clamp(20px,5vw,56px) 64px" }}>
-        <div style={{ paddingTop: 48 }}>{headline}{subhead}<div>{bookNow}</div>{ctaRow}</div>
-      </header>
-    );
-  }
-  return (
-    <header style={{ position: "relative", minHeight: "min(960px, 100vh)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <img src="assets/residential-hero.jpg" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(20,30,32,0.55) 0%, rgba(20,30,32,0.15) 40%, rgba(20,30,32,0.6) 100%)" }} />
-      <div style={{ position: "relative", zIndex: 5, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px clamp(20px,5vw,56px) 56px" }}>
-        {headline}{subhead}<div>{bookNow}</div>{ctaRow}
-      </div>
-    </header>
-  );
-}
-
-function Kicker({ children, gold }) {
-  return <span style={{ display: "block", fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: gold, marginBottom: 14 }}>{children}</span>;
-}
-
-function Services({ navy, items }) {
-  return (
-    <section id="services" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
-      <Kicker gold="#8a6221">What we clean</Kicker>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 40, marginTop: 8 }}>
-        {items.map(({ title, body }) => (
-          <div key={title} style={{ borderTop: `2px solid ${navy}`, paddingTop: 18 }}>
-            <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>{title}</h3>
-            <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "#3d4a4d", marginTop: 12 }}>{body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ServiceTiers({ navy, gold }) {
-  const groups = [
-    ["Essential Clean", ["Kitchen surfaces", "Bathrooms", "Floors", "Dusting", "Countertops", "Mirrors", "Sinks", "Toilets", "General tidying", "Trash", "High-touch surfaces"]],
-    ["Preferred Clean", ["Baseboards", "Doors", "Cabinet fronts", "Ceiling fans", "Detailed dusting", "Under/behind accessible furniture", "Detailed bathroom & kitchen"]],
-    ["Premium", ["External kitchen appliances", "Detailed baseboards", "Vents", "Blinds", "Door frames", "Wall spot cleaning", "Heavy buildup", "Detailed fixtures", "Interior cabinets where applicable"]]
-  ];
-  const tierNames = groups.map(g => g[0]);
-  const rows = groups.flatMap(([tier, items]) => items.map(item => ({ item, from: tierNames.indexOf(tier) })));
-  return (
-    <section id="tiers" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
-      <Kicker gold="#8a6221">Service tiers</Kicker>
-      <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Choose how deep we go</h2>
-      <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Every tier includes everything in the tier before it — compare all three at a glance.</p>
-      <div style={{ overflowX: "auto", marginTop: 32 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", fontSize: 13, color: "#7a746a", fontWeight: 500, padding: "0 16px 12px 0", borderBottom: `2px solid ${navy}` }}>Included</th>
-              {tierNames.map(name => (
-                <th key={name} style={{ textAlign: "center", fontSize: 15, color: navy, fontWeight: 600, padding: "0 16px 12px", borderBottom: `2px solid ${navy}` }}>{name}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ item, from }) => (
-              <tr key={item}>
-                <td style={{ fontSize: 14, color: navy, padding: "10px 16px 10px 0", borderBottom: "1px solid #e3ded2" }}>{item}</td>
-                {tierNames.map((name, i) => (
-                  <td key={name} style={{ textAlign: "center", padding: "10px 16px", borderBottom: "1px solid #e3ded2" }}>
-                    {i >= from && <span style={{ color: gold, fontWeight: 700 }}>✓</span>}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function PlanList({ items, gold }) {
-  return (
-    <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, fontSize: 14, color: "#3d4a4d" }}>
-      {items.map(i => (<li key={i} style={{ padding: "4px 0", display: "flex", gap: 8 }}><span style={{ color: gold }}>—</span>{i}</li>))}
-    </ul>
-  );
-}
-
-function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
-  // Starting prices come from the smallest sqft band in the live pricing
-  // table (the same one admin.html edits) — not hardcoded copy — so this
-  // section never drifts from what the calculator actually charges.
-  const ONE_TIME_SURCHARGE = 0.30;
-  const startingBand = (pricing && pricing[0]) || { essential: 165, preferred: 200, premium: 285 };
-  const basePriceFor = { Essential: Number(startingBand.essential), Preferred: Number(startingBand.preferred), Premium: Number(startingBand.premium) };
-  const standardPriceFor = (name) => basePriceFor[name] * (1 + ONE_TIME_SURCHARGE);
-
-  const subs = [
-    ["Essential", null, "Second homes · Snowbirds · Light-use", "1 cleaning / month · monthly cadence",
-      ["1 cleaning per month", "Ideal for second homes & snowbirds", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
-      "1 visit weekly"],
-    ["Preferred", null, "Families · Primary residences · Pets", "2 cleanings / month · biweekly cadence",
-      ["2 cleanings per month", "Best value — most chosen", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
-      "2 visits weekly"],
-    ["Premium", "Most popular", "Luxury homes · Executives · High-use", "4 cleanings / month · weekly cadence",
-      ["4 cleanings per month", "Luxury & high-use homes", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"],
-      "4 visits weekly"]
-  ];
-  return (
-    <section id="plans" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <Kicker gold="#8a6221">Booking</Kicker>
-        <div style={{ position: "relative", background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginTop: 8, marginBottom: 28, display: "inline-flex", alignItems: "center", gap: 12, fontSize: 15.5, fontWeight: 700, boxShadow: `0 8px 28px ${gold}55`, border: `1px solid ${navy}22`, letterSpacing: "0.01em" }}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
-          First-time customers save 10% on any plan — limited time only
-          <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
-        </div>
-        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 36, color: navy, margin: 0, maxWidth: 640 }}>Book once, or let us handle it on repeat</h2>
-        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with property size — <a href="#calculator" style={{ color: "#8a6221" }}>get your exact quote</a> below.</p>
-
-        <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-            <div>
-              <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>One-time clean</h3>
-              <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 8, maxWidth: "56ch" }}>A single visit — move-in, move-out, a deep clean before guests or a big event. No commitment, scheduled around your date.</p>
-            </div>
-            <a href="#calculator" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Get one-time pricing</a>
-          </div>
-          <div style={{ display: "flex", gap: 24, marginTop: 20, flexWrap: "wrap" }}>
-            {subs.map(([name]) => (
-              <div key={name}>
-                <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
-                <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>Starting at ${Math.round(standardPriceFor(name))}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p id="recurring-plans" style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0, scrollMarginTop: 90 }}>Recurring plans</p>
-        <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for second homes, primary residences and high-use properties, billed monthly. No contracts — cancel anytime.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
-          {subs.map(([name, badge, audience, cadence, features, calcFrequency]) => (
-            <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
-              {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
-              <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
-              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "6px 0 0" }}>{audience}</p>
-              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "16px 0 0" }}>{cadence}</p>
-              <PlanList gold={gold} items={features} />
-              <a href="#calculator" onClick={(e) => { e.preventDefault(); onSelectPlan({ tier: name, frequency: calcFrequency }); scrollToId('calculator', 'smooth'); }} style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name} — get your price</a>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function AddOns({ navy, gold }) {
-  const residential = [
-    ["Interior Window Cleaning", "$110"], ["Blinds Dusting", "Ask for quote"], ["Baseboards & Trim Detailing", "$75"],
-    ["Light Fixtures & Ceiling Fans", "Ask for quote"], ["Door & Frame Detailing", "Ask for quote"], ["Cabinet Front Detailing", "$100"],
-    ["Inside Oven Cleaning", "$40"], ["Inside Refrigerator Cleaning", "$40"], ["Hard Floor Deep Cleaning", "Ask for quote"],
-    ["Carpet Deep Cleaning", "Ask for quote"], ["Shower & Tile Deep Cleaning", "Ask for quote"], ["Balcony/Patio Cleaning", "$47"]
-  ];
-  return (
-    <section id="addons" style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <Kicker gold="#8a6221">Add-ons</Kicker>
-        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Customers on the Emerald Coast are accustomed to add-ons</h2>
-        <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 14, maxWidth: "58ch" }}>Add exactly what your space needs, on top of any one-time or subscription visit.</p>
-        <img src="assets/residential-addons.jpg" alt="Add-on services: interior window cleaning, blinds dusting, baseboards and trim, light fixtures and ceiling fans, door and frame detailing, cabinet fronts, inside oven, inside refrigerator, hard floor deep cleaning, carpet deep cleaning, shower and tile deep cleaning, balcony and patio cleaning" style={{ width: "100%", display: "block", marginTop: 40, borderRadius: 6 }} />
-        <div className="addons-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, marginTop: 1, border: "1px solid #e3ded2", background: "#e3ded2" }}>
-          {residential.map(([name, price]) => (
-            <div key={name} style={{ background: "#fff", padding: "16px 18px", textAlign: "center" }}>
-              <p style={{ fontSize: 13.5, color: navy, margin: 0, fontWeight: 500 }}>{name}</p>
-              <p style={{ fontSize: 20, fontWeight: 600, color: "#8a6221", margin: "6px 0 0" }}>{price}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Quote({ navy, text, caption }) {
-  return (
-    <section style={{ background: navy, color: "#fff", padding: "56px clamp(20px,5vw,56px)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <blockquote style={{ fontFamily: "inherit", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(24px,2.6vw,34px)", lineHeight: 1.4, maxWidth: "34ch", margin: 0 }}>
-          "{text}"
-        </blockquote>
-        <figcaption style={{ fontSize: 14.5, opacity: 0.75, marginTop: 24 }}>{caption}</figcaption>
-      </div>
-    </section>
-  );
-}
-
-function Calculator({ navy, gold, pricing, preset }) {
-  const SIZE_TIERS = pricing.filter(r => !r.unavailable).map(r => ({
-    max: r.max_sqft, label: r.band_label,
-    prices: { Essential: r.essential, Preferred: r.preferred, Premium: r.premium },
-  }));
-  const freqAdj = {
-    "1 visit weekly": 0,
-    "2 visits weekly": 0,
-    "3 visits weekly": 0,
-    "4 visits weekly": 0,
-    "5 visits weekly": 0,
-    "6 visits weekly": 0,
-    "7 visits weekly": 0,
-  };
-  const ONE_TIME_SURCHARGE = 0.30;
-  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05;
-  const BILLING_PLANS = [
-    { key: "one-time", label: "One-time (Standard price)", booking: "One-time", months: 1 },
-    { key: "biweekly", label: "Biweekly (5% discount)", booking: "Monthly", months: 0.5 },
-    { key: "monthly", label: "Monthly (7% discount)", booking: "Monthly", months: 1 },
-    { key: "6-month", label: "6-Month Subscription (10% discount)", booking: "Monthly", months: 6 },
-    { key: "12-month", label: "12-Month Subscription (15% discount)", booking: "Monthly", months: 12 },
-  ];
-  const addonPricing = {
-    "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
-    "Interior windows (package)": 110, "Baseboard detail": 75, "Inside cabinets": 100,
-    "Laundry wash/dry/fold": 35, "Bed linen change": 12, "Pet hair surcharge": 37,
-    "Heavy sand removal": 55, "Patio / balcony": 47, "Garage sweep": 62
-  };
-
-  const [firstName, setFirstName] = React.useState("");
-  const [lastName, setLastName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [addressLine1, setAddressLine1] = React.useState("");
-  const [unit, setUnit] = React.useState("");
-  const [city, setCity] = React.useState("");
-  const stateVal = "FL"; // service area is Florida-only
-  const [zip, setZip] = React.useState("");
-  const [notes, setNotes] = React.useState("");
-  const [tier, setTier] = React.useState("");
-  const [sqft, setSqft] = React.useState("");
-  const [frequency, setFrequency] = React.useState("");
-  const [booking, setBooking] = React.useState("");
-  const [months, setMonths] = React.useState(1);
-  const [addons, setAddons] = React.useState([]);
-  const [addonQty, setAddonQty] = React.useState({});
-  const [presetNotice, setPresetNotice] = React.useState(false);
-  React.useEffect(() => {
-    if (!preset) return;
-    setTier(preset.tier);
-    setFrequency(preset.frequency);
-    setBooking("Monthly");
-    setPresetNotice(true);
-  }, [preset]);
-  const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
-  const setAddonQtyFor = (name, val) => setAddonQty(q => ({ ...q, [name]: Number(val) }));
-  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !city.trim() || !zip.trim();
-  const handleBookIt = () => {
-    if (missingRequired) { alert("Please fill in all required fields (name, phone, and full address) to book."); return; }
-    if (!hasAllInputs) { alert("Please select a service tier, property size, frequency, and billing plan to see your price before booking."); return; }
-    if (priceUnavailable) { alert("This property size is priced individually — please request a quote instead."); return; }
-    const fullAddress = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${stateVal} ${zip.trim()}`].filter(Boolean).join(", ");
-    sessionStorage.setItem("gpc_booking_draft", JSON.stringify({
-      page: "residential",
-      firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(),
-      addressLine1: addressLine1.trim(), unit: unit.trim(), city: city.trim(), state: stateVal, zip: zip.trim(),
-      address: fullAddress,
-      notes: notes.trim(),
-      sqft,
-      tier, booking, months, frequency, displayFrequency, bookingLabel,
-      addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
-      addonsTotalAmount: totalAddons,
-      allAddonPricing: addonPricing,
-      afterFrequency, afterBooking, standardPrice, visitsCount, grossTotal,
-      taxRate: 0,
-    }));
-    window.location.href = "book.html";
-  };
-
-  // Nothing is pre-filled — no price shows until the customer has picked a
-  // tier, entered a size, and chosen a frequency and billing plan.
-  const sqftNum = Number(sqft) || 0;
-  const hasAllInputs = !!tier && sqftNum > 0 && !!booking && (booking === "One-time" || !!frequency);
-  const sizeTier = tier && sqftNum > 0 ? SIZE_TIERS.find(t => sqftNum <= t.max) : null;
-  const priceUnavailable = !!tier && sqftNum > 0 && !sizeTier;
-  const afterSize = sizeTier ? sizeTier.prices[tier] : 0;
-  const afterFrequency = booking === "One-time" ? afterSize : afterSize * (1 + (freqAdj[frequency] || 0));
-  const addonsTotal = addons.reduce((sum, name) => sum + addonPricing[name], 0);
-  const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
-  // The One-Time/Standard visit fee is the reference for every subscription
-  // discount — a 10% discount is 10% off that standard fee, not off the
-  // pre-surcharge base rate. Add-ons are never discounted (see below).
-  // Rounded to a whole dollar here (not just for display) so it's the same
-  // number used for Total, Discount, and Final price — Total always equals
-  // Price per visit × visits (+ add-ons), with cents only appearing once
-  // percentage math (discount) is actually applied on top of it.
-  const standardPrice = Math.round(afterFrequency * (1 + ONE_TIME_SURCHARGE));
-  const afterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
-  const perVisit = afterBooking;
-  const discount = Math.max(0, standardPrice - perVisit);
-  const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
-  const billingKey = !booking ? "" : booking === "One-time" ? "one-time" : (months >= 12 ? "12-month" : months >= 6 ? "6-month" : months >= 1 ? "monthly" : "biweekly");
-  const bookingLabel = !booking ? "" : booking === "One-time" ? "One-time" : (months >= 12 ? "12-Month Subscription" : months >= 6 ? "6-Month Subscription" : months >= 1 ? "Monthly" : "Biweekly");
-  const setBillingPlan = (key) => {
-    if (!key) { setBooking(""); setMonths(1); return; }
-    const plan = BILLING_PLANS.find(p => p.key === key);
-    if (!plan) return;
-    setBooking(plan.booking);
-    setMonths(plan.months);
-  };
-  const visitsPerMonth = parseInt(frequency, 10) || 1;
-  const isWeeklyCadence = !frequency.toLowerCase().includes("monthly");
-  const visitsCount = !booking ? 0 : booking === "One-time" ? 1 : (isWeeklyCadence ? visitsPerMonth * months * 4 : visitsPerMonth * months);
-  const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
-  const totalAddons = addons.reduce((sum, name) => sum + addonPricing[name] * addonOccurrences(name), 0);
-  // grossTotal is visit fees only (no add-ons — they're never discounted, so
-  // mixing them into a "before discount" comparison would misstate it).
-  const grossTotal = standardPrice * visitsCount;
-  const finalDiscounted = (perVisit * visitsCount) + totalAddons;
-  // Total before discount includes add-ons (nothing has been subtracted
-  // yet); the discount itself is computed from the total visit price only
-  // — add-ons are never part of it — then subtracted to reach Final price.
-  const totalBeforeDiscount = grossTotal + totalAddons;
-  const totalDiscountAmount = discount * visitsCount;
-  const money = (n) => {
-    const cents = Math.round(n * 100);
-    const dollars = cents / 100;
-    return cents % 100 === 0
-      ? dollars.toLocaleString("en-US")
-      : dollars.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-  const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
-  const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
-
-  return (
-    <section id="calculator" style={{ background: navy, padding: "48px clamp(20px,5vw,56px)" }}>
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginBottom: 24, textAlign: "center", fontWeight: 700, fontSize: 16 }}>
-          ✦ Discounts for first-time customers and subscription plans ✦
-        </div>
-        <Kicker gold="#d9a94a">Get a quote</Kicker>
-        <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your residential price</h2>
-        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Base price × size adjustment × frequency adjustment + add-ons. An estimate — final pricing is confirmed on walkthrough.</p>
-        {presetNotice && (
-          <div style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${gold}`, borderRadius: 4, padding: "10px 14px", marginTop: 14, maxWidth: "60ch", fontSize: 13, color: "#fff" }}>
-            We've pre-filled the {preset.tier} plan below. Pricing varies based on size — enter your square footage for an exact quote.
-          </div>
-        )}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
-          <label><span style={labelStyle}>First name</span>
-            <input type="text" placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} style={selStyle} />
-          </label>
-          <label><span style={labelStyle}>Last name</span>
-            <input type="text" placeholder="Doe" value={lastName} onChange={e => setLastName(e.target.value)} style={selStyle} />
-          </label>
-          <label><span style={labelStyle}>Phone</span>
-            <input type="tel" placeholder="(850) 555-0123" value={phone} onChange={e => setPhone(e.target.value)} style={selStyle} />
-          </label>
-          <label style={{ gridColumn: "1 / -1" }}><span style={labelStyle}>Address</span>
-            <input type="text" placeholder="123 Main St" value={addressLine1} onChange={e => setAddressLine1(e.target.value)} style={selStyle} />
-          </label>
-          <label><span style={labelStyle}>Unit / suite # (optional)</span>
-            <input type="text" placeholder="Apt 4B" value={unit} onChange={e => setUnit(e.target.value)} style={selStyle} />
-          </label>
-          <label><span style={labelStyle}>City</span>
-            <input type="text" placeholder="Destin" value={city} onChange={e => setCity(e.target.value)} style={selStyle} />
-          </label>
-          <label><span style={labelStyle}>Zip code</span>
-            <input type="text" inputMode="numeric" placeholder="32541" value={zip} onChange={e => setZip(e.target.value)} style={selStyle} />
-          </label>
-          <label><span style={labelStyle}>Property size (sq ft)</span>
-            <input type="number" min="0" placeholder="e.g. 1500" value={sqft} onChange={e => setSqft(e.target.value)} style={selStyle} />
-          </label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
-            <span style={labelStyle}>Notes for your cleaner (optional)</span>
-            <textarea placeholder="Gate code, pets, areas to avoid, special requests…" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...selStyle, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} />
-          </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
-          <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Select billing plan</span>
-            <select style={selStyle} value={billingKey} onChange={e => setBillingPlan(e.target.value)}>
-              <option value="" disabled hidden></option>
-              {BILLING_PLANS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
-            </select>
-          </label>
-          <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Service tier</span>
-            <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
-              <option value="" disabled hidden></option>
-              {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""}</option>)}
-            </select>
-          </label>
-          <label><span style={labelStyle}>Cleaning frequency</span>
-            {booking === "One-time" ? (
-              <div style={{ ...selStyle, display: "flex", alignItems: "center", color: "#7a746a" }}>1 visit</div>
-            ) : (
-              <select style={selStyle} value={frequency} onChange={e => setFrequency(e.target.value)}>
-                <option value="" disabled hidden></option>
-                {Object.keys(freqAdj).map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
-            )}
-          </label>
-        </div>
-        <div className="calc-two-col" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,0.9fr)", gap: 20, marginTop: 20, alignItems: "start" }}>
-          <label style={{ background: "#fff", borderRadius: 8, padding: 20 }}><span style={labelStyle}>Add-ons</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
-              {Object.keys(addonPricing).sort((a, b) => a.localeCompare(b)).map(name => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #f0ede5", flexWrap: "wrap" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: navy }}>
-                    <input type="checkbox" checked={addons.includes(name)} onChange={() => toggleAddon(name)} />{name}
-                  </label>
-                  <span style={{ marginLeft: "auto", color: "#7a746a", fontSize: 13 }}>${addonPricing[name]}</span>
-                  {addons.includes(name) && (
-                    <select value={addonOccurrences(name)} onChange={e => setAddonQtyFor(name, e.target.value)} style={{ fontSize: 12, padding: "4px 8px", border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#faf8f3", flex: "0 0 auto", width: 140 }}>
-                      {Array.from({ length: visitsCount }, (_, i) => i + 1).map(n => (
-                        <option key={n} value={n}>{n === visitsCount ? (visitsCount === 1 ? "1 visit" : `Every visit (${n}×)`) : n === 1 ? "One-time (1×)" : `${n} of ${visitsCount} visits`}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              ))}
-            </div>
-          </label>
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "24px 28px", color: "#fff", position: "sticky", top: 20 }}>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Summary</p>
-
-            {!hasAllInputs ? (
-              <div style={{ marginTop: 14 }}>
-                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>Select a service tier, enter your property size, and choose a frequency and billing plan to see your price.</p>
-              </div>
-            ) : priceUnavailable ? (
-              <div style={{ marginTop: 14 }}>
-                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>Properties over 5,000 sq ft are priced individually. <a href="mailto:hello@gulfproclean.com" style={{ color: gold }}>Request a quote</a> and we'll follow up.</p>
-              </div>
-            ) : (
-              <>
-                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
-                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{tier} · {bookingLabel} · {displayFrequency}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Price per visit</span><span>${money(standardPrice)}</span></div>
-                </div>
-
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Add-ons</span><span>${money(totalAddons)}</span></div>
-                  {addons.length === 0 ? (
-                    <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0 }}>None selected</p>
-                  ) : addons.map(name => (
-                    <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span style={{ color: "rgba(255,255,255,0.55)" }}>+ {name} — {addonOccurrences(name) === visitsCount ? (visitsCount === 1 ? "this visit" : `every visit ×${visitsCount}`) : addonOccurrences(name) === 1 ? "one-time" : `${addonOccurrences(name)} of ${visitsCount} visits`}</span><span style={{ color: "rgba(255,255,255,0.55)" }}>${money(addonPricing[name] * addonOccurrences(name))}</span></div>
-                  ))}
-                </div>
-
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-                  <span style={{ color: "rgba(255,255,255,0.75)" }}>Number of visits</span>
-                  <span>× {visitsCount}</span>
-                </div>
-
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 600 }}>
-                  <span style={{ color: "#fff" }}>Total</span>
-                  <span>${money(totalBeforeDiscount)}</span>
-                </div>
-
-                {discount > 0 && (
-                  <>
-                    <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-                      <span style={{ color: "rgba(255,255,255,0.55)" }}>Discount ({Math.round(monthlyDiscountPct * 100)}%, visit price only)</span>
-                      <span style={{ color: "#9ee6a8" }}>−${money(totalDiscountAmount)}</span>
-                    </div>
-                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Applies to the visit price only, never to one-time bookings — add-ons are never discounted.</p>
-                  </>
-                )}
-
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", marginTop: 16, paddingTop: 16 }}>
-                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Final price — {bookingLabel}, {displayFrequency}</p>
-                  <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${money(finalDiscounted)}</p>
-                </div>
-              </>
-            )}
-            <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
-            <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>You'll create an account and pick a visit time next. First-time discounts are confirmed there.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const DEFAULT_CONTENT = {
-  hero: {
-    headline: "Spotless, on your terms. Every home, every time.",
-    subhead: "Gulf ProClean cleans houses, condos and vacation rentals from Pensacola to Panama City Beach — recurring or on-demand, booked to fit how you actually use the property.",
-    ctaLabel: "Book Now"
-  },
-  services: [
-    { title: "Standard & deep cleans", body: "Houses and condos along the coast, top to bottom, with the same crew returning so nothing gets relearned every visit." },
-    { title: "Vacation rentals", body: "Guest turnovers between check-out and check-in, photo-documented, so the listing looks exactly like its photos every time." },
-    { title: "Move-in / move-out", body: "A single deep clean for the property's next chapter — empty rooms, every surface, ready for the walkthrough." }
-  ],
-  quote: {
-    text: "They've turned our rental over between every single guest for two years — never once a cleanliness complaint. That's the whole business, honestly.",
-    caption: "— placeholder quote, swap for a real client"
-  },
-  contact: { note: "Properties over 5,001 sq ft:" }
-};
-
-function useSiteContent(page) {
-  const [content, setContent] = React.useState(DEFAULT_CONTENT);
-  React.useEffect(() => {
-    fetch('/api/content/' + page)
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => { if (data) setContent(data); })
-      .catch(() => {});
-  }, [page]);
-  return content;
-}
-
-const DEFAULT_PRICING_RESIDENTIAL = [
-  { band_order: 1, band_label: "Up to 1,000 sq ft", max_sqft: 1000, essential: 165, preferred: 200, premium: 285, unavailable: false },
-  { band_order: 2, band_label: "1,001–1,500 sq ft", max_sqft: 1500, essential: 205, preferred: 250, premium: 360, unavailable: false },
-  { band_order: 3, band_label: "1,501–2,000 sq ft", max_sqft: 2000, essential: 240, preferred: 295, premium: 425, unavailable: false },
-  { band_order: 4, band_label: "2,001–2,500 sq ft", max_sqft: 2500, essential: 280, preferred: 345, premium: 495, unavailable: false },
-  { band_order: 5, band_label: "2,501–3,000 sq ft", max_sqft: 3000, essential: 315, preferred: 390, premium: 560, unavailable: false },
-  { band_order: 6, band_label: "3,001–3,500 sq ft", max_sqft: 3500, essential: 355, preferred: 440, premium: 635, unavailable: false },
-  { band_order: 7, band_label: "3,501–4,000 sq ft", max_sqft: 4000, essential: 390, preferred: 485, premium: 700, unavailable: false },
-  { band_order: 8, band_label: "4,001–5,000 sq ft", max_sqft: 5000, essential: 455, preferred: 565, premium: 815, unavailable: false },
-  { band_order: 9, band_label: "5,001+ sq ft", max_sqft: null, essential: null, preferred: null, premium: null, unavailable: true },
-];
-
-function usePricing(page, fallback) {
-  const [pricing, setPricing] = React.useState(fallback);
-  React.useEffect(() => {
-    fetch('/api/pricing/' + page)
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => { if (data && Array.isArray(data.rows) && data.rows.length) setPricing(data.rows); })
-      .catch(() => {});
-  }, [page]);
-  return pricing;
-}
-
-function Reveal({ children, delay = 0, order }) {
-  const ref = React.useRef(null);
-  const [visible, setVisible] = React.useState(false);
-  React.useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
-    }, { threshold: 0.15 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return (
-    <div ref={ref} style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(18px)", transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`, order, display: "flex", flexDirection: "column", height: "100%" }}>
-      {children}
-    </div>
-  );
-}
-
-function WhatWeWatch({ navy, gold }) {
-  const items = ["Cleaning & Quality", "HVAC & Filters", "Plumbing & Leaks", "Appliances", "Pool & Equipment", "Supplies", "Doors & Windows", "Exterior", "Storm Readiness", "Maintenance", "Vendors & Repairs", "Upcoming Projects"];
-  return (
-    <section style={{ background: "#fff", padding: "56px clamp(20px,5vw,56px)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <Reveal>
-          <Kicker gold="#8a6221">What we watch</Kicker>
-          <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>We Keep An Eye On Your Home</h2>
-          <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 14, maxWidth: "60ch" }}>Every visit creates another layer of visibility into your property. When we find something that needs attention, you know about it—and we can help coordinate the next step.</p>
-        </Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 36 }}>
-          {items.map((label, i) => (
-            <Reveal key={label} delay={(i % 4) * 0.05}>
-              <div style={{ background: CREAM, border: "1px solid #e3ded2", borderRadius: 8, padding: "18px 20px", fontSize: 14, color: navy, fontWeight: 500 }}>{label}</div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CareProgression({ navy, gold }) {
-  const steps = [
-    ["01", "Cleaning", "Your home is serviced regularly."],
-    ["02", "Home Watch", "We notice what's happening between visits."],
-    ["03", "Maintenance", "Issues are identified before they become bigger problems."],
-    ["04", "Coordination", "We coordinate qualified vendors when work is needed."],
-    ["05", "Home Operating System", "Everything is visible in one place."],
-  ];
-  return (
-    <section style={{ background: navy, padding: "56px clamp(20px,5vw,56px)", color: "#fff" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <Reveal>
-          <Kicker gold="#d9a94a">The path</Kicker>
-          <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, margin: 0 }}>From Cleaning to Complete Home Care</h2>
-        </Reveal>
-        <div style={{ marginTop: 48, display: "flex", flexDirection: "column" }}>
-          {steps.map(([num, title, body], i) => (
-            <React.Fragment key={num}>
-              <Reveal delay={i * 0.08}>
-                <div style={{ display: "flex", gap: 22, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#d9a94a", minWidth: 28 }}>{num}</span>
-                  <div>
-                    <p style={{ fontSize: 20, fontWeight: 500, margin: 0 }}>{title}</p>
-                    <p style={{ fontSize: 14.5, color: "rgba(255,255,255,0.7)", margin: "6px 0 0" }}>{body}</p>
-                  </div>
-                </div>
-              </Reveal>
-              {i < steps.length - 1 && <div style={{ marginLeft: 13, width: 1, height: 32, background: "rgba(255,255,255,0.2)" }} />}
-            </React.Fragment>
-          ))}
-        </div>
-        <Reveal delay={0.4}>
-          <p style={{ fontSize: 22, fontWeight: 300, fontStyle: "italic", marginTop: 56, maxWidth: "34ch" }}>We're not just cleaning your home. We're helping you operate it.</p>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function HomeOSIntro({ navy, gold }) {
-  return (
-    <section style={{ background: CREAM, padding: "56px clamp(20px,5vw,56px) 0" }}>
-      <div style={{ maxWidth: 880, margin: "0 auto", textAlign: "center" }}>
-        <Reveal>
-          <Kicker gold="#8a6221">The Real Secret</Kicker>
-          <h2 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: "clamp(28px,4vw,42px)", color: navy, margin: 0, lineHeight: 1.2 }}>Your Home Runs Better When Everything Is Connected.</h2>
-          <p style={{ fontSize: 16.5, lineHeight: 1.7, color: "#3d4a4d", marginTop: 20, maxWidth: "62ch", marginLeft: "auto", marginRight: "auto" }}>Your home is more than a cleaning appointment. Our Home Operating System keeps track of the condition, cleaning, maintenance, supplies, upcoming services, and projects happening at your property—all from one account.</p>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
-            <a href="account.html" style={{ background: gold, color: navy, fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 3 }}>See My Home</a>
-            <a href="#calculator" style={{ border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 3 }}>Explore Membership</a>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function HomeOperatingSystem({ navy, gold }) {
-  return (
-    <>
-      <HomeOSIntro navy={navy} gold={gold} />
-      <WhatWeWatch navy={navy} gold={gold} />
-      <CareProgression navy={navy} gold={gold} />
-    </>
-  );
-}
-
-function scrollToId(id, behavior = 'auto') {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const navEl = document.querySelector('nav');
-  const offset = (navEl ? navEl.offsetHeight : 0) + 12;
-  const top = el.getBoundingClientRect().top + window.scrollY - offset;
-  window.scrollTo({ top, behavior });
-}
-
-function useScrollToHash() {
-  React.useEffect(() => {
-    if (!location.hash) return;
-    const id = location.hash.slice(1);
-    // Content (pricing fetch, images) can still be loading on first paint,
-    // which shifts layout — retry a couple times shortly after.
-    const timers = [50, 300, 800].map(ms => setTimeout(() => scrollToId(id), ms));
-    return () => timers.forEach(clearTimeout);
-  }, []);
-}
-
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [booking, setBooking] = React.useState(t.defaultBooking);
-  React.useEffect(() => setBooking(t.defaultBooking), [t.defaultBooking]);
   const [navy, gold] = t.palette;
-  const [planPreset, setPlanPreset] = React.useState(null);
-  const content = useSiteContent('residential');
-  const pricing = usePricing('residential', DEFAULT_PRICING_RESIDENTIAL);
-  useScrollToHash();
+  const content = useSiteContent('residential', DEFAULT_CONTENT_RESIDENTIAL);
+  useLegacyAnchorRedirect('residential');
 
   return (
     <div style={{ background: CREAM }}>
-      <Nav navy={navy} gold={gold} />
-      <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, textAlign: "center", padding: "13px 20px", fontWeight: 700, fontSize: 14.5, letterSpacing: "0.02em" }}>✦ No contracts. Cancel anytime. ✦</div>
-      <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero} />
+      <Nav navy={navy} gold={gold} side="residential" active="residential.html" />
+      <PromoBanner navy={navy} gold={gold} />
+      <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero}
+            image="assets/residential-hero.jpg" quoteHref="residential-quote.html" tiersHref="residential-tiers.html" />
       <Services navy={navy} items={content.services} />
-      <HomeOperatingSystem navy={navy} gold={gold} />
-      <ServiceTiers navy={navy} gold={gold} />
-      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} onSelectPlan={setPlanPreset} pricing={pricing} />
-      <AddOns navy={navy} gold={gold} />
+      <SectionIndex side="residential" navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
-      <Calculator navy={navy} gold={gold} pricing={pricing} preset={planPreset} />
-      <footer style={{ padding: "0 clamp(20px,5vw,56px) 40px", maxWidth: 1200, margin: "0 auto", fontSize: 13, color: "#7a746a" }}>Gulf ProClean — a veteran-owned, family-operated business serving homes and vacation rentals from Pensacola to Panama City Beach.</footer>
+      <SiteFooter side="residential" />
       <TweaksPanel>
         <TweakSection label="Theme" />
         <TweakColor label="Palette" value={t.palette}
@@ -782,16 +87,13 @@ function App() {
           onChange={(v) => setTweak('palette', v)} />
         <TweakToggle label="Full-bleed photo hero" value={t.heroPhoto}
           onChange={(v) => setTweak('heroPhoto', v)} />
-        <TweakSection label="Booking" />
-        <TweakRadio label="Default view" value={t.defaultBooking}
-          options={['Subscription', 'One-Time']}
-          onChange={(v) => setTweak('defaultBooking', v)} />
       </TweaksPanel>
     </div>
   );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
 </script>
 </body>
 </html>
