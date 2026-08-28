@@ -7,7 +7,15 @@ business hours.
 
 ## Structure
 
-- `index.html`, `residential.html`, `commercial.html` — the marketing pages and quote calculators
+- `index.html` — the front door: pick residential or commercial
+- `residential.html`, `commercial.html` — the overview page for each side (hero, what we clean, and an index of the section pages)
+- `residential-{tiers,plans,addons,quote,home-os}.html`, `commercial-{tiers,plans,addons,quote}.html` — **one section per page.** These used to be sections of a single long scroll; each is now its own page with its own title, description and `<h1>`
+- `gulfproclean-shared.jsx` — nav, hero, services, quote, reveal, the data hooks, and the `SectionPage` / `SectionPager` / `SectionIndex` chrome shared by both sides
+- `residential-sections.jsx`, `commercial-sections.jsx` — the sections themselves (service tiers, plans, add-ons, calculator, and the residential Home Operating System)
+- `careers.html`, `careers-job.html`, `apply.html`, `careers-process.html`, `onboarding.html` — hiring (see **Hiring** below)
+- `vendors.html`, `vendors-bid.html` — the subcontractor bench (see **Vendors** below)
+- `careers-data.js`, `vendors-data.js` — open roles and trade/licensing data, each the single source for its pages
+- `site-chrome.js`, `site-pages.css` — nav/footer and styling for the plain-HTML pages
 - `book.html` — post-quote flow: create account/log in, pick a day/time (>=24h notice), confirm
 - `account.html` — login-gated: view bookings, reschedule (only if the current appointment is still >=24h out), subscription terms table
 - `admin.html` — password-gated editor for page content and business hours
@@ -21,8 +29,11 @@ business hours.
 - `functions/api/bookings/[id]/addons.js` — adds a paid add-on to an already-confirmed booking
 - `functions/api/stripe/webhook.js` — Stripe calls this on `checkout.session.completed`; marks the booking paid and sends the confirmation email
 - `functions/api/pricing/[page].js` — GET (public) / PUT (admin-token-protected) tier pricing
+- `functions/api/applications.js`, `functions/api/applications/[id].js` — job applications: POST is public, GET/PATCH are admin-token-protected
+- `functions/api/onboarding/[token].js` — the pre-hire authorization page, reachable only with the token issued alongside a conditional offer
+- `functions/api/vendors.js`, `functions/api/vendors/[id].js` — vendor pricing submissions, same public-POST / admin-read shape
 - `functions/_lib/auth.js`, `functions/_lib/email.js`, `functions/_lib/stripe.js`, `functions/_lib/payments.js` — shared helpers
-- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `015_customer_address.sql`.
+- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `022_vendor_submissions.sql`.
 
 ## Local preview
 
@@ -257,3 +268,118 @@ manually (e.g. from a browser or curl with the header) to send reminders.
   quote and carried through to the final charge.
 - At scheduling, the customer picks which purchased add-ons apply to that specific visit. The
   API rejects any add-on that wasn't actually part of the purchased quote.
+
+## Page structure — why every section has its own page
+
+`residential.html` and `commercial.html` used to be one long scroll each, with
+service tiers, plans, add-ons and the quote calculator stacked under the hero
+and reached by `#anchor`. Each section is now a page of its own, so it can be
+linked to, titled, described for search, and read without scrolling past
+everything else.
+
+The mechanics are worth knowing before editing:
+
+- A page loads `gulfproclean-shared.jsx`, then its side's `*-sections.jsx`,
+  then its own inline `app-script`, and **evaluates all three as one script**.
+  That is deliberate: `const` declarations inside an indirect `eval` stay in
+  that eval's own lexical scope, so three separate evals would not see each
+  other's constants. Splitting them again will break every shared constant.
+- `SECTION_PAGES` in `gulfproclean-shared.jsx` drives the nav, the section
+  index cards, and the prev/next pager. Adding a section means adding one entry
+  there and one HTML file — nothing else.
+- Choosing a plan used to set React state the calculator read directly. Across
+  pages the selection travels in the query string instead
+  (`residential-quote.html?tier=Preferred&frequency=2+visits+weekly`), read by
+  `usePlanPreset()`.
+- The section markup was moved verbatim, so tier copy and pricing are byte-for-byte
+  what they were. Each section's own heading was promoted from `<h2>` to `<h1>`
+  so every page has exactly one.
+- Old anchor links (`residential.html#calculator` and friends) still work: the
+  overview pages forward them to the section page that now owns that content,
+  so bookmarks, sent emails and search results do not break. `LEGACY_ANCHORS`
+  in `gulfproclean-shared.jsx` is the map.
+- `residential.html` and `commercial.html` keep the `EDITMODE` tweaks block and
+  the Claude Design tweaks panel. The section pages use the fixed palette
+  constants in `gulfproclean-shared.jsx` instead.
+
+## Hiring
+
+Open roles live in `careers-data.js`. Closing a role is one line — set
+`open: false`. Pay ranges there are drafts: **confirm them before a posting goes
+live**, and note that Florida's minimum wage rises to $15.00/hour on
+September 30, 2026, which every current range already clears.
+
+The flow is: apply → phone screen → interview → paid working interview →
+**written conditional offer** → background check and work authorization →
+first day. The order matters, and the code enforces it.
+
+**Nothing sensitive is collected before a conditional offer.** `apply.html` asks
+for no Social Security number, no date of birth, no driver licence number and no
+documents. After an offer, admin issues a one-time token that unlocks
+`onboarding.html`, where the candidate signs:
+
+- The **FCRA disclosure and authorization** for a background check. The
+  disclosure is rendered in its own bordered block containing the disclosure and
+  nothing else, with the authorization separate from it — that standalone
+  requirement (15 U.S.C. § 1681b(b)(2)) is what most employers get wrong.
+- A **separate** motor-vehicle-record authorization, shown only for roles whose
+  `drives` flag is true.
+- Acknowledgment of the Form I-9 process and the drug-free workplace policy.
+
+Identifiers (SSN, date of birth) go to the consumer reporting agency through
+its own portal — this app never stores them. I-9 documents are examined in
+person on day one. What `prehire_authorizations` stores is the evidence of
+consent: who signed what, when, and from which IP.
+
+Two Florida-specific things the code does on purpose:
+
+- `apply.html` asks the conviction question, collects references and employment
+  history, captures driving-record consent, and the process includes an
+  interview — the elements s.768.096, Fla. Stat. sets out for the presumption
+  against negligent-hiring liability. A "yes" is presented for individual
+  assessment, never as an automatic disqualification, and the page tells
+  applicants not to disclose arrests without conviction, sealed or expunged
+  records, or juvenile matters.
+- `careers-process.html` describes E-Verify as running **post-hire within three
+  business days** per s.448.095, Fla. Stat., applied to every hire so nothing
+  has to change when headcount passes 25. It is never used to pre-screen.
+
+`careers-process.html` is the public version of all of this. Keep it accurate —
+it is what an applicant will hold you to.
+
+**This is a working process, not legal advice.** Have an employment attorney
+review `careers-process.html`, `apply.html` and `onboarding.html` before the
+first hire, and get the actual drug-free workplace policy and FCRA Summary of
+Rights PDFs in place — the pages reference them as attachments to the offer
+email.
+
+## Vendors
+
+`vendors.html` publishes the 18 trade categories we subcontract and the Florida
+licence each requires; `vendors-data.js` is the single source for both that page
+and the submission form. `vendors-bid.html` captures licence, insurance,
+service area, response times and a rate card.
+
+Two rules are enforced in the API, not just the browser, because both are real
+liability:
+
+- A vendor with neither workers' compensation coverage nor a valid Florida
+  exemption certificate is refused. If a subcontractor has no coverage, its
+  workers become the hiring contractor's employees for injury purposes.
+- A vendor selecting a licensed trade without a licence number is refused,
+  because an unverifiable licence cannot be verified.
+
+`PATCH /api/vendors/:id` will not set a vendor to `approved` until its licence
+is marked verified (where the trade needs one), its certificate of insurance is
+recorded, and workers' comp is confirmed. Verify licences **directly with the
+issuing authority** — myfloridalicense.com for DBPR, fdacs.gov for pest
+control — not from a photo of a card. `migrations/022` includes an index on
+`license_expires` for approved vendors; querying it weekly is how you catch a
+lapse before it becomes a claim.
+
+## Reviewing applicants and vendors
+
+Both live in `/admin.html` (`admin-hiring.js`) behind the same admin token as
+the content and pricing editors. Applicants can be moved through the status
+pipeline, annotated, and issued the pre-hire link; vendors can be marked
+verified, checked off for COI/W-9/workers' comp, and approved.

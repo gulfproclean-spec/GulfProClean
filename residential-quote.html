@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gulf ProClean — commercial cleaning</title>
-<meta name="description" content="Janitorial and deep cleaning for offices, restaurants and retail from Pensacola to Panama City Beach, on a schedule that matches your hours." />
+<title>Get a residential quote — Gulf ProClean</title>
+<meta name="description" content="Estimate your residential cleaning price from square footage, service tier and frequency, then book online." />
 <script src="./ds-base.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
 // `const` declarations inside an indirect eval stay in that eval's own lexical
 // scope, so separate evals would not see each other's constants.
 (async () => {
-  const MODULES = ["tweaks-panel.jsx", "gulfproclean-shared.jsx"];
+  const MODULES = ["gulfproclean-shared.jsx", "residential-sections.jsx"];
   try {
     const parts = await Promise.all(MODULES.map(p => fetch(p).then(r => {
       if (!r.ok) throw new Error('could not load ' + p);
@@ -54,45 +54,20 @@
 </script>
 <script type="text/plain" id="app-script">
 
-// commercial.html is now the overview page for the commercial side. The sections that used to
-// scroll underneath it — service tiers, plans, add-ons, the quote calculator —
-// each live on their own page now and are listed by <SectionIndex>. Their code
-// is in commercial-sections.jsx.
-
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "palette": ["#153238", "#b68235"],
-  "heroPhoto": true
-}/*EDITMODE-END*/;
-
-function App() {
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [navy, gold] = t.palette;
-  const content = useSiteContent('commercial', DEFAULT_CONTENT_COMMERCIAL);
-  useLegacyAnchorRedirect('commercial');
-
+function Page() {
+  const pricing = usePricing('residential', DEFAULT_PRICING_RESIDENTIAL);
+  const content = useSiteContent('residential', DEFAULT_CONTENT_RESIDENTIAL);
+  const preset = usePlanPreset();
+  const [booking, setBooking] = React.useState("Subscription");
   return (
-    <div style={{ background: CREAM }}>
-      <Nav navy={navy} gold={gold} side="commercial" active="commercial.html" />
-      <PromoBanner navy={navy} gold={gold} />
-      <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero}
-            image="assets/commercial-hero.jpg" quoteHref="commercial-quote.html" tiersHref="commercial-tiers.html" />
-      <Services navy={navy} items={content.services} />
-      <SectionIndex side="commercial" navy={navy} gold={gold} />
-      <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
-      <SiteFooter side="commercial" />
-      <TweaksPanel>
-        <TweakSection label="Theme" />
-        <TweakColor label="Palette" value={t.palette}
-          options={[["#153238", "#b68235"], ["#201f1d", "#b68235"], ["#2d3f47", "#c9a227"]]}
-          onChange={(v) => setTweak('palette', v)} />
-        <TweakToggle label="Full-bleed photo hero" value={t.heroPhoto}
-          onChange={(v) => setTweak('heroPhoto', v)} />
-      </TweaksPanel>
-    </div>
+    <SectionPage side="residential" current="residential-quote.html">
+      <Calculator navy={NAVY} gold={GOLD} pricing={pricing} preset={preset} />
+      <Quote navy={NAVY} text={content.quote.text} caption={content.quote.caption} />
+    </SectionPage>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<Page />);
 
 </script>
 </body>

@@ -11,6 +11,23 @@ const TRACKED_PATHS = {
   '/contact.html': 'contact',
   '/book.html': 'book',
   '/account.html': 'account',
+  '/residential-tiers.html': 'residential-tiers',
+  '/residential-plans.html': 'residential-plans',
+  '/residential-addons.html': 'residential-addons',
+  '/residential-quote.html': 'residential-quote',
+  '/residential-home-os.html': 'residential-home-os',
+  '/commercial-tiers.html': 'commercial-tiers',
+  '/commercial-plans.html': 'commercial-plans',
+  '/commercial-addons.html': 'commercial-addons',
+  '/commercial-quote.html': 'commercial-quote',
+  '/careers.html': 'careers',
+  '/careers-job.html': 'careers-job',
+  '/careers-process.html': 'careers-process',
+  '/apply.html': 'apply',
+  '/vendors.html': 'vendors',
+  '/vendors-bid.html': 'vendors-bid',
+  // onboarding.html is deliberately absent: it is reached only from a personal
+  // token link, and counting it would put candidate activity in a traffic report.
 };
 
 export async function onRequest(context) {

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Apply — Gulf ProClean</title>
+<meta name="description" content="Apply for a job with Gulf ProClean. Ten minutes, no documents needed yet." />
+<meta name="robots" content="noindex" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site-pages.css">
+</head>
+<body>
+<div id="site-nav"></div>
+
+<main class="wrap narrow" style="padding-top:40px;padding-bottom:60px;">
+  <p style="font-size:13px;color:var(--muted);margin:0 0 26px;">
+    <a href="careers.html" style="color:var(--gold-dark)">← All openings</a>
+  </p>
+
+  <span class="kicker">Employment application</span>
+  <h1 class="page" style="font-size:clamp(30px,4.2vw,42px)">Apply to Gulf ProClean</h1>
+  <p class="lead" id="role-line">Applying for a position with Gulf ProClean.</p>
+
+  <div class="notice">
+    <strong>Do not send documents yet.</strong> This application asks for no Social Security number, no date of birth, no driver license image and no immigration paperwork. If we make you a conditional offer, we will send you a separate secure link to complete Form I-9 and authorize a background check at that point — and not before.
+  </div>
+
+  <form id="application-form" novalidate>
+    <fieldset>
+      <legend>About you</legend>
+      <div class="row">
+        <label class="field"><span class="label">First name *</span><input type="text" name="first_name" autocomplete="given-name" required></label>
+        <label class="field"><span class="label">Last name *</span><input type="text" name="last_name" autocomplete="family-name" required></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">Email *</span><input type="email" name="email" autocomplete="email" required></label>
+        <label class="field"><span class="label">Phone *</span><input type="tel" name="phone" autocomplete="tel" required></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">City you live in *</span><input type="text" name="city" autocomplete="address-level2" required></label>
+        <label class="field"><span class="label">ZIP code</span><input type="text" name="zip" autocomplete="postal-code" inputmode="numeric"></label>
+      </div>
+      <label class="field">
+        <span class="label">How far are you willing to travel for work?</span>
+        <select name="travel_radius">
+          <option value="">Select…</option>
+          <option>Within my own city only</option>
+          <option>Up to 25 miles</option>
+          <option>Up to 50 miles</option>
+          <option>Anywhere in the service area (Pensacola to Panama City Beach)</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Eligibility</legend>
+      <label class="field">
+        <span class="label">Are you 18 years of age or older? *</span>
+        <select name="is_adult" required>
+          <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">Are you legally authorized to work in the United States? *</span>
+        <select name="work_authorized" required>
+          <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+        <span class="hint">If you are hired, federal law requires you to complete Form I-9 and present acceptable documents on your first day. We do not ask about your citizenship, national origin or immigration status, and we do not ask for documents now.</span>
+      </label>
+      <label class="field">
+        <span class="label">Will you now, or in the future, require sponsorship for employment visa status? *</span>
+        <select name="needs_sponsorship" required>
+          <option value="">Select…</option><option value="no">No</option><option value="yes">Yes</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Availability</legend>
+      <div class="row">
+        <label class="field">
+          <span class="label">Employment type you want *</span>
+          <select name="employment_type" required>
+            <option value="">Select…</option>
+            <option>Full-time</option><option>Part-time</option><option>Either</option><option>Seasonal</option>
+          </select>
+        </label>
+        <label class="field"><span class="label">Earliest start date</span><input type="date" name="start_date"></label>
+      </div>
+      <span class="label" style="display:block;font-size:12.5px;color:var(--muted);margin-bottom:8px;">Days you can work *</span>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;" id="days-box"></div>
+      <span class="label" style="display:block;font-size:12.5px;color:var(--muted);margin-bottom:8px;">Shifts you can work *</span>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:6px;" id="shifts-box"></div>
+    </fieldset>
+
+    <fieldset id="driving-block">
+      <legend>Transportation &amp; driving</legend>
+      <div class="row">
+        <label class="field">
+          <span class="label">Do you have a valid driver license? *</span>
+          <select name="has_license" required>
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+          </select>
+        </label>
+        <label class="field"><span class="label">Issuing state</span><input type="text" name="license_state" maxlength="2" placeholder="FL" style="text-transform:uppercase"></label>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span class="label">Do you have reliable transportation to job sites? *</span>
+          <select name="reliable_transport" required>
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Do you carry auto insurance meeting Florida requirements?</span>
+          <select name="auto_insurance">
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option><option value="na">Not applicable</option>
+          </select>
+        </label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="dl_consent" name="dl_consent">
+        <label for="dl_consent">This position involves driving. I authorize Gulf ProClean to obtain a copy of my driving record from the state that issued my license, in connection with this application. <span class="hint" style="margin-top:4px;">We will ask for your license number only if we make you a conditional offer — do not enter it here.</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Experience</legend>
+      <label class="field">
+        <span class="label">Years of relevant cleaning, janitorial, hospitality or trades experience *</span>
+        <select name="years_experience" required>
+          <option value="">Select…</option>
+          <option>None — but I want to learn</option><option>Less than 1 year</option>
+          <option>1–2 years</option><option>3–5 years</option><option>More than 5 years</option>
+        </select>
+      </label>
+      <div id="employers"></div>
+      <button type="button" class="btn-ghost" id="add-employer" style="font-size:14px;padding:9px 18px;">+ Add another employer</button>
+      <label class="field" style="margin-top:22px;">
+        <span class="label">Anything else you want us to know</span>
+        <textarea name="notes" rows="4" placeholder="Certifications, equipment you have run, languages you speak, scheduling constraints…"></textarea>
+      </label>
+      <label class="field">
+        <span class="label">Link to a résumé (optional)</span>
+        <input type="url" name="resume_url" placeholder="https://…">
+        <span class="hint">A Google Drive, Dropbox or Indeed link is fine. You can also bring a paper copy to the interview — a résumé is not required for field roles.</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>References</legend>
+      <p class="body" style="margin-top:0;">Two people who have seen you work. A former supervisor is worth more to us than a friend.</p>
+      <div class="row">
+        <label class="field"><span class="label">Reference 1 — name</span><input type="text" name="ref1_name"></label>
+        <label class="field"><span class="label">Relationship</span><input type="text" name="ref1_relationship" placeholder="Former supervisor"></label>
+        <label class="field"><span class="label">Phone</span><input type="tel" name="ref1_phone"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">Reference 2 — name</span><input type="text" name="ref2_name"></label>
+        <label class="field"><span class="label">Relationship</span><input type="text" name="ref2_relationship"></label>
+        <label class="field"><span class="label">Phone</span><input type="tel" name="ref2_phone"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Criminal history</legend>
+      <p class="body" style="margin-top:0;">
+        Our technicians work inside occupied homes and hold keys and alarm codes for businesses, so Florida law
+        (section 768.096, Florida Statutes) expects us to ask this. Please read how we use the answer before you give it.
+      </p>
+      <div class="notice" style="margin-top:16px;">
+        <strong>A conviction does not automatically disqualify you.</strong> We look at what the offense was, how long ago it
+        happened, what you have done since, and whether it actually relates to the job you are applying for. Answer honestly —
+        being untruthful here is what ends an application, not the record itself.
+        <br><br>
+        Do <strong>not</strong> disclose arrests that did not lead to conviction, charges that were dismissed, adjudication
+        withheld without conviction, sealed or expunged records, or juvenile matters. We are not asking about those and you
+        are not required to tell us.
+      </div>
+      <label class="field">
+        <span class="label">Have you ever been convicted of a crime? *</span>
+        <select name="convicted" required>
+          <option value="">Select…</option><option value="no">No</option><option value="yes">Yes</option>
+        </select>
+      </label>
+      <label class="field" id="conviction-detail" style="display:none;">
+        <span class="label">If yes, please describe: the offense, the approximate date, and anything you would like us to consider</span>
+        <textarea name="conviction_explanation" rows="4"></textarea>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Notices</legend>
+      <div class="notice" style="margin:0 0 18px;">
+        <strong>Drug-free workplace.</strong> Gulf ProClean maintains a drug-free workplace. Positions involving driving,
+        operating powered equipment, or unsupervised access to customer property are subject to drug testing, including
+        pre-employment testing after a conditional offer, and testing on reasonable suspicion or after a workplace accident,
+        in accordance with sections 440.101–440.102, Florida Statutes. You will receive the full written policy, including
+        the list of substances tested and your right to contest a result with the Medical Review Officer within five working
+        days, before any test is administered.
+      </div>
+      <div class="notice" style="margin:0 0 18px;">
+        <strong>Employment eligibility.</strong> All new hires complete federal Form I-9 on their first day of work.
+        Where required, Gulf ProClean also verifies employment eligibility through E-Verify within three business days of
+        the first day worked, as required by section 448.095, Florida Statutes. E-Verify is not used to pre-screen
+        applicants and is never run before a hire.
+      </div>
+      <div class="check">
+        <input type="checkbox" id="ack_truth" name="ack_truth" required>
+        <label for="ack_truth">I certify that the information I have given in this application is true and complete to the best of my knowledge. I understand that a material misstatement or omission may result in my application being rejected, or in termination if it is discovered after I am hired. *</label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="ack_contingent" name="ack_contingent" required>
+        <label for="ack_contingent">I understand that any offer of employment is conditional on satisfactory completion of a background check conducted with my separate written authorization under the federal Fair Credit Reporting Act, on verification of my authorization to work in the United States, and, where applicable, on a pre-employment drug test. *</label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="ack_atwill" name="ack_atwill" required>
+        <label for="ack_atwill">I understand that employment with Gulf ProClean is at will, that this application is not a contract of employment, and that either party may end the employment relationship at any time. *</label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="ack_references" name="ack_references">
+        <label for="ack_references">I authorize Gulf ProClean to contact the employers and references listed above, except any employer I marked "do not contact," and I release them from liability for providing information about my work.</label>
+      </div>
+      <div class="row" style="margin-top:20px;">
+        <label class="field">
+          <span class="label">Type your full name as your signature *</span>
+          <input type="text" name="signature" required placeholder="Your full legal name">
+        </label>
+        <label class="field">
+          <span class="label">Today's date</span>
+          <input type="text" name="signed_date" id="signed-date" readonly style="background:var(--cream);">
+        </label>
+      </div>
+    </fieldset>
+
+    <label class="field">
+      <span class="label">How did you hear about us?</span>
+      <select name="source">
+        <option value="">Select…</option>
+        <option>Indeed or another job board</option><option>Facebook</option>
+        <option>A current Gulf ProClean employee</option><option>A customer</option>
+        <option>Saw our vehicle or a yard sign</option><option>Google search</option><option>Other</option>
+      </select>
+    </label>
+
+    <p id="form-error" class="msg-error" style="display:none;"></p>
+    <p style="margin-top:26px;">
+      <button type="submit" class="btn" id="submit-btn">Submit application</button>
+    </p>
+    <p class="legal" style="margin-top:16px;">Gulf ProClean is an equal opportunity employer. We do not discriminate on the basis of race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, genetic information, marital status, veteran status, or any other characteristic protected by law. If you need an accommodation to complete this application, email <a href="mailto:gulfproclean@gmail.com" style="color:var(--gold-dark)">gulfproclean@gmail.com</a> and it will not affect your candidacy.</p>
+  </form>
+
+  <div id="success" style="display:none;">
+    <span class="kicker">Application received</span>
+    <h1 class="page" style="font-size:clamp(28px,4vw,38px)">Thank you — we have it.</h1>
+    <p class="lead">A confirmation is on its way to the email address you gave us. Someone will review your application and reach out within about five business days. If your experience fits a role we are actively filling, the next step is a short phone call.</p>
+    <p class="lead">Nothing else is needed from you right now. Please do not send documents until we ask.</p>
+    <p style="margin-top:28px;"><a class="btn" href="careers.html">Back to openings</a></p>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="site-chrome.js"></script>
+<script src="careers-data.js"></script>
+<script src="apply-form.js"></script>
+</body>
+</html>
