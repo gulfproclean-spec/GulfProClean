@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Submit vendor pricing — Gulf ProClean</title>
+<meta name="description" content="Licensed Florida trades: submit your license, insurance and rate card to join Gulf ProClean's vendor bench." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site-pages.css">
+</head>
+<body>
+<div id="site-nav"></div>
+
+<main class="wrap narrow" style="padding-top:40px;padding-bottom:60px;">
+  <p style="font-size:13px;color:var(--muted);margin:0 0 26px;">
+    <a href="vendors.html" style="color:var(--gold-dark)">← Vendor overview</a>
+  </p>
+
+  <span class="kicker">Vendor submission</span>
+  <h1 class="page" style="font-size:clamp(30px,4.2vw,42px)">Submit your pricing</h1>
+  <p class="lead">About fifteen minutes. We verify your license against the issuing authority before anything is dispatched, so give us the number exactly as it appears on the license.</p>
+
+  <div class="notice">
+    <strong>Do not attach documents here.</strong> Once we have verified your license we will email you for your certificate of insurance,
+    workers' compensation certificate or exemption, and W-9. Nothing sensitive goes through this form, and we never ask for
+    bank details by email.
+  </div>
+
+  <form id="vendor-form" novalidate>
+    <fieldset>
+      <legend>Your business</legend>
+      <label class="field"><span class="label">Legal business name *</span><input type="text" name="business_name" required></label>
+      <label class="field"><span class="label">DBA / trade name (if different)</span><input type="text" name="dba"></label>
+      <div class="row">
+        <label class="field"><span class="label">Contact name *</span><input type="text" name="contact_name" required></label>
+        <label class="field"><span class="label">Title / role</span><input type="text" name="contact_title" placeholder="Owner, estimator, dispatcher…"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">Email *</span><input type="email" name="email" required></label>
+        <label class="field"><span class="label">Office phone *</span><input type="tel" name="phone" required></label>
+        <label class="field"><span class="label">After-hours / emergency phone</span><input type="tel" name="emergency_phone"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">Website</span><input type="url" name="website" placeholder="https://…"></label>
+        <label class="field"><span class="label">Years in business</span><input type="number" name="years_in_business" min="0" max="120"></label>
+        <label class="field"><span class="label">Number of field technicians</span><input type="number" name="crew_size" min="0" max="999"></label>
+      </div>
+      <label class="field"><span class="label">Business mailing address</span><input type="text" name="address" placeholder="Street, city, FL, ZIP"></label>
+      <div class="row">
+        <label class="field">
+          <span class="label">Business structure</span>
+          <select name="entity_type">
+            <option value="">Select…</option>
+            <option>Sole proprietor</option><option>LLC</option><option>S-Corp</option>
+            <option>C-Corp</option><option>Partnership</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Do you have a W-9 ready to send? *</span>
+          <select name="has_w9" required>
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">Not yet</option>
+          </select>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Trades &amp; service area</legend>
+      <span class="label" style="display:block;font-size:12.5px;color:var(--muted);margin-bottom:10px;">Which trades do you provide? *</span>
+      <div id="trades-box" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:20px;"></div>
+      <label class="field">
+        <span class="label">Anything else you do that is not listed</span>
+        <input type="text" name="other_trades">
+      </label>
+      <span class="label" style="display:block;font-size:12.5px;color:var(--muted);margin-bottom:10px;">Areas you cover *</span>
+      <div id="areas-box" style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:20px;"></div>
+      <div class="row">
+        <label class="field">
+          <span class="label">Do you serve residential, commercial, or both? *</span>
+          <select name="property_types" required>
+            <option value="">Select…</option>
+            <option>Both residential and commercial</option>
+            <option>Residential only</option><option>Commercial only</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Do you cover storm-season emergency work?</span>
+          <select name="storm_coverage">
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+          </select>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Licensing</legend>
+      <p class="body" style="margin-top:0;">If your trade requires a Florida license, we verify it before dispatch. If your trade has no statewide license, say so and give us your county business tax receipt number instead.</p>
+      <div class="row">
+        <label class="field">
+          <span class="label">Does your trade require a Florida state license? *</span>
+          <select name="license_required" required>
+            <option value="">Select…</option>
+            <option value="yes">Yes — I hold one</option>
+            <option value="no">No statewide license required for my trade</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Issuing authority</span>
+          <select name="license_authority">
+            <option value="">Select…</option>
+            <option>DBPR — Construction Industry Licensing Board (CILB)</option>
+            <option>DBPR — Electrical Contractors' Licensing Board (ECLB)</option>
+            <option>DBPR — Mold-Related Services</option>
+            <option>FDACS — Pest control (Ch. 482)</option>
+            <option>Florida Dept. of Health — Septic</option>
+            <option>State Fire Marshal</option>
+            <option>County / municipal license only</option>
+            <option>Other</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span class="label">License / registration number</span>
+          <input type="text" name="license_number" placeholder="e.g. CFC1428XXX">
+          <span class="hint">Exactly as printed on the license — we search it directly with the issuing authority.</span>
+        </label>
+        <label class="field"><span class="label">License holder's name</span><input type="text" name="license_holder" placeholder="Qualifier / certified operator"></label>
+        <label class="field"><span class="label">Expiration date</span><input type="date" name="license_expires"></label>
+      </div>
+      <label class="field">
+        <span class="label">Additional certifications</span>
+        <input type="text" name="certifications" placeholder="IICRC WRT, EPA 608, FDACS applicator, NADCA…">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Insurance</legend>
+      <div class="row">
+        <label class="field"><span class="label">General liability carrier *</span><input type="text" name="gl_carrier" required></label>
+        <label class="field">
+          <span class="label">General liability limit *</span>
+          <select name="gl_limit" required>
+            <option value="">Select…</option>
+            <option>Under $500,000</option><option>$500,000</option>
+            <option>$1,000,000</option><option>$2,000,000</option><option>Over $2,000,000</option>
+          </select>
+        </label>
+        <label class="field"><span class="label">GL expiration</span><input type="date" name="gl_expires"></label>
+      </div>
+      <label class="field">
+        <span class="label">Workers' compensation *</span>
+        <select name="workers_comp" required>
+          <option value="">Select…</option>
+          <option value="covered">We carry workers' compensation coverage</option>
+          <option value="exempt">We hold a valid Florida exemption certificate</option>
+          <option value="none">Neither</option>
+        </select>
+        <span class="hint">Construction-trade vendors need coverage from the first employee; non-construction from the fourth. If a subcontractor has no coverage, its workers become the hiring contractor's employees for injury purposes — so we cannot dispatch without one or the other.</span>
+      </label>
+      <div class="row">
+        <label class="field">
+          <span class="label">Commercial auto insurance?</span>
+          <select name="auto_insurance">
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Can you name Gulf ProClean as certificate holder / additional insured? *</span>
+          <select name="can_name_holder" required>
+            <option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span class="label">Do your field technicians undergo criminal background screening? *</span>
+        <select name="tech_screening" required>
+          <option value="">Select…</option>
+          <option value="all">Yes — all technicians</option>
+          <option value="some">Some technicians</option>
+          <option value="none">No</option>
+        </select>
+        <span class="hint">Your people will be inside occupied homes, often with our access. We will ask about your standard.</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Pricing</legend>
+      <p class="body" style="margin-top:0;">This is the part that puts you on the dispatch list. Give us real numbers you will honor — we reconcile invoices against what you submit here.</p>
+      <div class="row">
+        <label class="field"><span class="label">Standard hourly rate ($) *</span><input type="number" name="hourly_rate" min="0" step="0.01" required></label>
+        <label class="field"><span class="label">After-hours / weekend rate ($)</span><input type="number" name="afterhours_rate" min="0" step="0.01"></label>
+        <label class="field"><span class="label">Emergency call-out rate ($)</span><input type="number" name="emergency_rate" min="0" step="0.01"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">Trip / diagnostic fee ($)</span><input type="number" name="trip_fee" min="0" step="0.01"></label>
+        <label class="field"><span class="label">Minimum charge per visit ($)</span><input type="number" name="minimum_charge" min="0" step="0.01"></label>
+        <label class="field"><span class="label">Materials markup (%)</span><input type="number" name="materials_markup" min="0" max="200" step="0.1"></label>
+      </div>
+      <label class="field">
+        <span class="label">Flat-rate pricing for your common jobs *</span>
+        <textarea name="flat_rates" rows="6" required placeholder="One per line, e.g.&#10;Water heater replacement (40 gal, standard) — $1,450 installed&#10;Garbage disposal replacement — $325&#10;Toilet reset with new wax ring — $185&#10;Drain clear, single fixture — $210"></textarea>
+        <span class="hint">The more of your routine work is priced here, the more we can dispatch without stopping to quote.</span>
+      </label>
+      <div class="row">
+        <label class="field">
+          <span class="label">Response time — routine *</span>
+          <select name="response_routine" required>
+            <option value="">Select…</option>
+            <option>Same day</option><option>Next business day</option>
+            <option>2–3 business days</option><option>Within a week</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Response time — emergency</span>
+          <select name="response_emergency">
+            <option value="">Select…</option>
+            <option>Within 2 hours</option><option>Within 4 hours</option>
+            <option>Same day</option><option>Next day</option><option>We do not take emergency calls</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span class="label">Payment terms you want *</span>
+          <select name="payment_terms" required>
+            <option value="">Select…</option>
+            <option>Due on completion</option><option>Net 15</option>
+            <option>Net 30</option><option>Net 45</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Do you warranty your work?</span>
+          <select name="warranty">
+            <option value="">Select…</option>
+            <option>30 days</option><option>90 days</option><option>1 year</option>
+            <option>Manufacturer warranty only</option><option>No warranty</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span class="label">Volume or preferred-vendor discount you would offer</span>
+        <input type="text" name="volume_discount" placeholder="e.g. 10% off hourly at 10+ jobs/month, or no trip fee on scheduled work">
+      </label>
+      <label class="field">
+        <span class="label">How long do these prices hold?</span>
+        <select name="price_validity">
+          <option value="">Select…</option>
+          <option>90 days</option><option>6 months</option>
+          <option>Through the end of this calendar year</option><option>12 months</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>References &amp; notes</legend>
+      <div class="row">
+        <label class="field"><span class="label">Commercial reference 1 — company</span><input type="text" name="ref1_company"></label>
+        <label class="field"><span class="label">Contact &amp; phone</span><input type="text" name="ref1_contact"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="label">Commercial reference 2 — company</span><input type="text" name="ref2_company"></label>
+        <label class="field"><span class="label">Contact &amp; phone</span><input type="text" name="ref2_contact"></label>
+      </div>
+      <label class="field">
+        <span class="label">Anything else we should know</span>
+        <textarea name="notes" rows="4" placeholder="Capacity, equipment, specialties, blackout dates, properties you already service…"></textarea>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Certification</legend>
+      <div class="check">
+        <input type="checkbox" id="cert_accurate" name="cert_accurate" required>
+        <label for="cert_accurate">I certify that the license, insurance and pricing information above is accurate and current, and that I am authorized to submit it on behalf of this business. *</label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="cert_verify" name="cert_verify" required>
+        <label for="cert_verify">I authorize Gulf ProClean to verify my license with the issuing authority and to confirm my insurance coverage with my carrier or agent. *</label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="cert_notify" name="cert_notify" required>
+        <label for="cert_notify">I will notify Gulf ProClean within five business days if my license lapses or is disciplined, or if my insurance is cancelled or non-renewed. I understand dispatch is paused until coverage is current again. *</label>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="cert_honor" name="cert_honor">
+        <label for="cert_honor">I will honor the rates submitted above for the validity period I selected, and will give written notice before changing them.</label>
+      </div>
+      <div class="row" style="margin-top:20px;">
+        <label class="field"><span class="label">Type your full name as your signature *</span><input type="text" name="signature" required></label>
+        <label class="field"><span class="label">Today's date</span><input type="text" name="signed_date" id="signed-date" readonly style="background:var(--cream);"></label>
+      </div>
+    </fieldset>
+
+    <p id="form-error" class="msg-error" style="display:none;"></p>
+    <p style="margin-top:24px;"><button type="submit" class="btn" id="submit-btn">Submit pricing</button></p>
+    <p class="legal" style="margin-top:16px;">Submitting this form is not an agreement to use your services, and it does not create a contract. It puts you into our vendor review queue. Gulf ProClean does not discriminate among vendors on any basis prohibited by law.</p>
+  </form>
+
+  <div id="success" style="display:none;">
+    <span class="kicker">Submission received</span>
+    <h1 class="page" style="font-size:clamp(28px,4vw,38px)">Got it — thank you.</h1>
+    <p class="lead">We will verify your license with the issuing authority and review your rates, usually within two to three business days. If it looks like a fit, we will email you for your certificate of insurance, workers' compensation certificate or exemption, and W-9, and set up a short call about terms.</p>
+    <p class="lead">Nothing else is needed from you right now.</p>
+    <p style="margin-top:28px;"><a class="btn" href="vendors.html">Back to vendor info</a></p>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="site-chrome.js"></script>
+<script src="vendors-data.js"></script>
+<script src="vendors-form.js"></script>
+</body>
+</html>
