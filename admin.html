@@ -32,6 +32,28 @@
   table.visits-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13.5px; }
   table.visits-table th { text-align: left; font-size: 11px; color: #7a746a; text-transform: uppercase; letter-spacing: 0.04em; padding: 0 0 8px; border-bottom: 1px solid #d8d3c8; }
   table.visits-table td { padding: 8px 0; border-bottom: 1px solid #e3ded2; text-transform: capitalize; }
+  .rev-item { border: 1px solid #d8d3c8; border-radius: 6px; background: #fff; padding: 16px 18px; margin-bottom: 12px; }
+  .rev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .rev-head strong { font-size: 16px; }
+  .rev-meta { font-size: 13px; color: #7a746a; margin: 6px 0 0; }
+  .rev-body { display: none; margin-top: 14px; border-top: 1px solid #e3ded2; padding-top: 14px; font-size: 13.5px; line-height: 1.6; }
+  .rev-body.open { display: block; }
+  .rev-body dl { display: grid; grid-template-columns: 200px 1fr; gap: 4px 14px; margin: 0 0 14px; }
+  .rev-body dt { color: #7a746a; }
+  .rev-body dd { margin: 0; }
+  .rev-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .rev-actions select, .rev-actions input[type=text] { padding: 7px 9px; border: 1px solid #d8d3c8; border-radius: 4px; font-size: 13px; font-family: inherit; }
+  .rev-actions button { padding: 7px 14px; font-size: 13px; }
+  .rev-actions button.secondary { background: #e3ded2; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; background: #e3ded2; color: #153238; }
+  .badge.new { background: #153238; color: #fff; }
+  .badge.hired, .badge.approved { background: #1a7a3d; color: #fff; }
+  .badge.declined, .badge.rejected { background: #b3261e; color: #fff; }
+  .badge.warn { background: #b68235; color: #153238; }
+  .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filters select { padding: 7px 9px; border: 1px solid #d8d3c8; border-radius: 4px; font-size: 13px; }
+  .checklist { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; font-size: 13px; }
+  .checklist label { display: flex; gap: 6px; align-items: center; }
 </style>
 </head>
 <body>
@@ -50,6 +72,47 @@
         <thead><tr><th>Page</th><th>Views</th></tr></thead>
         <tbody id="visits-tbody"></tbody>
       </table>
+    </div>
+
+    <div class="page-block">
+      <h2>Applicants</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">
+        Job applications from <a href="apply.html" style="color:#8a6221">apply.html</a>.
+        "Send pre-hire link" issues the FCRA authorization page — only do that once you have made a
+        written conditional offer.
+      </p>
+      <div class="filters">
+        <select id="app-filter-status">
+          <option value="">All statuses</option>
+          <option value="new">New</option><option value="screening">Screening</option>
+          <option value="interview">Interview</option><option value="working_interview">Working interview</option>
+          <option value="offer">Offer</option><option value="onboarding">Onboarding</option>
+          <option value="hired">Hired</option><option value="declined">Declined</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+        <select id="app-filter-role"><option value="">All roles</option></select>
+        <button class="secondary" id="app-refresh" style="background:#e3ded2">Refresh</button>
+      </div>
+      <div id="applicants-list">Loading…</div>
+    </div>
+
+    <div class="page-block">
+      <h2>Vendors</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">
+        Pricing submissions from <a href="vendors-bid.html" style="color:#8a6221">vendors-bid.html</a>.
+        A vendor cannot be approved until its licence is verified with the issuing authority and its
+        insurance is confirmed — the server enforces that, not just this screen.
+      </p>
+      <div class="filters">
+        <select id="vendor-filter-status">
+          <option value="">All statuses</option>
+          <option value="new">New</option><option value="verifying">Verifying</option>
+          <option value="approved">Approved</option><option value="rejected">Rejected</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button class="secondary" id="vendor-refresh" style="background:#e3ded2">Refresh</button>
+      </div>
+      <div id="vendors-list">Loading…</div>
     </div>
     <div class="page-block">
       <h2>Residential page</h2>
@@ -256,6 +319,7 @@ document.getElementById('unlock').addEventListener('click', async () => {
   token = document.getElementById('token').value.trim();
   if (!token) return;
   document.getElementById('editors').style.display = 'block';
+  GPC_HIRING.init(token);
   await Promise.all([loadVisits()].concat(['residential', 'commercial'].map(loadPage)).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
 });
 
@@ -292,5 +356,7 @@ document.querySelectorAll('button[data-page]').forEach(btn => {
   });
 });
 </script>
+<script src="careers-data.js"></script>
+<script src="admin-hiring.js"></script>
 </body>
 </html>
