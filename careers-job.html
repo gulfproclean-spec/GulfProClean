@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Job description — Gulf ProClean</title>
-<meta name="description" content="Full job description, pay range, requirements and physical demands for an open position at Gulf ProClean." />
+<meta name="description" content="Full job description, pay range, benefits and requirements for an open position at Gulf ProClean." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site-pages.css">
@@ -63,12 +63,16 @@
     list('What we need from you', job.requirements) +
     list('Nice to have', job.preferred) +
     list('Physical demands', job.physical) +
+    list('Benefits &amp; bonuses for this role', job.benefits) +
+    (job.benefits && job.benefits.length
+      ? '<p class="body" style="margin-top:12px;">Full detail on how these build over time — <a href="careers.html#benefits" style="color:var(--gold-dark)">see the company benefits &amp; bonus program →</a></p>'
+      : '') +
     '<div class="notice" style="margin-top:40px;">' +
       '<strong>Before you apply, so nothing is a surprise:</strong> this role is contingent on a criminal background check and on verifying your authorization to work in the United States. ' +
       'Both happen <em>after</em> we make you a conditional offer, not now — and the background check only runs once you have signed a written authorization. ' +
       '<a href="careers-process.html" style="color:var(--gold-dark)">See exactly what we check and how we decide →</a>' +
     '</div>' +
-    '<p class="legal" style="margin-top:24px;">Gulf ProClean is an equal opportunity employer and does not discriminate on the basis of race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, genetic information, marital status, veteran status, or any other protected characteristic. Employment is at will. Reasonable accommodation is available on request at any stage of the hiring process. The pay range above reflects what we expect to pay for this role; actual pay depends on experience.</p>' +
+    '<p class="legal" style="margin-top:24px;">Gulf ProClean is an equal opportunity employer and does not discriminate on the basis of race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, genetic information, marital status, veteran status, or any other protected characteristic. Employment is at will. Reasonable accommodation is available on request at any stage of the hiring process. The pay range above reflects what we expect to pay for this role; actual pay depends on experience. Benefits and bonus amounts are current as of this posting, are not a contract or a guarantee of continued employment, and may change at Gulf ProClean\'s discretion.</p>' +
     '<p style="margin-top:30px;"><a class="btn" href="apply.html?role=' + encodeURIComponent(job.slug) + '">Apply for this role</a> ' +
       '<a class="btn-ghost" href="careers.html" style="margin-left:10px;">See other openings</a></p>';
 })();
