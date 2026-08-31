@@ -12,11 +12,17 @@
 //
 // BENEFITS NOTE: window.GPC_BENEFITS below is the company-wide benefits and
 // bonus program, rendered in full on careers.html (#benefits) and summarized
-// per role via each job's `benefits` array on careers-job.html. Amounts here
-// are drafts too — confirm them the same way before this goes live. Keep the
-// disclaimer text intact: benefits/bonus amounts described as current and
-// discretionary, not a contract, so this stays consistent with Gulf
-// ProClean's at-will employment language everywhere else on the site.
+// per role via each job's `benefits` array on careers-job.html.
+//
+// DELIBERATELY KEPT GENERAL: these describe *categories and eligibility*, not
+// dollar amounts, accrual rates, or exact timelines. That detail belongs to
+// HR, delivered directly to the employee once hired — not published as a
+// standing public offer anyone could point back to. If a specific number
+// changes, HR updates it in one conversation instead of this page needing an
+// edit. Keep new entries at this same level of generality, and keep the
+// disclaimer text intact wherever this data is rendered — it's what keeps
+// this page from reading as a contract, consistent with Gulf ProClean's
+// at-will employment language everywhere else on the site.
 // ---------------------------------------------------------------------------
 
 window.GPC_SERVICE_AREA = "Pensacola · Navarre · Fort Walton Beach · Destin · 30A · Panama City Beach";
@@ -61,10 +67,10 @@ window.GPC_JOBS = [
       "Work around standard cleaning chemicals, pets and household dust",
     ],
     benefits: [
-      "Mileage reimbursed at the current IRS standard rate for using your own vehicle",
-      "Paid time off begins accruing after your first 90 days (full-time)",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
-      "Quarterly attendance bonus for a clean attendance record",
+      "Mileage reimbursement for using your own vehicle",
+      "Paid time off for full-time employees",
+      "Eligible for the employee referral bonus",
+      "Eligible for periodic attendance recognition",
     ],
   },
 
@@ -107,10 +113,10 @@ window.GPC_JOBS = [
       "Beach-area heat and humidity between properties",
     ],
     benefits: [
-      "Mileage reimbursed at the current IRS standard rate for using your own vehicle",
-      "Peak-season turnover bonus — an extra per-turn incentive during summer and holiday booking windows",
-      "Paid time off begins accruing after your first 90 days (full-time)",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
+      "Mileage reimbursement for using your own vehicle",
+      "Eligible for a peak-season bonus during summer and holiday booking windows",
+      "Paid time off for full-time employees",
+      "Eligible for the employee referral bonus",
     ],
   },
 
@@ -152,10 +158,10 @@ window.GPC_JOBS = [
       "Evening and overnight hours",
     ],
     benefits: [
-      "Mileage reimbursed at the current IRS standard rate for using your own vehicle",
-      "Paid time off begins accruing after your first 90 days (full-time)",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
-      "Quarterly attendance bonus for a clean attendance record",
+      "Mileage reimbursement for using your own vehicle",
+      "Paid time off for full-time employees",
+      "Eligible for the employee referral bonus",
+      "Eligible for periodic attendance recognition",
     ],
   },
 
@@ -199,10 +205,10 @@ window.GPC_JOBS = [
       "Work in wet conditions, heat, and occasionally at height on a ladder",
     ],
     benefits: [
-      "Company truck and trailer provided — no personal-vehicle wear on project routes",
-      "Quarterly safety bonus for an incident-free record operating powered equipment",
-      "Paid time off begins accruing after your first 90 days",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
+      "Company truck and trailer provided",
+      "Eligible for a safety bonus tied to your equipment-operation record",
+      "Paid time off for full-time employees",
+      "Eligible for the employee referral bonus",
     ],
   },
 
@@ -243,10 +249,10 @@ window.GPC_JOBS = [
       "Lift and carry up to 40 lbs; stairs and multi-level properties routinely",
     ],
     benefits: [
-      "Mileage reimbursed at the current IRS standard rate for using your own vehicle",
-      "Quality bonus tied to your crew's inspection scores and customer satisfaction",
-      "Referral bonus paid at the higher supervisor-track rate for leads and coordinators you refer",
-      "Priority consideration for Field Supervisor promotion after one year",
+      "Mileage reimbursement for using your own vehicle",
+      "Eligible for a quality bonus tied to your crew's performance",
+      "Eligible for the employee referral bonus",
+      "Priority consideration for promotion",
     ],
   },
 
@@ -290,10 +296,10 @@ window.GPC_JOBS = [
       "Outdoor work in Gulf Coast heat and humidity",
     ],
     benefits: [
-      "Vehicle allowance or mileage reimbursement for the daily service-area driving this role requires",
-      "On-call differential during storm season, in addition to hourly pay",
-      "Priority for equipment and vehicle upgrades after two years",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
+      "Vehicle allowance or mileage reimbursement for daily service-area driving",
+      "Eligible for a storm-season on-call differential",
+      "Priority for equipment and vehicle upgrades over time",
+      "Eligible for the employee referral bonus",
     ],
   },
 
@@ -334,9 +340,9 @@ window.GPC_JOBS = [
       "Primarily seated office work at a computer and phone",
     ],
     benefits: [
-      "Paid time off begins accruing after your first 90 days",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
-      "Quarterly attendance bonus for a clean attendance record",
+      "Paid time off for full-time employees",
+      "Eligible for the employee referral bonus",
+      "Eligible for periodic attendance recognition",
       "Office-based schedule — no personal vehicle use required for this role",
     ],
   },
@@ -379,9 +385,9 @@ window.GPC_JOBS = [
       "Occasional site visits to meet vendors",
     ],
     benefits: [
-      "Paid time off begins accruing after your first 90 days",
-      "Employee referral bonus when someone you refer is hired and completes 90 days",
-      "Quarterly attendance bonus for a clean attendance record",
+      "Paid time off for full-time employees",
+      "Eligible for the employee referral bonus",
+      "Eligible for periodic attendance recognition",
       "Office-based schedule — no personal vehicle use required for this role",
     ],
   },
@@ -391,80 +397,56 @@ window.GPC_JOBS = [
 // careers.html under #benefits; each job's own `benefits` array above is
 // the short, role-specific version shown on careers-job.html.
 //
-// Every amount and accrual rate below is a draft — confirm against what you
-// actually intend to pay before this goes live, the same caution as the pay
-// ranges above. Keep `disclaimer` intact and visible wherever this data is
-// rendered: it keeps this page from reading as a promise of continued
-// employment or a binding contract, consistent with the at-will language
-// used everywhere else on the site.
+// Categories and eligibility only — no dollar amounts, accrual rates, or
+// exact timelines. HR delivers those directly to each new hire once they
+// join; this page's job is to describe what exists, not to quote it.
 window.GPC_BENEFITS = {
   intro:
-    "Some of this starts on day one. The rest builds the longer you stay — full-time and part-time eligibility differs where noted below.",
+    "This is an overview of what's available, by category — not a quote of exact amounts or timing. HR walks every new hire through the specific numbers, accrual rates and eligibility for their role during onboarding.",
   milestones: [
     {
       when: "Day one",
       items: [
         "Uniform, PPE and cleaning equipment provided at no cost to you",
         "Direct deposit payroll",
-        "Mileage reimbursed at the current IRS standard rate for roles that use your own vehicle",
+        "Mileage reimbursement for roles that use your own vehicle",
         "Eligible to refer a friend for the employee referral bonus",
       ],
     },
     {
-      when: "After 90 days",
+      when: "After your introductory period",
       items: [
-        "Paid time off begins accruing for full-time employees — 1 hour of PTO per 30 hours worked",
-        "Eligible for the 90-day retention bonus",
-        "Eligible for a company-issued phone or tablet where the role requires one",
+        "Paid time off begins accruing for full-time employees",
+        "Eligible for a retention bonus",
+        "Eligible for company-issued equipment where the role requires it",
       ],
     },
     {
-      when: "After 1 year",
+      when: "As you build tenure",
       items: [
-        "PTO accrual increases to 1 hour per 25 hours worked for full-time employees",
-        "Eligible for the discretionary annual performance bonus",
-        "Priority consideration for internal promotion — Technician → Crew Lead → Field Supervisor",
+        "PTO accrual increases at set milestones for full-time employees",
+        "Eligible for performance and annual bonuses",
+        "Priority consideration for internal promotion",
       ],
     },
     {
-      when: "After 2 years",
+      when: "Long-term",
       items: [
-        "PTO accrual increases again to 1 hour per 20 hours worked for full-time employees",
-        "Eligible for the long-service recognition bonus",
+        "Continued PTO growth for full-time employees",
+        "Eligible for long-service recognition",
         "Priority for equipment and vehicle upgrades",
       ],
     },
   ],
   bonuses: [
-    {
-      name: "Employee referral bonus",
-      detail: "$150 for a referred hire in a field role, $300 for a referred hire in a supervisor or coordinator role, paid after the new hire completes 90 days.",
-    },
-    {
-      name: "90-day retention bonus",
-      detail: "$100 for full-time employees who complete their first 90 days with a clean attendance record.",
-    },
-    {
-      name: "Quarterly attendance bonus",
-      detail: "$75 per quarter for zero unexcused absences and no no-call/no-shows.",
-    },
-    {
-      name: "Quality bonus",
-      detail: "Crew Leads and Field Supervisors share a quarterly bonus pool tied to inspection scores and customer satisfaction on their accounts.",
-    },
-    {
-      name: "Peak-season turnover bonus",
-      detail: "Vacation Rental Turnover Specialists earn an extra per-turn incentive during the summer and holiday peak booking windows.",
-    },
-    {
-      name: "Safety bonus",
-      detail: "Floor Care & Deep Clean Technicians earn a quarterly bonus for an incident-free record operating powered equipment.",
-    },
-    {
-      name: "Annual performance bonus",
-      detail: "Full-time employees at one year or more of service are eligible for a discretionary year-end bonus based on individual performance and company results.",
-    },
+    { name: "Employee referral bonus", detail: "Refer someone who is hired and stays on, and you become eligible for a bonus." },
+    { name: "Retention bonus", detail: "For completing your introductory period with a clean attendance record." },
+    { name: "Attendance recognition", detail: "Periodic recognition for a clean attendance record." },
+    { name: "Quality bonus", detail: "Crew Leads and Field Supervisors are eligible, tied to inspection scores and customer satisfaction on their accounts." },
+    { name: "Peak-season bonus", detail: "Vacation Rental Turnover Specialists are eligible during peak booking windows." },
+    { name: "Safety bonus", detail: "Floor Care & Deep Clean Technicians are eligible, tied to an incident-free equipment-operation record." },
+    { name: "Annual performance bonus", detail: "Full-time employees with a year or more of service are eligible for a discretionary year-end bonus." },
   ],
   disclaimer:
-    "Benefits and bonus amounts above are current as of this posting and are not a contract or a guarantee of continued employment. They are discretionary, may be changed or discontinued by Gulf ProClean at any time, and do not alter the at-will nature of employment. Ask your hiring contact for the current written policy.",
+    "This is an overview of the categories of benefits and bonuses Gulf ProClean offers — not a complete statement of amounts, accrual rates, or eligibility rules. Those specifics are provided by HR directly to each employee, based on role and tenure, once hired. Benefits and bonuses are discretionary, may be changed or discontinued by Gulf ProClean at any time, and do not alter the at-will nature of employment.",
 };
