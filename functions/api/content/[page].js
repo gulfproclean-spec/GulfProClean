@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 
-const PAGES = new Set(['residential', 'commercial']);
+const PAGES = new Set(['residential', 'commercial', 'careers']);
 
 function cors(res) {
   res.headers.set('Access-Control-Allow-Origin', '*');
