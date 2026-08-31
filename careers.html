@@ -17,7 +17,10 @@
   <h1 class="page">Steady work, a route you know,<br>and a company that answers the phone.</h1>
   <p class="lead">Gulf ProClean is a veteran-owned, family-operated cleaning company working from Pensacola to Panama City Beach. We clean homes, vacation rentals, offices and restaurants — and we send the same people back to the same properties, because that is the only way the work actually gets better.</p>
   <p class="lead">Every role below is open right now.</p>
-  <p style="margin-top:26px;"><a href="#openings" class="btn">See open positions ↓</a></p>
+  <p style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap;">
+    <a href="#openings" class="btn">See open positions ↓</a>
+    <a href="#benefits" class="btn-ghost">Benefits &amp; bonuses ↓</a>
+  </p>
 </header>
 
 <section class="wrap" style="padding-top:64px;">
@@ -48,6 +51,20 @@
       <p class="body">You will know what the job pays, what the schedule is, and where you stand. Our hiring process is written down and <a href="careers-process.html" style="color:var(--gold-dark)">published in full</a>.</p>
     </div>
   </div>
+</section>
+
+<section class="wrap" id="benefits" style="padding-top:72px;scroll-margin-top:80px;">
+  <span class="kicker">Benefits &amp; bonuses</span>
+  <h2 class="sec">What builds the longer you stay</h2>
+  <p class="body" id="benefits-intro" style="max-width:62ch;"></p>
+
+  <div id="benefits-timeline" style="margin-top:32px;display:flex;flex-direction:column;gap:0;"></div>
+
+  <h3 class="sub" style="margin-top:48px;font-size:20px;">Bonus programs</h3>
+  <p class="body" style="max-width:62ch;margin-top:6px;">Which of these apply to you depends on the role — each job description lists the ones that come with it.</p>
+  <div class="grid" id="benefits-bonuses" style="margin-top:20px;"></div>
+
+  <p class="legal" id="benefits-disclaimer" style="margin-top:28px;"></p>
 </section>
 
 <section class="wrap" id="openings" style="padding-top:72px;scroll-margin-top:80px;">
@@ -112,6 +129,32 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+  // -- Benefits & bonuses ---------------------------------------------------
+  var b = window.GPC_BENEFITS;
+  if (b) {
+    document.getElementById('benefits-intro').textContent = b.intro;
+    document.getElementById('benefits-disclaimer').textContent = b.disclaimer;
+
+    document.getElementById('benefits-timeline').innerHTML = (b.milestones || []).map(function (m) {
+      return '' +
+        '<div style="display:flex;gap:24px;padding:20px 0;border-top:1px solid var(--rule);">' +
+          '<div style="flex:0 0 160px;"><span class="pill" style="background:var(--gold);color:var(--navy);">' + esc(m.when) + '</span></div>' +
+          '<ul class="ticks" style="margin:0;flex:1;">' +
+            (m.items || []).map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') +
+          '</ul>' +
+        '</div>';
+    }).join('');
+
+    document.getElementById('benefits-bonuses').innerHTML = (b.bonuses || []).map(function (bn) {
+      return '' +
+        '<div class="card">' +
+          '<h3 class="sub" style="font-size:17px;">' + esc(bn.name) + '</h3>' +
+          '<p class="body" style="margin-top:8px;">' + esc(bn.detail) + '</p>' +
+        '</div>';
+    }).join('');
+  }
+
+  // -- Open positions ---------------------------------------------------
   var open = GPC_JOBS.filter(function (j) { return j.open; });
   document.getElementById('openings-list').innerHTML = open.map(function (j) {
     return '' +
@@ -123,6 +166,7 @@
           '<span class="pill">' + esc(j.location.split('—')[0].trim()) + '</span>' +
         '</div>' +
         '<p class="body" style="margin-top:12px;">' + esc(j.summary) + '</p>' +
+        (j.benefits && j.benefits.length ? '<p class="body" style="margin-top:12px;font-size:13px;color:var(--muted);">+ ' + esc(j.benefits[0]) + '</p>' : '') +
         '<div style="margin-top:auto;padding-top:20px;display:flex;gap:12px;flex-wrap:wrap;">' +
           '<a class="btn" href="apply.html?role=' + encodeURIComponent(j.slug) + '">Apply</a>' +
           '<a class="btn-ghost" href="careers-job.html?role=' + encodeURIComponent(j.slug) + '">Full description</a>' +
