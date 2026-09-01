@@ -17,6 +17,16 @@
 //        -> undercut the market where we profitably can; hold the line
 //           where we can't. `belowFloor` is flagged so the quote can say so
 //           instead of silently selling a job at a loss.
+//
+// This price (`quote().price`) is already the complete, positioned one-time
+// standard price. Do not multiply it by anything else downstream — an
+// earlier version of the calculator applied a further 30% "one-time
+// surcharge" on top of it, which double-counted the market positioning this
+// file already does and pushed every price (including every recurring
+// discount tier, since those are computed off that inflated number) 10-30%
+// above the intended 5-10%-under-market target. Fixed in
+// residential-sections.jsx / commercial-sections.jsx — if you're adding a
+// new place that displays a price, discount off `quote().price` directly.
 // ---------------------------------------------------------------------------
 
 (function (root) {
@@ -68,27 +78,41 @@
   // What the market charges for a ONE-TIME standard clean, as a linear
   // function of rooms.
   //
-  // ANCHORED ON A REAL LOCAL COMPETITOR (not national averages):
-  // Catalina Cleaning — serves Panama City Beach, Destin, 30A, Santa Rosa
-  // Beach and Fort Walton Beach, i.e. the same corridor — publishes starting
-  // prices for an apartment under 700 sq ft:
+  // ANCHOR 1 — Catalina Cleaning, same corridor (Pensacola-PCB), a real
+  // competitor's published starting prices for an apartment under 700 sq ft:
   //     recurring $130 · standard $200 · deep $270 · move-in/out $307
-  //
   // The coefficients below reproduce ~$194 for a 1BR/1BA/700 sq ft unit,
-  // matching that $200 standard-clean anchor, and scale to ~$310 for a
-  // 3BR/2BA/1,800 sq ft home.
+  // matching that $200 anchor, and scale to ~$310 for a 3BR/2BA/1,800 sq ft
+  // home. This is the anchor these coefficients are actually fit to.
+  //
+  // ANCHOR 2 — Two Maids (national franchise; the figures given were from
+  // their Lawrenceville, GA location's rate card, not a Panhandle location),
+  // "Premium" tier: weekly $178, biweekly $194, monthly $233, one-time $570,
+  // move-in/out $578. NOT used to fit the coefficients above, for two
+  // reasons that both need resolving before it can be:
+  //   1. No property size came with these figures. The $178-233 recurring
+  //      spread and the $570-578 one-time/move-out spread are internally
+  //      consistent with SOME single home, but which one is unknown.
+  //   2. Two Maids prices a first/one-time visit as their Deep Cleaning
+  //      package (thorough, vertical-surfaces-included scope per their
+  //      welcome packet) while recurring "Premium" visits are lighter
+  //      maintenance scope on the SAME home. That's a genuine difference in
+  //      what's being cleaned, not just a price policy — so $570 one-time
+  //      vs. $194 biweekly recurring is not "the same job, discounted," the
+  //      way this file's ONE_TIME vs. recurring split assumes. Comparing it
+  //      to this model's numbers requires deciding which of our tiers each
+  //      Two Maids figure actually corresponds to, and that's a judgment
+  //      call, not a lookup.
+  // Two Maids' own instant-quote tool will give a number tied to a specific
+  // address and room count, which is what's actually needed to use this as
+  // a second calibration anchor rather than a single self-consistent
+  // reference floating with no size attached.
   //
   // NOTE THIS OVERTURNED AN EARLIER ASSUMPTION: national benchmarks put a
   // 2,000 sq ft 3/2 at $135-180, which would have had us pricing far too low
   // here. The Emerald Coast is a premium market — a sub-700 sq ft apartment
   // going for $200 one-time is well above the national norm. Do not
   // re-calibrate this table against national data again.
-  //
-  // Still worth doing: a second and third local anchor at a LARGER property
-  // size. Catalina only publishes a small-unit starting price, so the slope
-  // of this line (the per-bedroom and per-bath coefficients) is inferred,
-  // not observed. Their online instant-quote tool will give you exact
-  // numbers for a 3BR/2BA without contacting anyone.
   const MARKET_REFERENCE = {
     residential: { base: 115, perBedroom: 32, perFullBath: 38, perHalfBath: 16, perSqft: 0.013 },
     // Commercial is quoted per sq ft far more often than per room.
@@ -104,6 +128,19 @@
   // --- RESIDENTIAL LABOR MODEL --------------------------------------------
   // Crew-hours. A two-person crew clears these in about half the wall-clock
   // time, but cost is driven by crew-hours, so that's what we estimate.
+  //
+  // KNOWN SIMPLIFICATION: hours are the same for a one-time visit and every
+  // recurring visit at a given tier/property — only the PRICE is discounted
+  // for recurring plans (see monthlyDiscountFor in the calculators), not the
+  // hours. In real operations a maintenance visit to a home that was
+  // cleaned two weeks ago genuinely takes less time than a first/one-time
+  // visit to the same home; Two Maids' own model reflects exactly this
+  // (their one-time visit is priced as a full Deep Clean, recurring visits
+  // are a lighter "Premium/Touch-Up" scope). This model doesn't capture that
+  // distinction — it's a real gap, not just a documentation note, and it
+  // means recurring visits are probably priced somewhat higher here than
+  // they need to be relative to one-time. Worth a real pass if recurring
+  // quotes start looking uncompetitive against a company like Two Maids.
   const RES_LABOR = {
     setup: 0.40,              // arrival, setup, walkthrough, load-out
     perBedroom: 0.35,
