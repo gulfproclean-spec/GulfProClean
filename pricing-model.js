@@ -26,26 +26,36 @@
 //           instead of silently selling a job at a loss.
 //
 // ---------------------------------------------------------------------------
-// !! TWO SETS OF NUMBERS YOU MUST VERIFY BEFORE THIS GOES LIVE !!
+// !! VERIFY BEFORE THIS GOES LIVE !!
 //
-// (a) COST_MODEL below — wage, payroll burden, workers' comp and benefit
-//     load. These are industry-typical placeholders, not your books. If your
-//     real loaded cost is higher, every price here is too low.
-//
-// (b) MARKET_REFERENCE below — what competitors actually charge in
-//     Destin/Miramar/30A. These are estimates. Call three competitors for
-//     a quote on the same property and correct these numbers. The whole
-//     "5-10% under market" claim is only as good as this table.
-//
-// Everything else in this file is arithmetic and will follow whatever you
-// put in those two places.
+// MARKET_REFERENCE below — what competitors actually charge in the
+// Pensacola-to-Panama City Beach corridor. These are estimates built from
+// published directory rates, not quotes you have collected. Call three
+// competitors for a quote on the SAME property and correct these numbers.
+// The whole "5-10% under market" claim is only as good as this table.
 // ---------------------------------------------------------------------------
 
 (function (root) {
 
   // --- (a) COST SIDE -------------------------------------------------------
+  // Wages are quoted WITHOUT fringe — fringe is added on top via the burden
+  // rates below. The band is the company's stated field-wage range; the
+  // per-tier wages sit inside it, because deeper-scope work is assigned to
+  // more experienced technicians who sit higher in the band.
+  const WAGE_BAND = { min: 18.00, max: 25.00 };
+
+  const TIER_WAGE = {
+    Essential: 19.00,   // standard recurring scope
+    Preferred: 21.50,   // detail work, trained technicians
+    Premium:   23.50,   // deep scope, senior technicians and crew leads
+  };
+  const BLENDED_WAGE = 21.50;  // used when no tier is specified
+
   const COST_MODEL = {
-    baseWage: 18.00,          // average field wage, $/hr — mid of posted ranges
+    wageBand: WAGE_BAND,
+    tierWage: TIER_WAGE,
+    blendedWage: BLENDED_WAGE,
+    // Fringe / burden, applied on top of the base wage above:
     payrollTaxRate: 0.0910,   // FICA 7.65% + FUTA/SUTA ~1.45%
     workersCompRate: 0.0500,  // non-construction janitorial class, FL
     benefitsRate: 0.0800,     // PTO accrual, bonus pool, equipment, uniforms
@@ -56,8 +66,18 @@
     minimumVisit: 129,        // no visit is worth dispatching a crew below this
   };
 
-  function loadedHourlyCost(m = COST_MODEL) {
-    return m.baseWage * (1 + m.payrollTaxRate + m.workersCompRate + m.benefitsRate);
+  // Total burden multiplier — 1.221 at the rates above, i.e. every $1.00 of
+  // wage costs $1.22 fully loaded.
+  function burdenMultiplier(m = COST_MODEL) {
+    return 1 + m.payrollTaxRate + m.workersCompRate + m.benefitsRate;
+  }
+
+  // Fully loaded cost of one crew-hour at the given tier.
+  //   Essential $19.00 -> $23.20    Preferred $21.50 -> $26.25
+  //   Premium   $23.50 -> $28.69    blended   $21.50 -> $26.25
+  function loadedHourlyCost(tier, m = COST_MODEL) {
+    const wage = (tier && m.tierWage[tier]) || m.blendedWage;
+    return wage * burdenMultiplier(m);
   }
 
   // --- (b) MARKET SIDE -----------------------------------------------------
@@ -178,7 +198,8 @@
     const factors = isRes ? factorTotal(RES_FACTORS, input) : factorTotal(COM_FACTORS, input);
 
     const hours = rawHours * tierMult * (1 + factors);
-    const laborCost = hours * loadedHourlyCost();
+    const hourlyCost = loadedHourlyCost(tier);
+    const laborCost = hours * hourlyCost;
     const costFloor = laborCost / COST_MODEL.targetLaborRatio;
 
     const marketRef = (isRes ? residentialMarketReference(input) : commercialMarketReference(input)) * tierMult;
@@ -195,6 +216,7 @@
     return {
       price,
       hours: Math.round(hours * 100) / 100,
+      hourlyCost: Math.round(hourlyCost * 100) / 100,
       laborCost: Math.round(laborCost * 100) / 100,
       costFloor: Math.round(costFloor),
       marketReference: Math.round(marketRef),
@@ -206,9 +228,9 @@
   }
 
   root.GPC_PRICING = {
-    COST_MODEL, MARKET_REFERENCE, POSITION_FACTOR,
+    COST_MODEL, MARKET_REFERENCE, POSITION_FACTOR, WAGE_BAND, TIER_WAGE,
     RES_LABOR, COM_LABOR, TIER_MULTIPLIER, RES_FACTORS, COM_FACTORS,
-    loadedHourlyCost, quote,
+    burdenMultiplier, loadedHourlyCost, quote,
   };
 
 })(window);
