@@ -54,6 +54,9 @@
   .filters select { padding: 7px 9px; border: 1px solid #d8d3c8; border-radius: 4px; font-size: 13px; }
   .checklist { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; font-size: 13px; }
   .checklist label { display: flex; gap: 6px; align-items: center; }
+  .notice-warn { border: 1px solid #b68235; border-left: 4px solid #b68235; background: #fdf8ee; border-radius: 4px; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin: 8px 0 16px; }
+  .notice-warn strong { display: block; margin-bottom: 4px; }
+  .notice-warn code { background: #f0ede5; padding: 1px 5px; border-radius: 3px; font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -66,7 +69,7 @@
   <div id="editors" style="display:none">
     <div class="page-block">
       <h2>Site visits</h2>
-      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Anonymous page-view counts — no IPs, cookies, or visitor identity stored.</p>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Anonymous page-view counts — no IPs, cookies, or visitor identity stored. Requests identifying as crawlers, bots or uptime monitors are filtered out, so this is human traffic minus the obvious automation.</p>
       <div id="visits-summary" class="visits-summary">Loading…</div>
       <table id="visits-table" class="visits-table" style="display:none">
         <thead><tr><th>Page</th><th>Views</th></tr></thead>
@@ -125,16 +128,29 @@
       <div><button data-page="commercial">Save commercial</button> <span class="status" id="status-commercial"></span></div>
     </div>
     <div class="page-block">
-      <h2>Residential pricing</h2>
-      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Size bands drive both the pricing table and the live quote calculator on the residential page. Check "Unavailable" for a band that should show "priced individually" instead of numbers (e.g. the top band).</p>
+      <h2>Residential pricing bands <span class="badge warn">Reference only</span></h2>
+      <div class="notice-warn">
+        <strong>Editing these will not change what customers are quoted.</strong>
+        Quotes are now produced by the pricing engine in <code>pricing-model.js</code>, which estimates
+        crew-hours from the room count (bedrooms, bathrooms, kitchen, living areas) and prices those
+        hours against a cost floor and a market reference. These bands are kept only as a reference
+        table. To change actual prices, edit <code>MARKET_REFERENCE</code>, <code>TIER_WAGE</code> or
+        <code>targetLaborRatio</code> in <code>pricing-model.js</code>.
+      </div>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Check "Unavailable" for a band that should show "priced individually" instead of numbers (e.g. the top band).</p>
       <div class="pricing-head"><span>Band label</span><span>Max sq ft</span><span>Essential</span><span>Preferred</span><span>Premium</span><span>Unavailable</span><span></span></div>
       <div id="pricing-rows-residential"></div>
       <div style="margin-top:12px"><button data-add-pricing="residential">+ Add size band</button></div>
       <div style="margin-top:16px"><button data-save-pricing="residential">Save residential pricing</button> <span class="status" id="status-pricing-residential"></span></div>
     </div>
     <div class="page-block">
-      <h2>Commercial pricing</h2>
-      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Frequency bands shown on the commercial pricing table. The first band's prices also set the live calculator's base tier price (before size/complexity adjustments).</p>
+      <h2>Commercial pricing bands <span class="badge warn">Reference only</span></h2>
+      <div class="notice-warn">
+        <strong>Editing these will not change what customers are quoted.</strong>
+        Commercial quotes are now produced by the same engine in <code>pricing-model.js</code>, from
+        facility scope — restrooms, break rooms, offices/suites, entrances and floor area. These
+        frequency bands are kept only as a reference table.
+      </div>
       <div class="pricing-head"><span>Band label</span><span>Max sq ft</span><span>Essential</span><span>Preferred</span><span>Premium</span><span>Unavailable</span><span></span></div>
       <div id="pricing-rows-commercial"></div>
       <div style="margin-top:12px"><button data-add-pricing="commercial">+ Add frequency band</button></div>
@@ -304,7 +320,7 @@ document.querySelectorAll('button[data-save-pricing]').forEach(btn => {
         body: JSON.stringify({ rows: pricingData[page] })
       });
       if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-      statusEl.textContent = 'Saved.';
+      statusEl.textContent = 'Saved to the reference table (does not affect customer quotes).';
       statusEl.className = 'status ok';
     } catch (e) {
       statusEl.textContent = 'Failed: ' + e.message;
