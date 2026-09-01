@@ -10,6 +10,15 @@
 // window.GPC_PRICING (pricing-model.js), which holds the cost floor and the
 // market-positioning logic. DEFAULT_PRICING_RESIDENTIAL below is retained
 // only as the admin-editable reference table; it no longer sets the quote.
+//
+// est.price from GPC_PRICING.quote() IS ALREADY the one-time standard price
+// (cost floor vs. 92.5%-of-market, whichever is higher) — do not multiply it
+// by anything further before displaying it as "standardPrice." An earlier
+// version of this file applied an additional 30% "ONE_TIME_SURCHARGE" on top
+// of that already-positioned price, which inflated every displayed price —
+// including every recurring/subscription price, since those are computed as
+// a discount off standardPrice — by roughly 10-30% above the intended
+// 5-10%-under-market target. Fixed by removing that second multiplier.
 // ---------------------------------------------------------------------------
 
 const DEFAULT_PRICING_RESIDENTIAL = [
@@ -73,11 +82,12 @@ function ServiceTiers({ navy, gold }) {
 function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
   // "Starting at" figures are produced by the same pricing engine the
   // calculator uses, on a defined starter property — so this section can
-  // never quote a number the calculator would not honor.
-  const ONE_TIME_SURCHARGE = 0.30;
+  // never quote a number the calculator would not honor. est.price is
+  // already the fully market-positioned one-time price; nothing further
+  // is applied to it here.
   const standardPriceFor = (name) => {
     if (!window.GPC_PRICING) return null;
-    return GPC_PRICING.quote("residential", RES_STARTER_PROPERTY, name).price * (1 + ONE_TIME_SURCHARGE);
+    return GPC_PRICING.quote("residential", RES_STARTER_PROPERTY, name).price;
   };
 
   const subs = [
@@ -178,7 +188,6 @@ function Calculator({ navy, gold, pricing, preset }) {
     "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "4 visits weekly": 0,
     "5 visits weekly": 0, "6 visits weekly": 0, "7 visits weekly": 0,
   };
-  const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05;
   const BILLING_PLANS = [
     { key: "one-time", label: "One-time (Standard price)", booking: "One-time", months: 1 },
@@ -254,13 +263,11 @@ function Calculator({ navy, gold, pricing, preset }) {
     ? GPC_PRICING.quote("residential", propertyInput, tier)
     : null;
 
-  const afterFrequency = est ? est.price : 0;
+  // est.price IS the standard one-time price — already positioned against
+  // the cost floor and the market reference by pricing-model.js. Nothing
+  // further is applied here; recurring plans discount directly off it.
+  const standardPrice = est ? est.price : 0;
   const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
-  // The One-Time/Standard visit fee is the reference for every subscription
-  // discount — a 10% discount is 10% off that standard fee. Add-ons are
-  // never discounted. Rounded to a whole dollar so Total always equals
-  // Price per visit x visits (+ add-ons).
-  const standardPrice = Math.round(afterFrequency * (1 + ONE_TIME_SURCHARGE));
   const afterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
   const perVisit = afterBooking;
   const discount = Math.max(0, standardPrice - perVisit);
@@ -303,7 +310,7 @@ function Calculator({ navy, gold, pricing, preset }) {
       addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
       addonsTotalAmount: totalAddons,
       allAddonPricing: addonPricing,
-      afterFrequency, afterBooking, standardPrice, visitsCount, grossTotal,
+      standardPrice, afterBooking, visitsCount, grossTotal,
       taxRate: 0,
     }));
     window.location.href = "book.html";
