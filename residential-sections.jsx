@@ -4,10 +4,12 @@
 // which supplies Nav/Hero/Kicker/Services/PlanList/Quote/Reveal and the data
 // hooks these components rely on.
 //
-// Each of these used to be one <section> in a single long residential.html;
-// they are now rendered one per page (residential-tiers.html, -plans.html,
-// -addons.html, -quote.html, -home-os.html). The section markup itself is
-// unchanged, so pricing and copy stay identical to what customers saw before.
+// PRICING: the calculator no longer prices from square-footage bands alone.
+// It estimates crew-hours from the actual room count (bedrooms, bathrooms,
+// kitchen, living areas) plus floor area, then prices those hours through
+// window.GPC_PRICING (pricing-model.js), which holds the cost floor and the
+// market-positioning logic. DEFAULT_PRICING_RESIDENTIAL below is retained
+// only as the admin-editable reference table; it no longer sets the quote.
 // ---------------------------------------------------------------------------
 
 const DEFAULT_PRICING_RESIDENTIAL = [
@@ -21,6 +23,11 @@ const DEFAULT_PRICING_RESIDENTIAL = [
   { band_order: 8, band_label: "4,001–5,000 sq ft", max_sqft: 5000, essential: 455, preferred: 565, premium: 815, unavailable: false },
   { band_order: 9, band_label: "5,001+ sq ft", max_sqft: null, essential: null, preferred: null, premium: null, unavailable: true },
 ];
+
+// A modest starter home, used only to show "starting at" figures on the
+// plans page. Priced through the same engine as a real quote, so the
+// headline number can never drift from what the calculator actually says.
+const RES_STARTER_PROPERTY = { bedrooms: 1, fullBaths: 1, halfBaths: 0, kitchens: 1, livingAreas: 1, sqft: 700 };
 
 function ServiceTiers({ navy, gold }) {
   const groups = [
@@ -64,23 +71,24 @@ function ServiceTiers({ navy, gold }) {
 }
 
 function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
-  // Starting prices come from the smallest sqft band in the live pricing
-  // table (the same one admin.html edits) — not hardcoded copy — so this
-  // section never drifts from what the calculator actually charges.
+  // "Starting at" figures are produced by the same pricing engine the
+  // calculator uses, on a defined starter property — so this section can
+  // never quote a number the calculator would not honor.
   const ONE_TIME_SURCHARGE = 0.30;
-  const startingBand = (pricing && pricing[0]) || { essential: 165, preferred: 200, premium: 285 };
-  const basePriceFor = { Essential: Number(startingBand.essential), Preferred: Number(startingBand.preferred), Premium: Number(startingBand.premium) };
-  const standardPriceFor = (name) => basePriceFor[name] * (1 + ONE_TIME_SURCHARGE);
+  const standardPriceFor = (name) => {
+    if (!window.GPC_PRICING) return null;
+    return GPC_PRICING.quote("residential", RES_STARTER_PROPERTY, name).price * (1 + ONE_TIME_SURCHARGE);
+  };
 
   const subs = [
     ["Essential", null, "Second homes · Snowbirds · Light-use", "1 cleaning / month · monthly cadence",
-      ["1 cleaning per month", "Ideal for second homes & snowbirds", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
+      ["1 cleaning per month", "Ideal for second homes & snowbirds", "Priced by rooms and property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
       "1 visit weekly"],
     ["Preferred", null, "Families · Primary residences · Pets", "2 cleanings / month · biweekly cadence",
-      ["2 cleanings per month", "Best value — most chosen", "Price by property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
+      ["2 cleanings per month", "Best value — most chosen", "Priced by rooms and property size", "Skip & reschedule anytime", "Cloud-synced schedule"],
       "2 visits weekly"],
     ["Premium", "Most popular", "Luxury homes · Executives · High-use", "4 cleanings / month · weekly cadence",
-      ["4 cleanings per month", "Luxury & high-use homes", "Price by property size", "Priority arrival windows", "Cloud-synced schedule"],
+      ["4 cleanings per month", "Luxury & high-use homes", "Priced by rooms and property size", "Priority arrival windows", "Cloud-synced schedule"],
       "4 visits weekly"]
   ];
   return (
@@ -93,7 +101,7 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
           <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
         </div>
         <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 36, color: navy, margin: 0, maxWidth: 640 }}>Book once, or let us handle it on repeat</h1>
-        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with property size — <a href="residential-quote.html" style={{ color: "#8a6221" }}>get your exact quote</a> on the quote page.</p>
+        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with your room count and property size — <a href="residential-quote.html" style={{ color: "#8a6221" }}>get your exact quote</a> on the quote page.</p>
 
         <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
@@ -104,12 +112,17 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
             <a href="residential-quote.html" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Get one-time pricing</a>
           </div>
           <div style={{ display: "flex", gap: 24, marginTop: 20, flexWrap: "wrap" }}>
-            {subs.map(([name]) => (
-              <div key={name}>
-                <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
-                <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>Starting at ${Math.round(standardPriceFor(name))}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
-              </div>
-            ))}
+            {subs.map(([name]) => {
+              const p = standardPriceFor(name);
+              return (
+                <div key={name}>
+                  <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
+                  <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>
+                    {p ? <>Starting at ${Math.round(p)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></> : "Get a quote"}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -160,18 +173,10 @@ function AddOns({ navy, gold }) {
 }
 
 function Calculator({ navy, gold, pricing, preset }) {
-  const SIZE_TIERS = pricing.filter(r => !r.unavailable).map(r => ({
-    max: r.max_sqft, label: r.band_label,
-    prices: { Essential: r.essential, Preferred: r.preferred, Premium: r.premium },
-  }));
+  const TIERS = ["Essential", "Preferred", "Premium"];
   const freqAdj = {
-    "1 visit weekly": 0,
-    "2 visits weekly": 0,
-    "3 visits weekly": 0,
-    "4 visits weekly": 0,
-    "5 visits weekly": 0,
-    "6 visits weekly": 0,
-    "7 visits weekly": 0,
+    "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "4 visits weekly": 0,
+    "5 visits weekly": 0, "6 visits weekly": 0, "7 visits weekly": 0,
   };
   const ONE_TIME_SURCHARGE = 0.30;
   const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05;
@@ -200,6 +205,21 @@ function Calculator({ navy, gold, pricing, preset }) {
   const [notes, setNotes] = React.useState("");
   const [tier, setTier] = React.useState("");
   const [sqft, setSqft] = React.useState("");
+
+  // Room counts — these now drive the estimate more than square footage does.
+  const [bedrooms, setBedrooms] = React.useState("");
+  const [fullBaths, setFullBaths] = React.useState("");
+  const [halfBaths, setHalfBaths] = React.useState("0");
+  const [kitchens, setKitchens] = React.useState("1");
+  const [livingAreas, setLivingAreas] = React.useState("");
+
+  // Condition / complexity
+  const [pets, setPets] = React.useState("");
+  const [condition, setCondition] = React.useState("");
+  const [lastCleaned, setLastCleaned] = React.useState("");
+  const [levels, setLevels] = React.useState("");
+  const [occupancy, setOccupancy] = React.useState("");
+
   const [frequency, setFrequency] = React.useState("");
   const [booking, setBooking] = React.useState("");
   const [months, setMonths] = React.useState(1);
@@ -215,46 +235,31 @@ function Calculator({ navy, gold, pricing, preset }) {
   }, [preset]);
   const toggleAddon = (name) => setAddons(a => a.includes(name) ? a.filter(x => x !== name) : [...a, name]);
   const setAddonQtyFor = (name, val) => setAddonQty(q => ({ ...q, [name]: Number(val) }));
-  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !city.trim() || !zip.trim();
-  const handleBookIt = () => {
-    if (missingRequired) { alert("Please fill in all required fields (name, phone, and full address) to book."); return; }
-    if (!hasAllInputs) { alert("Please select a service tier, property size, frequency, and billing plan to see your price before booking."); return; }
-    if (priceUnavailable) { alert("This property size is priced individually — please request a quote instead."); return; }
-    const fullAddress = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${stateVal} ${zip.trim()}`].filter(Boolean).join(", ");
-    sessionStorage.setItem("gpc_booking_draft", JSON.stringify({
-      page: "residential",
-      firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(),
-      addressLine1: addressLine1.trim(), unit: unit.trim(), city: city.trim(), state: stateVal, zip: zip.trim(),
-      address: fullAddress,
-      notes: notes.trim(),
-      sqft,
-      tier, booking, months, frequency, displayFrequency, bookingLabel,
-      addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
-      addonsTotalAmount: totalAddons,
-      allAddonPricing: addonPricing,
-      afterFrequency, afterBooking, standardPrice, visitsCount, grossTotal,
-      taxRate: 0,
-    }));
-    window.location.href = "book.html";
+
+  const propertyInput = {
+    sqft: Number(sqft) || 0,
+    bedrooms: Number(bedrooms) || 0,
+    fullBaths: Number(fullBaths) || 0,
+    halfBaths: Number(halfBaths) || 0,
+    kitchens: Number(kitchens) || 0,
+    livingAreas: Number(livingAreas) || 0,
+    pets, condition, lastCleaned, levels, occupancy,
   };
 
-  // Nothing is pre-filled — no price shows until the customer has picked a
-  // tier, entered a size, and chosen a frequency and billing plan.
-  const sqftNum = Number(sqft) || 0;
-  const hasAllInputs = !!tier && sqftNum > 0 && !!booking && (booking === "One-time" || !!frequency);
-  const sizeTier = tier && sqftNum > 0 ? SIZE_TIERS.find(t => sqftNum <= t.max) : null;
-  const priceUnavailable = !!tier && sqftNum > 0 && !sizeTier;
-  const afterSize = sizeTier ? sizeTier.prices[tier] : 0;
-  const afterFrequency = booking === "One-time" ? afterSize : afterSize * (1 + (freqAdj[frequency] || 0));
-  const addonsTotal = addons.reduce((sum, name) => sum + addonPricing[name], 0);
+  const hasProperty = !!tier && propertyInput.sqft > 0 && propertyInput.bedrooms >= 0 &&
+    fullBaths !== "" && bedrooms !== "" && livingAreas !== "";
+  const hasAllInputs = hasProperty && !!booking && (booking === "One-time" || !!frequency);
+
+  const est = (hasProperty && window.GPC_PRICING)
+    ? GPC_PRICING.quote("residential", propertyInput, tier)
+    : null;
+
+  const afterFrequency = est ? est.price : 0;
   const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
   // The One-Time/Standard visit fee is the reference for every subscription
-  // discount — a 10% discount is 10% off that standard fee, not off the
-  // pre-surcharge base rate. Add-ons are never discounted (see below).
-  // Rounded to a whole dollar here (not just for display) so it's the same
-  // number used for Total, Discount, and Final price — Total always equals
-  // Price per visit × visits (+ add-ons), with cents only appearing once
-  // percentage math (discount) is actually applied on top of it.
+  // discount — a 10% discount is 10% off that standard fee. Add-ons are
+  // never discounted. Rounded to a whole dollar so Total always equals
+  // Price per visit x visits (+ add-ons).
   const standardPrice = Math.round(afterFrequency * (1 + ONE_TIME_SURCHARGE));
   const afterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
   const perVisit = afterBooking;
@@ -274,15 +279,36 @@ function Calculator({ navy, gold, pricing, preset }) {
   const visitsCount = !booking ? 0 : booking === "One-time" ? 1 : (isWeeklyCadence ? visitsPerMonth * months * 4 : visitsPerMonth * months);
   const addonOccurrences = (name) => { const v = addonQty[name]; return v && v <= visitsCount ? v : visitsCount; };
   const totalAddons = addons.reduce((sum, name) => sum + addonPricing[name] * addonOccurrences(name), 0);
-  // grossTotal is visit fees only (no add-ons — they're never discounted, so
-  // mixing them into a "before discount" comparison would misstate it).
   const grossTotal = standardPrice * visitsCount;
   const finalDiscounted = (perVisit * visitsCount) + totalAddons;
-  // Total before discount includes add-ons (nothing has been subtracted
-  // yet); the discount itself is computed from the total visit price only
-  // — add-ons are never part of it — then subtracted to reach Final price.
   const totalBeforeDiscount = grossTotal + totalAddons;
   const totalDiscountAmount = discount * visitsCount;
+
+  const missingRequired = !firstName.trim() || !lastName.trim() || !phone.trim() || !addressLine1.trim() || !city.trim() || !zip.trim();
+  const handleBookIt = () => {
+    if (missingRequired) { alert("Please fill in all required fields (name, phone, and full address) to book."); return; }
+    if (!hasAllInputs) { alert("Please complete the property details, service tier, frequency, and billing plan to see your price before booking."); return; }
+    const fullAddress = [addressLine1.trim(), unit.trim(), `${city.trim()}, ${stateVal} ${zip.trim()}`].filter(Boolean).join(", ");
+    sessionStorage.setItem("gpc_booking_draft", JSON.stringify({
+      page: "residential",
+      firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(),
+      addressLine1: addressLine1.trim(), unit: unit.trim(), city: city.trim(), state: stateVal, zip: zip.trim(),
+      address: fullAddress,
+      notes: notes.trim(),
+      sqft,
+      bedrooms, fullBaths, halfBaths, kitchens, livingAreas,
+      pets, condition, lastCleaned, levels, occupancy,
+      estimatedHours: est ? est.hours : null,
+      tier, booking, months, frequency, displayFrequency, bookingLabel,
+      addons: addons.map(name => ({ name, occurrences: addonOccurrences(name), unitPrice: addonPricing[name], total: addonPricing[name] * addonOccurrences(name) })),
+      addonsTotalAmount: totalAddons,
+      allAddonPricing: addonPricing,
+      afterFrequency, afterBooking, standardPrice, visitsCount, grossTotal,
+      taxRate: 0,
+    }));
+    window.location.href = "book.html";
+  };
+
   const money = (n) => {
     const cents = Math.round(n * 100);
     const dollars = cents / 100;
@@ -292,6 +318,7 @@ function Calculator({ navy, gold, pricing, preset }) {
   };
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
+  const countOptions = (max, from = 0) => Array.from({ length: max - from + 1 }, (_, i) => i + from);
 
   return (
     <section id="calculator" style={{ background: navy, padding: "48px clamp(20px,5vw,56px)" }}>
@@ -301,12 +328,13 @@ function Calculator({ navy, gold, pricing, preset }) {
         </div>
         <Kicker gold="#d9a94a">Get a quote</Kicker>
         <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your residential price</h1>
-        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Base price × size adjustment × frequency adjustment + add-ons. An estimate — final pricing is confirmed on walkthrough.</p>
+        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Priced from your actual room count and property size, not a flat square-footage band — so a 3-bedroom, 2-bath home is not charged like a studio of the same size. An estimate; final pricing is confirmed on walkthrough.</p>
         {presetNotice && (
           <div style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${gold}`, borderRadius: 4, padding: "10px 14px", marginTop: 14, maxWidth: "60ch", fontSize: 13, color: "#fff" }}>
-            We've pre-filled the {preset.tier} plan below. Pricing varies based on size — enter your square footage for an exact quote.
+            We've pre-filled the {preset.tier} plan below. Fill in your rooms and square footage for an exact quote.
           </div>
         )}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
           <label><span style={labelStyle}>First name</span>
             <input type="text" placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} style={selStyle} />
@@ -329,14 +357,80 @@ function Calculator({ navy, gold, pricing, preset }) {
           <label><span style={labelStyle}>Zip code</span>
             <input type="text" inputMode="numeric" placeholder="32541" value={zip} onChange={e => setZip(e.target.value)} style={selStyle} />
           </label>
-          <label><span style={labelStyle}>Property size (sq ft)</span>
-            <input type="number" min="0" placeholder="e.g. 1500" value={sqft} onChange={e => setSqft(e.target.value)} style={selStyle} />
-          </label>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
             <span style={labelStyle}>Notes for your cleaner (optional)</span>
             <textarea placeholder="Gate code, pets, areas to avoid, special requests…" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...selStyle, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} />
           </div>
         </div>
+
+        <div style={{ marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: navy, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Your home</p>
+          <p style={{ fontSize: 12.5, color: "#7a746a", margin: "0 0 18px" }}>Room counts drive most of the work — bathrooms and kitchens take the longest per room.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
+            <label><span style={labelStyle}>Bedrooms</span>
+              <select style={selStyle} value={bedrooms} onChange={e => setBedrooms(e.target.value)}>
+                <option value="" disabled hidden></option>
+                {countOptions(8, 0).map(n => <option key={n} value={n}>{n === 0 ? "Studio / none" : n}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Full bathrooms</span>
+              <select style={selStyle} value={fullBaths} onChange={e => setFullBaths(e.target.value)}>
+                <option value="" disabled hidden></option>
+                {countOptions(8, 0).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Half baths</span>
+              <select style={selStyle} value={halfBaths} onChange={e => setHalfBaths(e.target.value)}>
+                {countOptions(4, 0).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Kitchens</span>
+              <select style={selStyle} value={kitchens} onChange={e => setKitchens(e.target.value)}>
+                {countOptions(3, 0).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Living / dining / office areas</span>
+              <select style={selStyle} value={livingAreas} onChange={e => setLivingAreas(e.target.value)}>
+                <option value="" disabled hidden></option>
+                {countOptions(8, 0).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Property size (sq ft)</span>
+              <input type="number" min="0" placeholder="e.g. 1800" value={sqft} onChange={e => setSqft(e.target.value)} style={selStyle} />
+            </label>
+            <label><span style={labelStyle}>Levels</span>
+              <select style={selStyle} value={levels} onChange={e => setLevels(e.target.value)}>
+                <option value="">Select</option>
+                {Object.keys(GPC_PRICING.RES_FACTORS.levels).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Pets</span>
+              <select style={selStyle} value={pets} onChange={e => setPets(e.target.value)}>
+                <option value="">Select</option>
+                {Object.keys(GPC_PRICING.RES_FACTORS.pets).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>People in the home</span>
+              <select style={selStyle} value={occupancy} onChange={e => setOccupancy(e.target.value)}>
+                <option value="">Select</option>
+                {Object.keys(GPC_PRICING.RES_FACTORS.occupancy).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Current condition</span>
+              <select style={selStyle} value={condition} onChange={e => setCondition(e.target.value)}>
+                <option value="">Select</option>
+                {Object.keys(GPC_PRICING.RES_FACTORS.condition).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </label>
+            <label><span style={labelStyle}>Last professionally cleaned</span>
+              <select style={selStyle} value={lastCleaned} onChange={e => setLastCleaned(e.target.value)}>
+                <option value="">Select</option>
+                {Object.keys(GPC_PRICING.RES_FACTORS.lastCleaned).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </label>
+          </div>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 20, background: "#fff", borderRadius: 8, padding: 28 }}>
           <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Select billing plan</span>
             <select style={selStyle} value={billingKey} onChange={e => setBillingPlan(e.target.value)}>
@@ -347,7 +441,7 @@ function Calculator({ navy, gold, pricing, preset }) {
           <label style={{ gridColumn: "span 2" }}><span style={labelStyle}>Service tier</span>
             <select style={selStyle} value={tier} onChange={e => setTier(e.target.value)}>
               <option value="" disabled hidden></option>
-              {Object.keys(SIZE_TIERS[0].prices).map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""}</option>)}
+              {TIERS.map(k => <option key={k} value={k}>{k}{k === "Premium" ? " ⭐ Most Popular" : ""}</option>)}
             </select>
           </label>
           <label><span style={labelStyle}>Cleaning frequency</span>
@@ -361,6 +455,7 @@ function Calculator({ navy, gold, pricing, preset }) {
             )}
           </label>
         </div>
+
         <div className="calc-two-col" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,0.9fr)", gap: 20, marginTop: 20, alignItems: "start" }}>
           <label style={{ background: "#fff", borderRadius: 8, padding: 20 }}><span style={labelStyle}>Add-ons</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto", border: "1px solid #d8d3c8", borderRadius: 3, padding: 10 }}>
@@ -386,16 +481,17 @@ function Calculator({ navy, gold, pricing, preset }) {
 
             {!hasAllInputs ? (
               <div style={{ marginTop: 14 }}>
-                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>Select a service tier, enter your property size, and choose a frequency and billing plan to see your price.</p>
-              </div>
-            ) : priceUnavailable ? (
-              <div style={{ marginTop: 14 }}>
-                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>Properties over 5,000 sq ft are priced individually. <a href="mailto:hello@gulfproclean.com" style={{ color: gold }}>Request a quote</a> and we'll follow up.</p>
+                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>Fill in your bedrooms, bathrooms, living areas and square footage, then pick a service tier, frequency and billing plan to see your price.</p>
               </div>
             ) : (
               <>
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 2, fontSize: 13.5 }}>
                   <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>{tier} · {bookingLabel} · {displayFrequency}</div>
+                  {est && (
+                    <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>
+                      Estimated {est.hours} crew-hours per visit
+                    </div>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "rgba(255,255,255,0.75)" }}>Price per visit</span><span>${money(standardPrice)}</span></div>
                 </div>
 
@@ -432,6 +528,12 @@ function Calculator({ navy, gold, pricing, preset }) {
                   <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>Final price — {bookingLabel}, {displayFrequency}</p>
                   <p style={{ fontSize: 40, fontWeight: 600, color: gold, margin: "6px 0 0" }}>${money(finalDiscounted)}</p>
                 </div>
+
+                {est && est.vsMarketPct > 0.02 && (
+                  <p style={{ fontSize: 12, color: "#9ee6a8", margin: "10px 0 0" }}>
+                    About {Math.round(est.vsMarketPct * 100)}% below the typical local rate for a home like yours.
+                  </p>
+                )}
               </>
             )}
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
