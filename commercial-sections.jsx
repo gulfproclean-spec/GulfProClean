@@ -14,12 +14,11 @@
 //
 // est.price from GPC_PRICING.quote() IS ALREADY the one-time standard price
 // (cost floor vs. 92.5%-of-market, whichever is higher) — do not multiply it
-// by anything further before displaying it as "standardPrice." An earlier
-// version of this file applied an additional 30% "ONE_TIME_SURCHARGE" on top
-// of that already-positioned price, which inflated every displayed price —
-// including every recurring/subscription price, since those are computed as
-// a discount off standardPrice — by roughly 10-30% above the intended
-// 5-10%-under-market target. Fixed by removing that second multiplier.
+// by anything further before displaying it as "standardPrice." Recurring
+// plans discount off it directly, and that discount is clamped so it can
+// never drop below est.costFloor — a plan discount is a margin decision, not
+// a license to sell a visit at a loss. See the Calculator component for the
+// clamp and monthlyDiscountFor for the current ladder.
 // ---------------------------------------------------------------------------
 
 const DEFAULT_PRICING_COMMERCIAL = [
@@ -167,13 +166,22 @@ function AddOns({ navy, gold }) {
 function Calculator({ navy, gold, pricing, preset }) {
   const TIERS = ["Essential", "Preferred", "Premium"];
   const freqAdj = { "1 visit weekly": 0, "2 visits weekly": 0, "3 visits weekly": 0, "4 visits weekly": 0, "5 visits weekly": 0, "6 visits weekly": 0, "7 visits weekly": 0 };
-  const monthlyDiscountFor = (m) => m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05;
+  // Recalibrated against two real competitors (Catalina Cleaning and Two
+  // Maids): both discount recurring maintenance visits far more steeply off
+  // their one-time/deep-clean rate than the previous 5-15% ladder did.
+  // Ordering stays monotonic with commitment length — the same
+  // "No-Commitment vs. committed term" structure disclosed in the Service
+  // Agreement on book.html. If these numbers change again, book.html's
+  // AGREEMENT_SECTIONS (BILLING PLANS / SUBSCRIPTION DISCOUNT sections) must
+  // be updated in the same pass — that text is what the customer actually
+  // signs, and its refund-reconciliation math is keyed to these percentages.
+  const monthlyDiscountFor = (m) => m >= 12 ? 0.28 : m >= 6 ? 0.22 : m >= 1 ? 0.18 : 0.15;
   const BILLING_PLANS = [
     { key: "one-time", label: "One-time (Standard price)", booking: "One-time", months: 1 },
-    { key: "biweekly", label: "Biweekly (5% discount)", booking: "Monthly", months: 0.5 },
-    { key: "monthly", label: "Monthly (7% discount)", booking: "Monthly", months: 1 },
-    { key: "6-month", label: "6-Month Subscription (10% discount)", booking: "Monthly", months: 6 },
-    { key: "12-month", label: "12-Month Subscription (15% discount)", booking: "Monthly", months: 12 },
+    { key: "biweekly", label: "Biweekly (15% discount)", booking: "Monthly", months: 0.5 },
+    { key: "monthly", label: "Monthly (18% discount)", booking: "Monthly", months: 1 },
+    { key: "6-month", label: "6-Month Subscription (22% discount)", booking: "Monthly", months: 6 },
+    { key: "12-month", label: "12-Month Subscription (28% discount)", booking: "Monthly", months: 12 },
   ];
   const addonPricing = {
     "Post-construction cleanup": { rate: 0.25, unit: "sqft", min: 750 },
@@ -257,14 +265,22 @@ function Calculator({ navy, gold, pricing, preset }) {
 
   const scopeVal = { sqft: sqftNum, restrooms: restroomsNum, areas: areasNum };
   const addonPrice = (name) => { const p = addonPricing[name]; return Math.round(Math.max(p.rate * scopeVal[p.unit], p.min)); };
-  const monthlyDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
   // est.price IS the standard one-time price — already positioned against
   // the cost floor and the market reference by pricing-model.js. Nothing
   // further is applied here; recurring plans discount directly off it.
   const standardPrice = est ? est.price : 0;
-  const afterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
+  const nominalDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
+  const nominalAfterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - nominalDiscountPct);
+  // A recurring discount is a margin decision, not a license to sell below
+  // cost — clamp so the discounted price never drops under est.costFloor,
+  // even if that means the customer receives less than the nominal % above.
+  const afterBooking = (est && booking !== "One-time") ? Math.max(nominalAfterBooking, est.costFloor) : nominalAfterBooking;
   const perVisit = afterBooking;
   const discount = Math.max(0, standardPrice - perVisit);
+  // What the customer actually receives, in percent — derived from the real
+  // dollar discount rather than restated from monthlyDiscountFor, so the
+  // displayed number stays honest even when the floor clamp above kicks in.
+  const appliedDiscountPct = standardPrice > 0 ? discount / standardPrice : 0;
   const displayFrequency = booking === "One-time" ? "1 visit" : frequency;
   const billingKey = !booking ? "" : booking === "One-time" ? "one-time" : (months >= 12 ? "12-month" : months >= 6 ? "6-month" : months >= 1 ? "monthly" : "biweekly");
   const bookingLabel = !booking ? "" : booking === "One-time" ? "One-time" : (months >= 12 ? "12-Month Subscription" : months >= 6 ? "6-Month Subscription" : months >= 1 ? "Monthly" : "Biweekly");
@@ -497,7 +513,7 @@ function Calculator({ navy, gold, pricing, preset }) {
                 {discount > 0 && (
                   <>
                     <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-                      <span style={{ color: "rgba(255,255,255,0.55)" }}>Discount ({Math.round(monthlyDiscountPct * 100)}%, visit price only)</span>
+                      <span style={{ color: "rgba(255,255,255,0.55)" }}>Discount ({Math.round(appliedDiscountPct * 100)}%, visit price only)</span>
                       <span style={{ color: "#9ee6a8" }}>−${money(totalDiscountAmount)}</span>
                     </div>
                     <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Applies to the visit price only, never to one-time bookings — add-ons are never discounted.</p>
