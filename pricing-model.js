@@ -68,24 +68,31 @@
   // What the market charges for a ONE-TIME standard clean, as a linear
   // function of rooms.
   //
-  // CALIBRATED AGAINST PUBLISHED 2026 BENCHMARKS, NOT LOCAL QUOTES:
-  //   3BR/2BA ~2,000 sq ft ...... $135-180 typical, $110-320 full range
-  //   standard 2-3BR ............ $150-250
-  //   Central FL recurring 2-3BR . $120-180/visit
-  // These numbers produce ~$187 for a 3BR/2BA/1,800 sq ft home, which sits
-  // at the upper-middle of that evidence — appropriate for Destin/30A, a
-  // higher-cost coastal market than the national average, but NOT verified
-  // against an actual local competitor quote.
+  // ANCHORED ON A REAL LOCAL COMPETITOR (not national averages):
+  // Catalina Cleaning — serves Panama City Beach, Destin, 30A, Santa Rosa
+  // Beach and Fort Walton Beach, i.e. the same corridor — publishes starting
+  // prices for an apartment under 700 sq ft:
+  //     recurring $130 · standard $200 · deep $270 · move-in/out $307
   //
-  // !! STILL DO THIS: get quotes from three local competitors on the SAME
-  // property (a 3BR/2BA, 1,800 sq ft home in Destin is a good test case) and
-  // correct these five numbers. If the real local rate is materially higher,
-  // you are leaving money on the table; if lower, the "below market" claim
-  // shown to customers is not true. Everything downstream is arithmetic and
-  // will follow whatever you put here.
+  // The coefficients below reproduce ~$194 for a 1BR/1BA/700 sq ft unit,
+  // matching that $200 standard-clean anchor, and scale to ~$310 for a
+  // 3BR/2BA/1,800 sq ft home.
+  //
+  // NOTE THIS OVERTURNED AN EARLIER ASSUMPTION: national benchmarks put a
+  // 2,000 sq ft 3/2 at $135-180, which would have had us pricing far too low
+  // here. The Emerald Coast is a premium market — a sub-700 sq ft apartment
+  // going for $200 one-time is well above the national norm. Do not
+  // re-calibrate this table against national data again.
+  //
+  // Still worth doing: a second and third local anchor at a LARGER property
+  // size. Catalina only publishes a small-unit starting price, so the slope
+  // of this line (the per-bedroom and per-bath coefficients) is inferred,
+  // not observed. Their online instant-quote tool will give you exact
+  // numbers for a 3BR/2BA without contacting anyone.
   const MARKET_REFERENCE = {
-    residential: { base: 55, perBedroom: 22, perFullBath: 26, perHalfBath: 12, perSqft: 0.008 },
+    residential: { base: 115, perBedroom: 32, perFullBath: 38, perHalfBath: 16, perSqft: 0.013 },
     // Commercial is quoted per sq ft far more often than per room.
+    // No comparable local published anchor found yet — these remain estimates.
     commercial:  { base: 60, perSqft: 0.085, perRestroom: 26 },
   };
 
