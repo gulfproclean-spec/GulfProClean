@@ -4,13 +4,6 @@
 // quote calculators. Loaded as a plain script before the JSX modules, so it
 // publishes onto window.
 //
-// WHY THIS EXISTS
-// The old model priced off square footage alone. That misprices real jobs:
-// a 2,000 sq ft 4BR/3BA rental takes materially longer to clean than a
-// 2,000 sq ft 2BR/1BA condo, because bathrooms and bedrooms — not floor
-// area — drive most of the labor. This model estimates crew-hours from the
-// actual room count, then prices those hours.
-//
 // HOW A PRICE IS BUILT
 //   1. Estimate crew-hours from rooms + floor area.
 //   2. Apply the service tier multiplier (Essential / Preferred / Premium).
@@ -24,15 +17,6 @@
 //        -> undercut the market where we profitably can; hold the line
 //           where we can't. `belowFloor` is flagged so the quote can say so
 //           instead of silently selling a job at a loss.
-//
-// ---------------------------------------------------------------------------
-// !! VERIFY BEFORE THIS GOES LIVE !!
-//
-// MARKET_REFERENCE below — what competitors actually charge in the
-// Pensacola-to-Panama City Beach corridor. These are estimates built from
-// published directory rates, not quotes you have collected. Call three
-// competitors for a quote on the SAME property and correct these numbers.
-// The whole "5-10% under market" claim is only as good as this table.
 // ---------------------------------------------------------------------------
 
 (function (root) {
@@ -81,11 +65,26 @@
   }
 
   // --- (b) MARKET SIDE -----------------------------------------------------
-  // Approximates what the local market charges for a ONE-TIME standard
-  // clean, as a linear function of rooms. Derived from typical Emerald Coast
-  // quotes — VERIFY AND CORRECT (see note above).
+  // What the market charges for a ONE-TIME standard clean, as a linear
+  // function of rooms.
+  //
+  // CALIBRATED AGAINST PUBLISHED 2026 BENCHMARKS, NOT LOCAL QUOTES:
+  //   3BR/2BA ~2,000 sq ft ...... $135-180 typical, $110-320 full range
+  //   standard 2-3BR ............ $150-250
+  //   Central FL recurring 2-3BR . $120-180/visit
+  // These numbers produce ~$187 for a 3BR/2BA/1,800 sq ft home, which sits
+  // at the upper-middle of that evidence — appropriate for Destin/30A, a
+  // higher-cost coastal market than the national average, but NOT verified
+  // against an actual local competitor quote.
+  //
+  // !! STILL DO THIS: get quotes from three local competitors on the SAME
+  // property (a 3BR/2BA, 1,800 sq ft home in Destin is a good test case) and
+  // correct these five numbers. If the real local rate is materially higher,
+  // you are leaving money on the table; if lower, the "below market" claim
+  // shown to customers is not true. Everything downstream is arithmetic and
+  // will follow whatever you put here.
   const MARKET_REFERENCE = {
-    residential: { base: 80, perBedroom: 28, perFullBath: 32, perHalfBath: 14, perSqft: 0.010 },
+    residential: { base: 55, perBedroom: 22, perFullBath: 26, perHalfBath: 12, perSqft: 0.008 },
     // Commercial is quoted per sq ft far more often than per room.
     commercial:  { base: 60, perSqft: 0.085, perRestroom: 26 },
   };
@@ -122,15 +121,13 @@
   function residentialHours(input) {
     const L = RES_LABOR;
     const sqft = Number(input.sqft) || 0;
-    const hours =
-      L.setup +
+    return L.setup +
       (Number(input.bedrooms) || 0) * L.perBedroom +
       (Number(input.fullBaths) || 0) * L.perFullBath +
       (Number(input.halfBaths) || 0) * L.perHalfBath +
       (Number(input.kitchens) || 0) * L.perKitchen +
       (Number(input.livingAreas) || 0) * L.perLivingArea +
       (sqft / 500) * L.hoursPer500Sqft;
-    return hours;
   }
 
   function factorTotal(table, input) {
@@ -188,9 +185,6 @@
   }
 
   // --- THE ENGINE ----------------------------------------------------------
-  // Returns the per-visit STANDARD (one-time) price plus the reasoning
-  // behind it, so the UI can show its work instead of producing a number
-  // out of nowhere.
   function quote(side, input, tier) {
     const isRes = side === "residential";
     const rawHours = isRes ? residentialHours(input) : commercialHours(input);
@@ -207,9 +201,7 @@
 
     const belowFloor = marketPrice < costFloor;
     let price = Math.max(costFloor, marketPrice, COST_MODEL.minimumVisit);
-
-    // Round to the nearest $5 — quoted prices should look considered.
-    price = Math.round(price / 5) * 5;
+    price = Math.round(price / 5) * 5;   // nearest $5 — quotes should look considered
 
     const vsMarketPct = marketRef > 0 ? (1 - price / marketRef) : 0;
 
