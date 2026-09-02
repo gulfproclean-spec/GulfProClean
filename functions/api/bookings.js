@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
 import { computeBookingPricing, PricingError } from '../_lib/pricing.js';
 import { getBookedSlots, findSlotConflict } from '../_lib/scheduling.js';
+import { pickAutoAssignEmployee } from '../_lib/assignment.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
@@ -110,6 +111,11 @@ export async function onRequestPost({ env, request }) {
     return new Response(JSON.stringify({ error: `The ${conflict.time} slot on ${conflict.date} was just booked by someone else — please pick another time.` }), { status: 409 });
   }
 
+  // Auto-assign to whoever on the crew has the lightest load on this date.
+  // The office can move the job to anyone else, anytime, from admin.html —
+  // this just means no booking sits unassigned waiting on a person.
+  const assignedEmployee = await pickAutoAssignEmployee(sql, scheduledDate);
+
   const monthsVal = bookingType === 'Monthly' ? (Number(months) || 1) : 1;
   const pricingInput = { sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct };
 
@@ -123,14 +129,16 @@ export async function onRequestPost({ env, request }) {
       addons, addons_applied, extra_addons, visits_count, gross_total, final_total, is_first_time,
       scheduled_date, scheduled_time, visit_dates, payment_status, pricing_input,
       first_name, last_name, phone, address_line1, unit, city, state, zip,
-      per_visit_price, after_frequency_price, agreement_accepted_at
+      per_visit_price, after_frequency_price, agreement_accepted_at,
+      assigned_employee_id, assigned_at
     ) values (
       ${customer.id}, ${page}, ${address}, ${billingNameVal}, ${billingAddressVal}, ${notes || null}, ${tier}, ${bookingType}, ${monthsVal}, ${frequency},
       ${JSON.stringify(pricing.resolvedAddons)}::jsonb, ${JSON.stringify(appliedAddons)}::jsonb, ${JSON.stringify(pricing.resolvedExtraAddons)}::jsonb,
       ${pricing.visitsCount}, ${pricing.grossTotal}, ${pricing.finalTotal}, ${isFirstTime},
       ${scheduledDate || null}, ${scheduledTime || null}, ${visitDatesVal ? JSON.stringify(visitDatesVal) : null}::jsonb, 'unpaid', ${JSON.stringify(pricingInput)}::jsonb,
       ${firstName.trim()}, ${lastName.trim()}, ${phone.trim()}, ${addressLine1.trim()}, ${unitVal || null}, ${city.trim()}, ${state.toUpperCase()}, ${zip.trim()},
-      ${pricing.perVisit}, ${pricing.standardPrice}, now()
+      ${pricing.perVisit}, ${pricing.standardPrice}, now(),
+      ${assignedEmployee ? assignedEmployee.id : null}, ${assignedEmployee ? new Date().toISOString() : null}
     )
     returning id
   `;
@@ -151,6 +159,8 @@ export async function onRequestPost({ env, request }) {
   return new Response(JSON.stringify({
     ok: true, id: rows[0].id, isFirstTime,
     finalTotal: pricing.finalTotal, grossTotal: pricing.grossTotal, visitsCount: pricing.visitsCount,
+    assignedEmployeeId: assignedEmployee ? assignedEmployee.id : null,
+    assignedEmployeeName: assignedEmployee ? assignedEmployee.name : null,
   }), {
     status: 201,
     headers: { 'Content-Type': 'application/json' },
