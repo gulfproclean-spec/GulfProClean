@@ -229,6 +229,41 @@
   }
 
   // --- THE ENGINE ----------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // Recurring billing ladder.
+  //
+  // This lives here, not in the calculators, because it used to live in three
+  // places at once: both calculators and functions/_lib/pricing.js. They drifted
+  // -- the calculators moved to one ladder while the server kept charging on
+  // another -- so the price a customer was shown and the price Stripe took were
+  // different numbers. One definition, read by everything, makes that
+  // structurally impossible rather than a thing to remember.
+  const VALID_MONTHS = [0.5, 1, 6, 12];
+
+  function monthlyDiscountFor(m) {
+    return m >= 12 ? 0.20      // 12-month commitment
+         : m >= 6  ? 0.15      // 6-month commitment
+         : m >= 1  ? 0.07      // monthly, no commitment
+                   : 0.05;     // biweekly, no commitment
+  }
+
+  // The per-visit price actually charged for a plan. A recurring discount is a
+  // margin decision, not a licence to sell below cost, so the discounted price
+  // is clamped at the cost floor -- which means the customer can receive less
+  // than the nominal percentage. appliedDiscountPct below reports what they
+  // really got, so nothing displayed overstates the discount.
+  function recurringPerVisit(est, booking, months) {
+    if (!est) return 0;
+    if (booking === "One-time") return est.price;
+    const nominal = est.price * (1 - monthlyDiscountFor(months));
+    return Math.max(nominal, est.costFloor);
+  }
+
+  function appliedDiscountPct(est, booking, months) {
+    if (!est || !est.price) return 0;
+    return Math.max(0, est.price - recurringPerVisit(est, booking, months)) / est.price;
+  }
+
   function quote(side, input, tier) {
     const isRes = side === "residential";
     const rawHours = isRes ? residentialHours(input) : commercialHours(input);
@@ -267,6 +302,7 @@
     COST_MODEL, MARKET_REFERENCE, POSITION_FACTOR, WAGE_BAND, TIER_WAGE,
     RES_LABOR, COM_LABOR, TIER_MULTIPLIER, RES_FACTORS, COM_FACTORS,
     burdenMultiplier, loadedHourlyCost, quote,
+    VALID_MONTHS, monthlyDiscountFor, recurringPerVisit, appliedDiscountPct,
   };
 
-})(window);
+})(typeof globalThis !== "undefined" ? globalThis : window);
