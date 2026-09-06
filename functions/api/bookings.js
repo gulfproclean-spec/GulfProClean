@@ -19,7 +19,9 @@ export async function onRequestPost({ env, request }) {
   }
   const {
     page, notes, tier, bookingType, months, frequency,
-    sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
+    sqft, areas, propertyType, occupancy, hardFloorPct,
+    bedrooms, fullBaths, halfBaths, kitchens, livingAreas, pets, condition, lastCleaned, levels,
+    restrooms, breakRooms, offices, entrances, afterHours,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime, visitDates,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
     billingName, billingAddress, agreementAccepted,
@@ -66,7 +68,9 @@ export async function onRequestPost({ env, request }) {
   try {
     pricing = await computeBookingPricing(sql, {
       page, tier, booking: bookingType, months, frequency,
-      sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
+      sqft, areas, propertyType, occupancy, hardFloorPct,
+      bedrooms, fullBaths, halfBaths, kitchens, livingAreas, pets, condition, lastCleaned, levels,
+      restrooms, breakRooms, offices, entrances, afterHours,
       addons: Array.isArray(addons) ? addons.map(a => ({ name: a && a.name, occurrences: a && a.occurrences })) : [],
       extraAddons: Array.isArray(extraAddons) ? extraAddons.map(e => ({ name: e && e.name })) : [],
     }, isFirstTime);
@@ -111,7 +115,13 @@ export async function onRequestPost({ env, request }) {
   }
 
   const monthsVal = bookingType === 'Monthly' ? (Number(months) || 1) : 1;
-  const pricingInput = { sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct };
+  // Persist every raw input the pricing engine consumes, so a booking can be
+  // re-priced later (add-ons, plan changes) from exactly what was quoted.
+  const pricingInput = page === 'residential'
+    ? { sqft, bedrooms, fullBaths, halfBaths, kitchens, livingAreas,
+        pets, condition, lastCleaned, levels, occupancy }
+    : { sqft, restrooms, breakRooms, offices, entrances, areas,
+        propertyType, occupancy, hardFloorPct, afterHours };
 
   // after_frequency_price stores the One-Time/Standard Service Price
   // (pricing.standardPrice), not the pre-surcharge base rate — it's the
