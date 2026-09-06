@@ -47,7 +47,6 @@ export async function findValidCoupon(sql, rawCode, { customerId, page } = {}) {
   if (c.customer_id && !customerId) {
     return { error: 'Log in to use this coupon.' };
   }
-
   // One redemption per customer, always. max_redemptions caps the code
   // overall; without this a single shared code like NEXT20 could be redeemed
   // by the same person on every booking they ever make.
