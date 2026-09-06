@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
 import { computeBookingPricing, PricingError } from '../_lib/pricing.js';
 import { getBookedSlots, findSlotConflict } from '../_lib/scheduling.js';
+import { findValidCoupon } from '../_lib/coupons.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
@@ -24,7 +25,7 @@ export async function onRequestPost({ env, request }) {
     restrooms, breakRooms, offices, entrances, afterHours,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime, visitDates,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
-    billingName, billingAddress, agreementAccepted,
+    billingName, billingAddress, agreementAccepted, couponCode,
   } = body;
 
   const requiredStrings = { firstName, lastName, phone, addressLine1, city, state, zip };
@@ -62,6 +63,18 @@ export async function onRequestPost({ env, request }) {
   `;
   const isFirstTime = priorBookings.length === 0;
 
+  // A coupon is re-validated here even though the booking page already
+  // checked it. That check was for display; this one decides money, and the
+  // browser's word on which discount applies is worth nothing.
+  let coupon = null;
+  if (couponCode) {
+    const result = await findValidCoupon(sql, couponCode, { customerId: customer.id, page });
+    if (result.error) {
+      return new Response(JSON.stringify({ error: result.error }), { status: 400 });
+    }
+    coupon = result.coupon;
+  }
+
   // Price is derived entirely server-side from raw selections — nothing
   // computed by the browser is trusted here. See functions/_lib/pricing.js.
   let pricing;
@@ -73,7 +86,7 @@ export async function onRequestPost({ env, request }) {
       restrooms, breakRooms, offices, entrances, afterHours,
       addons: Array.isArray(addons) ? addons.map(a => ({ name: a && a.name, occurrences: a && a.occurrences })) : [],
       extraAddons: Array.isArray(extraAddons) ? extraAddons.map(e => ({ name: e && e.name })) : [],
-    }, isFirstTime);
+    }, isFirstTime, coupon);
   } catch (e) {
     if (e instanceof PricingError) {
       return new Response(JSON.stringify({ error: e.message }), { status: 400 });
@@ -145,6 +158,18 @@ export async function onRequestPost({ env, request }) {
     returning id
   `;
 
+  // Record the redemption only when the coupon is the discount that actually
+  // applied. If the first-time discount was larger, pricing used that instead
+  // and the coupon stays unspent — burning it for nothing would be a bug the
+  // customer would rightly complain about.
+  if (pricing.couponApplied && coupon) {
+    await sql`
+      insert into coupon_redemptions (coupon_id, booking_id, customer_id, amount_off, percent_off)
+      values (${coupon.id}, ${rows[0].id}, ${customer.id}, ${pricing.discountAmount}, ${coupon.percent_off})
+      on conflict (booking_id) do nothing
+    `;
+  }
+
   // Keep the customer record's service address, contact info, and billing
   // name/address in sync with their most recent booking, so the account
   // itself carries this info independent of any single booking (e.g. for
@@ -161,6 +186,8 @@ export async function onRequestPost({ env, request }) {
   return new Response(JSON.stringify({
     ok: true, id: rows[0].id, isFirstTime,
     finalTotal: pricing.finalTotal, grossTotal: pricing.grossTotal, visitsCount: pricing.visitsCount,
+    couponApplied: pricing.couponApplied, couponCode: pricing.couponCode,
+    discountAmount: pricing.discountAmount,
   }), {
     status: 201,
     headers: { 'Content-Type': 'application/json' },
