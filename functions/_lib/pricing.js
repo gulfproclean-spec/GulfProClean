@@ -111,7 +111,7 @@ function requireTier(tier) {
 // Computes the full, authoritative price breakdown for a booking from raw
 // selections only. `isFirstTime` must come from the server's own DB check,
 // never from the client.
-export async function computeBookingPricing(sql, input, isFirstTime) {
+export async function computeBookingPricing(sql, input, isFirstTime, coupon = null) {
   const { page, tier, booking, months, frequency, addons, extraAddons } = input;
   requireTier(tier);
   if (booking !== 'One-time' && booking !== 'Monthly') throw new PricingError('Invalid billing type.');
@@ -204,11 +204,24 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   });
   const extraAddonsTotal = resolvedExtraAddons.reduce((s, a) => s + a.total, 0);
 
-  // The first-time-customer discount applies to every booking type,
-  // including One-time — eligibility is based on the service address never
-  // having been serviced before (see isFirstTime's caller), not on which
-  // plan was picked. Never applies to add-ons.
-  const perVisit = afterBooking * (isFirstTime ? 0.90 : 1);
+  // Acquisition and retention discounts. Both sit BELOW the cost floor by
+  // design, unlike the recurring ladder, which is clamped at it. That is
+  // deliberate: the recurring discount is a standing margin decision, while
+  // these two are the price of buying a first job or a return visit. The
+  // first-time discount has always worked this way; the coupon follows it.
+  //
+  // They do NOT stack. 20% compounded on top of 10% would put a first visit
+  // 28% under a price that is frequently already at cost. The larger of the
+  // two applies, so a first-time customer holding a coupon gets whichever is
+  // better for them and never both.
+  //
+  // Neither applies to add-ons, matching the long-standing first-time rule.
+  const firstTimePct = isFirstTime ? 0.10 : 0;
+  const couponPct = coupon ? Number(coupon.percent_off) / 100 : 0;
+  const appliedPct = Math.max(firstTimePct, couponPct);
+  const couponApplied = couponPct > 0 && couponPct >= firstTimePct;
+
+  const perVisit = afterBooking * (1 - appliedPct);
   const plannedSubtotal = perVisit * visitsCount + addonsTotalAmount;
   const subtotal = plannedSubtotal + extraAddonsTotal;
   const grossTotal = standardPrice * visitsCount + addonsTotalAmount;
@@ -222,6 +235,14 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
     // stored the One-Time/Standard Service Price, which is now est.price.
     afterFrequency: standardPrice,
     costFloor: est.costFloor, estimatedHours: est.hours, monthlyDiscountPct,
+    // Which acquisition discount actually landed, and what it was worth.
+    // couponApplied is false when the first-time discount was the larger of
+    // the two, so the confirmation never claims a coupon it did not use.
+    couponApplied,
+    couponCode: couponApplied ? coupon.code : null,
+    appliedDiscountPct: appliedPct,
+    firstTimeApplied: !couponApplied && firstTimePct > 0,
+    discountAmount: Math.round((afterBooking - perVisit) * visitsCount * 100) / 100,
     resolvedAddons, resolvedExtraAddons, extraAddonsTotal,
     grossTotal, taxRate, tax, finalTotal,
   };
