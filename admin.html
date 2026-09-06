@@ -78,6 +78,45 @@
     </div>
 
     <div class="page-block">
+      <h2>Coupons</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">
+        A coupon is a percentage off one future booking. Unlike the subscription discounts,
+        a coupon <strong>is allowed to price a visit below the cost floor</strong> — same as the
+        10% first-time discount. That is the point of it, but it means a large coupon on a big
+        property can be sold under cost. Coupons never stack with the first-time discount; the
+        larger of the two applies.
+      </p>
+      <div style="background:#fff;border:1px solid #d8d3c8;border-radius:6px;padding:16px 18px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+          <div><label style="font-size:12px;color:#7a746a">Code</label>
+            <input type="text" id="new-coupon-code" placeholder="NEXT20" style="text-transform:uppercase"></div>
+          <div><label style="font-size:12px;color:#7a746a">Percent off</label>
+            <input type="number" id="new-coupon-pct" value="20" min="1" max="100"></div>
+          <div><label style="font-size:12px;color:#7a746a">Max uses (blank = unlimited)</label>
+            <input type="number" id="new-coupon-max" value="1" min="1"></div>
+          <div><label style="font-size:12px;color:#7a746a">Expires (blank = never)</label>
+            <input type="date" id="new-coupon-expires"></div>
+          <div><label style="font-size:12px;color:#7a746a">Lock to customer email (optional)</label>
+            <input type="text" id="new-coupon-email" placeholder="customer@example.com"></div>
+          <div><label style="font-size:12px;color:#7a746a">Limit to side</label>
+            <select id="new-coupon-page">
+              <option value="">Both</option>
+              <option value="residential">Residential</option>
+              <option value="commercial">Commercial</option>
+            </select></div>
+        </div>
+        <div><label style="font-size:12px;color:#7a746a">Note (internal)</label>
+          <input type="text" id="new-coupon-desc" placeholder="e.g. thank-you for the Perdido Key job"></div>
+        <div style="margin-top:6px"><button id="coupon-create">Issue coupon</button>
+          <span class="status" id="coupon-create-msg"></span></div>
+      </div>
+      <div class="filters">
+        <button class="secondary" id="coupon-refresh" style="background:#e3ded2">Refresh</button>
+      </div>
+      <div id="coupons-list">Loading…</div>
+    </div>
+
+    <div class="page-block">
       <h2>Applicants</h2>
       <p style="font-size:13px;color:#7a746a;margin-top:-8px">
         Job applications from <a href="apply.html" style="color:#8a6221">apply.html</a>.
@@ -336,6 +375,7 @@ document.getElementById('unlock').addEventListener('click', async () => {
   if (!token) return;
   document.getElementById('editors').style.display = 'block';
   GPC_HIRING.init(token);
+  GPC_COUPONS.init(token);
   await Promise.all([loadVisits()].concat(['residential', 'commercial'].map(loadPage)).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
 });
 
@@ -374,5 +414,6 @@ document.querySelectorAll('button[data-page]').forEach(btn => {
 </script>
 <script src="careers-data.js"></script>
 <script src="admin-hiring.js"></script>
+<script src="admin-coupons.js"></script>
 </body>
 </html>
