@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
 import { computeBookingPricing, PricingError } from '../_lib/pricing.js';
+import { isFirstTimeCustomer } from '../_lib/first-time.js';
 import { getBookedSlots, findSlotConflict } from '../_lib/scheduling.js';
 
 const PAGES = new Set(['residential', 'commercial']);
@@ -49,18 +50,13 @@ export async function onRequestPost({ env, request }) {
   const billingNameVal = typeof billingName === 'string' && billingName.trim() ? billingName.trim() : null;
   const billingAddressVal = typeof billingAddress === 'string' && billingAddress.trim() ? billingAddress.trim() : null;
 
-  // First-time-customer discount eligibility is checked against both the
-  // account and the service address — a new account at an address that's
-  // already been serviced isn't a first-time customer, even if the email
-  // is new. This is the authoritative check; the pre-payment estimate on
-  // book.html mirrors it via signup/login but this is what actually gets
-  // charged.
-  const priorBookings = await sql`
-    select 1 from bookings
-    where customer_id = ${customer.id} or lower(address) = lower(${address})
-    limit 1
-  `;
-  const isFirstTime = priorBookings.length === 0;
+  // First-time-customer discount eligibility: checked against both the
+  // account and the service address, so a new account at an address we have
+  // already cleaned is not a first-time customer even though the email is
+  // new. This is the authoritative check — the pre-payment estimate on
+  // book.html mirrors it via signup/login, but this is what actually gets
+  // charged. Both go through the same helper so they cannot disagree.
+  const isFirstTime = await isFirstTimeCustomer(sql, customer.id, address);
 
   // Price is derived entirely server-side from raw selections — nothing
   // computed by the browser is trusted here. See functions/_lib/pricing.js.
