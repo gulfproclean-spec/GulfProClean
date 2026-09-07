@@ -89,8 +89,81 @@ for (const tier of TIERS) {
   }
 }
 
+// Every advertised percentage must actually be DELIVERED, on every property.
+//
+// This is the regression guard for the cost-floor bug: the recurring price was
+// clamped at the ONE-TIME cost floor, which sat above market on essentially
+// every home, so "up to 20% off" delivered 0.0%. If this block starts failing,
+// the plan picker is advertising a discount the engine will not give.
+const ADVERTISED = [[0.5, 0.05], [1, 0.07], [6, 0.10], [12, 0.15]];
+const DELIVERY_HOMES = [
+  { label: 'small',  sqft: 1000, bedrooms: 2, fullBaths: 1, halfBaths: 0, kitchens: 1, livingAreas: 1 },
+  { label: 'mid',    sqft: 1800, bedrooms: 3, fullBaths: 2, halfBaths: 1, kitchens: 1, livingAreas: 2 },
+  { label: 'large',  sqft: 2800, bedrooms: 4, fullBaths: 3, halfBaths: 1, kitchens: 1, livingAreas: 3 },
+  { label: 'xlarge', sqft: 4000, bedrooms: 5, fullBaths: 4, halfBaths: 2, kitchens: 1, livingAreas: 4 },
+];
+// Worst case for the floor: dirtiest condition, most hours, so the highest
+// cost floor. If the discount survives here it survives everywhere.
+const HARSH = { pets: '2+ pets', condition: 'Needs attention', lastCleaned: '3+ months or never',
+                levels: 'Three+ stories', occupancy: '5+ people' };
+
+for (const tier of TIERS) {
+  for (const home of DELIVERY_HOMES) {
+    const input = { ...home, ...HARSH };
+    delete input.label;
+    const est = MODEL.quote('residential', input, tier);
+    for (const [months, pct] of ADVERTISED) {
+      checks++;
+      const delivered = MODEL.appliedDiscountPct(est, 'Monthly', months);
+      if (!near(delivered, pct)) {
+        failures.push(`${tier} ${home.label} ${months}mo: advertised ${(pct * 100).toFixed(0)}%, `
+          + `delivers ${(delivered * 100).toFixed(1)}%`);
+      }
+    }
+    // The floor must still bite somewhere, or it is not protecting anything.
+    checks++;
+    if (MODEL.recurringPerVisit(est, 'Monthly', 12) < est.recurringCostFloor - 0.01) {
+      failures.push(`${tier} ${home.label}: recurring price fell below the recurring cost floor`);
+    }
+  }
+}
+
+// A recurring plan must NEVER cost more per visit than the one-time price.
+//
+// This is the guard for the "$1,260 total, $1,264 final price" bug: price is
+// rounded to the nearest $5 and the cost floor is not, so the clamp could land
+// above the standard price and a discount plan came out more expensive. Swept
+// across a wide grid because it only showed up on specific roundings.
+{
+  const CONDITIONS = ['Well kept', 'Average', 'Needs attention'];
+  const CLEANED = ['Within a month', '1–3 months', '3+ months or never'];
+  for (const tier of TIERS) {
+    for (let bd = 1; bd <= 5; bd++) {
+      for (const sqft of [800, 1000, 1300, 1600, 1900, 2200, 2600, 3000, 3600, 4200]) {
+        for (const condition of CONDITIONS) {
+          for (const lastCleaned of CLEANED) {
+            const est = MODEL.quote('residential', {
+              sqft, bedrooms: bd, fullBaths: Math.max(1, bd - 1), halfBaths: bd > 2 ? 1 : 0,
+              kitchens: 1, livingAreas: 2, pets: '1 pet', condition, lastCleaned,
+              levels: 'Two stories', occupancy: '3–4 people',
+            }, tier);
+            for (const [months] of ADVERTISED) {
+              checks++;
+              const per = MODEL.recurringPerVisit(est, 'Monthly', months);
+              if (per > est.price + 0.001) {
+                failures.push(`${tier} ${sqft}sqft ${bd}bd ${months}mo: recurring $${per.toFixed(2)} `
+                  + `EXCEEDS one-time $${est.price}`);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 // The ladder is stated in exactly one place.
-const LADDER = [[0.5, 0.05], [1, 0.07], [6, 0.15], [12, 0.20]];
+const LADDER = [[0.5, 0.05], [1, 0.07], [6, 0.10], [12, 0.15]];
 for (const [m, pct] of LADDER) {
   checks++;
   if (!near(MODEL.monthlyDiscountFor(m), pct)) {
