@@ -26,7 +26,7 @@ const SECTION_PAGES = {
     { slug: "residential-tiers.html",    nav: "Service Tiers", title: "Choose how deep we go", blurb: "Essential, Preferred and Premium compared line by line." },
     { slug: "residential-plans.html",    nav: "Plans",         title: "One-time or on repeat", blurb: "A single visit, or standing coverage billed monthly. No contracts." },
     { slug: "residential-addons.html",   nav: "Add-Ons",       title: "Add-on services",       blurb: "Ovens, windows, baseboards, carpets — added to any visit." },
-    { slug: "residential-quote.html",    nav: "Get a Quote",   title: "Estimate your price",   blurb: "Your exact price from square footage, tier and frequency." },
+    { slug: "residential-quote.html",    nav: "Pricing",       title: "Your price, right now",  blurb: "Your exact price from square footage, tier and frequency — no callback, no waiting." },
     { slug: "residential-home-os.html",  nav: "Home Care",     title: "Home Operating System", blurb: "What we watch between visits, and how cleaning becomes home care." },
   ],
   commercial: [
@@ -34,7 +34,7 @@ const SECTION_PAGES = {
     { slug: "commercial-tiers.html",  nav: "Service Tiers", title: "Choose how deep we go", blurb: "Essential, Preferred and Premium compared line by line." },
     { slug: "commercial-plans.html",  nav: "Plans",         title: "One-time or on repeat", blurb: "A single service, or a standing schedule billed monthly." },
     { slug: "commercial-addons.html", nav: "Add-Ons",       title: "Add-on services",       blurb: "Post-construction, pressure washing, carpet extraction and more." },
-    { slug: "commercial-quote.html",  nav: "Get a Quote",   title: "Estimate your price",   blurb: "Your exact price from square footage, restrooms and frequency." },
+    { slug: "commercial-quote.html",  nav: "Pricing",    title: "Your price, right now", blurb: "Your exact price from square footage, restrooms and frequency — no callback, no waiting." },
   ],
 };
 
@@ -80,7 +80,7 @@ function Hero({ navy = NAVY, gold = GOLD, heroPhoto = true, hero, image = "asset
   );
   const ctaRow = (
     <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 22, flexWrap: "wrap" }}>
-      <a href={quoteHref} style={{ background: gold, color: navy, fontWeight: 600, fontSize: 16, padding: "14px 24px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 8 }}>Get a quote →</a>
+      <a href={quoteHref} style={{ background: gold, color: navy, fontWeight: 600, fontSize: 16, padding: "14px 24px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 8 }}>See pricing →</a>
       <a href={tiersHref} style={{ color: heroPhoto ? "#fff" : navy, fontWeight: 500, fontSize: 16, textDecoration: "underline" }}>Explore service tiers</a>
     </div>
   );
