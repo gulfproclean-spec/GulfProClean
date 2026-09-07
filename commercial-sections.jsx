@@ -16,7 +16,7 @@
 // (cost floor vs. 92.5%-of-market, whichever is higher) — do not multiply it
 // by anything further before displaying it as "standardPrice." Recurring
 // plans discount off it directly, and that discount is clamped so it can
-// never drop below est.costFloor — a plan discount is a margin decision, not
+// never drop below est.recurringCostFloor — a plan discount is a margin decision, not
 // a license to sell a visit at a loss. See the Calculator component for the
 // clamp and monthlyDiscountFor for the current ladder.
 // ---------------------------------------------------------------------------
@@ -175,13 +175,15 @@ function Calculator({ navy, gold, pricing, preset }) {
   // AGREEMENT_SECTIONS (BILLING PLANS / SUBSCRIPTION DISCOUNT sections) must
   // be updated in the same pass — that text is what the customer actually
   // signs, and its refund-reconciliation math is keyed to these percentages.
-  const monthlyDiscountFor = (m) => m >= 12 ? 0.28 : m >= 6 ? 0.22 : m >= 1 ? 0.18 : 0.15;
+  // The ladder lives in pricing-model.js so the calculator and the server
+  // cannot state different numbers. Do not redefine it here.
+  const monthlyDiscountFor = (m) => GPC_PRICING.monthlyDiscountFor(m);
   const BILLING_PLANS = [
     { key: "one-time", label: "One-time (Standard price)", booking: "One-time", months: 1 },
-    { key: "biweekly", label: "Biweekly (15% discount)", booking: "Monthly", months: 0.5 },
-    { key: "monthly", label: "Monthly (18% discount)", booking: "Monthly", months: 1 },
-    { key: "6-month", label: "6-Month Subscription (22% discount)", booking: "Monthly", months: 6 },
-    { key: "12-month", label: "12-Month Subscription (28% discount)", booking: "Monthly", months: 12 },
+    { key: "biweekly", label: "Biweekly (5% discount)", booking: "Monthly", months: 0.5 },
+    { key: "monthly", label: "Monthly (7% discount)", booking: "Monthly", months: 1 },
+    { key: "6-month", label: "6-Month Subscription (10% discount)", booking: "Monthly", months: 6 },
+    { key: "12-month", label: "12-Month Subscription (15% discount)", booking: "Monthly", months: 12 },
   ];
   const addonPricing = {
     "Post-construction cleanup": { rate: 0.25, unit: "sqft", min: 750 },
@@ -271,10 +273,12 @@ function Calculator({ navy, gold, pricing, preset }) {
   const standardPrice = est ? est.price : 0;
   const nominalDiscountPct = booking === "Monthly" ? monthlyDiscountFor(months) : 0;
   const nominalAfterBooking = booking === "One-time" ? standardPrice : standardPrice * (1 - nominalDiscountPct);
-  // A recurring discount is a margin decision, not a license to sell below
-  // cost — clamp so the discounted price never drops under est.costFloor,
-  // even if that means the customer receives less than the nominal % above.
-  const afterBooking = (est && booking !== "One-time") ? Math.max(nominalAfterBooking, est.costFloor) : nominalAfterBooking;
+  // The clamp lives in pricing-model.js (recurringPerVisit) so the calculator,
+  // the server and the Service Agreement cannot disagree about what a plan
+  // costs. It clamps at the RECURRING cost floor — a maintenance visit's real
+  // cost — not the one-time floor. Clamping at the one-time floor here was
+  // what made every advertised subscription discount deliver ~0%.
+  const afterBooking = est ? GPC_PRICING.recurringPerVisit(est, booking, months) : nominalAfterBooking;
   const perVisit = afterBooking;
   const discount = Math.max(0, standardPrice - perVisit);
   // What the customer actually receives, in percent — derived from the real
