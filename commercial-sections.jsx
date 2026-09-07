@@ -105,7 +105,7 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
           <span style={{ fontSize: 20, lineHeight: 1 }}>✦</span>
         </div>
         <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 36, color: navy, margin: 0, maxWidth: 640 }}>Book once, or let us handle it on repeat</h1>
-        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with your facility's scope — <a href="commercial-quote.html" style={{ color: "#8a6221" }}>get your exact quote</a> on the quote page.</p>
+        <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with your facility's scope — <a href="commercial-quote.html" style={{ color: "#8a6221" }}>see your exact price</a> on the pricing page.</p>
 
         <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
@@ -122,7 +122,7 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
                 <div key={name}>
                   <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
                   <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>
-                    {p ? <>Starting at ${Math.round(p)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></> : "Get a quote"}
+                    {p ? <>Starting at ${Math.round(p)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></> : "See your price"}
                   </p>
                 </div>
               );
@@ -348,12 +348,12 @@ function Calculator({ navy, gold, pricing, preset }) {
         <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, borderRadius: 6, padding: "16px 26px", marginBottom: 24, textAlign: "center", fontWeight: 700, fontSize: 16 }}>
           ✦ Discounts for first-time customers and subscription plans ✦
         </div>
-        <Kicker gold="#d9a94a">Get a quote</Kicker>
+        <Kicker gold="#d9a94a">Pricing</Kicker>
         <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 28, color: "#fff", margin: 0, maxWidth: 640 }}>Estimate your commercial price</h1>
         <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 8, maxWidth: "60ch" }}>Priced from your facility's actual scope — restrooms, break rooms, offices and floor area — not a flat square-footage rate. An estimate; final pricing is confirmed on walkthrough.</p>
         {presetNotice && (
           <div style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${gold}`, borderRadius: 4, padding: "10px 14px", marginTop: 14, maxWidth: "60ch", fontSize: 13, color: "#fff" }}>
-            We've pre-filled the {preset.tier} plan below. Fill in your facility scope for an exact quote.
+            We've pre-filled the {preset.tier} plan below. Fill in your facility scope for your exact price.
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 20, background: "#fff", borderRadius: 8, padding: 20 }}>
