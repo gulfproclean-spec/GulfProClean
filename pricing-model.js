@@ -58,6 +58,23 @@
                               // admin, marketing, and profit. Lower this
                               // number to price higher / bank more margin.
     minimumVisit: 129,        // no visit is worth dispatching a crew below this
+
+    // A recurring maintenance visit genuinely takes less time than the
+    // first/one-time clean of the same home: there is two weeks of buildup to
+    // remove, not two months, and the crew already knows the property. The
+    // hours model above estimates a ONE-TIME clean, so costing a recurring
+    // visit at those hours overstates its cost by roughly a third.
+    //
+    // That overstatement was not academic. It pushed the recurring cost floor
+    // above the market price on essentially every property, which pinned the
+    // price at the floor, which clamped every subscription discount to zero --
+    // the site advertised up to 20% off and delivered 0.0%.
+    //
+    // This is not a margin concession. The floor still targets the same
+    // targetLaborRatio; it simply computes it from the hours a recurring
+    // visit actually takes. Raise toward 1.0 if maintenance visits are not
+    // in fact lighter than a first clean.
+    recurringHoursFactor: 0.70,
   };
 
   // Total burden multiplier — 1.221 at the rates above, i.e. every $1.00 of
@@ -241,8 +258,8 @@
   const VALID_MONTHS = [0.5, 1, 6, 12];
 
   function monthlyDiscountFor(m) {
-    return m >= 12 ? 0.20      // 12-month commitment
-         : m >= 6  ? 0.15      // 6-month commitment
+    return m >= 12 ? 0.15      // 12-month commitment
+         : m >= 6  ? 0.10      // 6-month commitment
          : m >= 1  ? 0.07      // monthly, no commitment
                    : 0.05;     // biweekly, no commitment
   }
@@ -256,7 +273,21 @@
     if (!est) return 0;
     if (booking === "One-time") return est.price;
     const nominal = est.price * (1 - monthlyDiscountFor(months));
-    return Math.max(nominal, est.costFloor);
+    // Clamp against the RECURRING floor. Using the one-time floor here was
+    // the bug that made every advertised subscription discount deliver ~0%.
+    const floor = est.recurringCostFloor != null ? est.recurringCostFloor : est.costFloor;
+    const clamped = Math.max(nominal, floor);
+
+    // HARD INVARIANT: a recurring plan can never cost more per visit than the
+    // one-time standard price. It is a discount; the word has a meaning.
+    //
+    // Without this, price and costFloor disagreed on rounding -- price is
+    // rounded to the nearest $5, the floor is not -- so a floor of $315.90
+    // against a rounded price of $315 pushed the "7% off" monthly plan ABOVE
+    // the standard price. The summary then showed a Total of $1,260 and a
+    // Final price of $1,264, with the discount row hidden because the
+    // discount had gone negative.
+    return Math.min(clamped, est.price);
   }
 
   function appliedDiscountPct(est, booking, months) {
@@ -290,6 +321,9 @@
       hourlyCost: Math.round(hourlyCost * 100) / 100,
       laborCost: Math.round(laborCost * 100) / 100,
       costFloor: Math.round(costFloor),
+      // The floor that applies to a recurring visit, from that visit's real
+      // (lighter) hours. recurringPerVisit clamps against this, not costFloor.
+      recurringCostFloor: Math.round(costFloor * COST_MODEL.recurringHoursFactor),
       marketReference: Math.round(marketRef),
       marketPrice: Math.round(marketPrice),
       belowFloor,          // true = market rate would lose money; we held at the floor
