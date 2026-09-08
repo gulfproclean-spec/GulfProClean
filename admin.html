@@ -44,6 +44,10 @@
   .rev-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
   .rev-actions select, .rev-actions input[type=text] { padding: 7px 9px; border: 1px solid #d8d3c8; border-radius: 4px; font-size: 13px; font-family: inherit; }
   .rev-actions button { padding: 7px 14px; font-size: 13px; }
+  .money-warn { border-left: 4px solid #8a3d3d; background: #fbf3f3; color: #6d2f2f;
+                padding: 12px 14px; margin: 14px 0 4px; font-size: 13px; line-height: 1.55;
+                border-radius: 0 4px 4px 0; }
+  .money-warn strong { color: #8a3d3d; }
   .rev-actions button.secondary { background: #e3ded2; }
   .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; background: #e3ded2; color: #153238; }
   .badge.new { background: #153238; color: #fff; }
@@ -75,6 +79,28 @@
         <thead><tr><th>Page</th><th>Views</th></tr></thead>
         <tbody id="visits-tbody"></tbody>
       </table>
+    </div>
+
+    <div class="page-block">
+      <h2>Money requests</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">
+        Refund and plan-change requests customers submitted from
+        <a href="account.html" style="color:#8a6221">their account page</a>.
+        <strong>Nothing in this application moves money.</strong> Both are issued by hand in the
+        <a href="https://dashboard.stripe.com/payments" target="_blank" rel="noopener" style="color:#8a6221">Stripe dashboard</a>;
+        this screen records what you did there.
+      </p>
+      <div class="filters">
+        <select id="req-filter-status">
+          <option value="pending">Pending</option>
+          <option value="">All statuses</option>
+          <option value="processed">Processed</option>
+          <option value="applied">Applied</option>
+          <option value="declined">Declined</option>
+        </select>
+        <button class="secondary" id="req-refresh" style="background:#e3ded2">Refresh</button>
+      </div>
+      <div id="requests-list">Loading…</div>
     </div>
 
     <div class="page-block">
@@ -365,6 +391,7 @@ document.getElementById('unlock').addEventListener('click', async () => {
   document.getElementById('editors').style.display = 'block';
   GPC_HIRING.init(token);
   GPC_CREW.init(token);
+  GPC_REQUESTS.init(token);
   await Promise.all([loadVisits()].concat(['residential', 'commercial'].map(loadPage)).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
 });
 
@@ -404,5 +431,6 @@ document.querySelectorAll('button[data-page]').forEach(btn => {
 <script src="careers-data.js"></script>
 <script src="admin-hiring.js"></script>
 <script src="admin-crew.js"></script>
+<script src="admin-requests.js"></script>
 </body>
 </html>
