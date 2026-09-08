@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { sendVendorNotificationEmail, sendVendorConfirmationEmail } from '../_lib/email.js';
+import { getVendorFromSession } from '../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -14,8 +15,16 @@ function strArray(v, max = 30) {
   return Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, max).map(x => x.slice(0, 80)) : [];
 }
 
-// POST /api/vendors — public.
+// POST /api/vendors — requires a signed-in vendor account. Anyone can create
+// one (see functions/api/vendor-auth/signup.js), but pricing/requirements
+// can no longer be submitted anonymously.
 export async function onRequestPost({ env, request }) {
+  const sql = neon(env.DATABASE_URL);
+  const vendorAccount = await getVendorFromSession(sql, request);
+  if (!vendorAccount) {
+    return json({ error: 'Please create a vendor account or log in before submitting your pricing.' }, 401);
+  }
+
   let body;
   try {
     body = await request.json();
@@ -60,17 +69,16 @@ export async function onRequestPost({ env, request }) {
   const hourly = Number(body.hourly_rate);
   const licenseExpires = str(body.license_expires, 20);
 
-  const sql = neon(env.DATABASE_URL);
   const rows = await sql`
     insert into vendor_submissions (
       business_name, contact_name, email, phone, trades, areas,
-      license_number, license_authority, license_expires, hourly_rate, details
+      license_number, license_authority, license_expires, hourly_rate, details, vendor_account_id
     ) values (
       ${businessName}, ${contactName}, ${email}, ${phone},
       ${trades}, ${strArray(body.areas, 20)},
       ${str(body.license_number, 100)}, ${str(body.license_authority, 200)},
       ${licenseExpires}, ${Number.isFinite(hourly) ? hourly : null},
-      ${JSON.stringify(details)}
+      ${JSON.stringify(details)}, ${vendorAccount.id}
     )
     returning id, created_at
   `;

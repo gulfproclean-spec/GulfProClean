@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { sendApplicationNotificationEmail, sendApplicationConfirmationEmail } from '../_lib/email.js';
+import { getApplicantFromSession } from '../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -21,8 +22,16 @@ function strArray(v, max = 20) {
   return Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, max).map(x => x.slice(0, 80)) : [];
 }
 
-// POST /api/applications — public. Anyone can apply; nothing here is gated.
+// POST /api/applications — requires a signed-in applicant account. Anyone
+// can create one (see functions/api/applicant-auth/signup.js), but an
+// application can no longer be filed anonymously.
 export async function onRequestPost({ env, request }) {
+  const sql = neon(env.DATABASE_URL);
+  const applicant = await getApplicantFromSession(sql, request);
+  if (!applicant) {
+    return json({ error: 'Please create an applicant account or log in before applying.' }, 401);
+  }
+
   let body;
   try {
     body = await request.json();
@@ -64,12 +73,11 @@ export async function onRequestPost({ env, request }) {
   const roleSlug = str(body.role_slug, 120) || 'general';
   const roleTitle = str(body.role_title, 200) || 'General application';
 
-  const sql = neon(env.DATABASE_URL);
   const rows = await sql`
     insert into job_applications (
       role_slug, role_title, first_name, last_name, email, phone, city, zip,
       work_authorized, needs_sponsorship, is_adult, convicted, conviction_explanation,
-      days, shifts, employment, reference_contacts, answers
+      days, shifts, employment, reference_contacts, answers, applicant_account_id
     ) values (
       ${roleSlug}, ${roleTitle}, ${firstName}, ${lastName}, ${email}, ${phone},
       ${str(answers.city, 120)}, ${str(answers.zip, 20)},
@@ -78,7 +86,7 @@ export async function onRequestPost({ env, request }) {
       ${strArray(body.days, 7)}, ${strArray(body.shifts, 8)},
       ${JSON.stringify(Array.isArray(body.employment) ? body.employment.slice(0, 6) : [])},
       ${JSON.stringify(Array.isArray(body.reference_contacts) ? body.reference_contacts.slice(0, 4) : [])},
-      ${JSON.stringify(answers)}
+      ${JSON.stringify(answers)}, ${applicant.id}
     )
     returning id, created_at
   `;
