@@ -45,21 +45,26 @@ export function newSessionToken() {
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-export function sessionCookie(token) {
-  return `session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
+// Three separate account types (customer, applicant, vendor) share this one
+// helper file, each with its own cookie name so a person can be signed in as
+// more than one type at once without the cookies colliding — a customer who
+// is also applying for a job does not get logged out of one by logging into
+// the other.
+export function sessionCookie(token, name = 'session') {
+  return `${name}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
 }
 
-export function clearSessionCookie() {
-  return `session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+export function clearSessionCookie(name = 'session') {
+  return `${name}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
 export function sessionExpiry() {
   return new Date(Date.now() + SESSION_MAX_AGE * 1000).toISOString();
 }
 
-export function getSessionToken(request) {
+export function getSessionToken(request, name = 'session') {
   const cookie = request.headers.get('Cookie') || '';
-  const match = cookie.match(/(?:^|;\s*)session=([^;]+)/);
+  const match = cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
   return match ? match[1] : null;
 }
 
@@ -70,6 +75,30 @@ export async function getCustomerFromSession(sql, request) {
     select c.id, c.email, c.address
     from sessions s
     join customers c on c.id = s.customer_id
+    where s.token = ${token} and s.expires_at > now()
+  `;
+  return rows[0] || null;
+}
+
+export async function getApplicantFromSession(sql, request) {
+  const token = getSessionToken(request, 'applicant_session');
+  if (!token) return null;
+  const rows = await sql`
+    select a.id, a.email
+    from applicant_sessions s
+    join applicant_accounts a on a.id = s.applicant_account_id
+    where s.token = ${token} and s.expires_at > now()
+  `;
+  return rows[0] || null;
+}
+
+export async function getVendorFromSession(sql, request) {
+  const token = getSessionToken(request, 'vendor_session');
+  if (!token) return null;
+  const rows = await sql`
+    select v.id, v.email
+    from vendor_sessions s
+    join vendor_accounts v on v.id = s.vendor_account_id
     where s.token = ${token} and s.expires_at > now()
   `;
   return rows[0] || null;
