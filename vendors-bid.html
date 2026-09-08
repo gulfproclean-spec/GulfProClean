@@ -20,6 +20,7 @@
   <span class="kicker">Vendor submission</span>
   <h1 class="page" style="font-size:clamp(30px,4.2vw,42px)">Submit your pricing</h1>
   <p class="lead">About fifteen minutes. We verify your license against the issuing authority before anything is dispatched, so give us the number exactly as it appears on the license.</p>
+  <p class="lead" style="font-size:14.5px;">New to the bench? See <a href="vendors.html#requirements" style="color:var(--gold-dark)">what every vendor must have</a> and the trades we dispatch before you submit.</p>
 
   <div class="notice">
     <strong>Do not attach documents here.</strong> Once we have verified your license we will email you for your certificate of insurance,
@@ -27,7 +28,11 @@
     bank details by email.
   </div>
 
-  <form id="vendor-form" novalidate>
+  <h2 class="sec" style="font-size:20px;margin-top:34px;">Create your vendor account</h2>
+  <p class="body" style="max-width:60ch;">An account keeps your submission tied to your business and is required before you can submit your pricing.</p>
+  <div class="card" id="account-gate" style="margin-top:16px;"></div>
+
+  <form id="vendor-form" novalidate style="display:none;">
     <fieldset>
       <legend>Your business</legend>
       <label class="field"><span class="label">Legal business name *</span><input type="text" name="business_name" required></label>
@@ -311,6 +316,15 @@
 
 <script src="site-chrome.js"></script>
 <script src="vendors-data.js"></script>
+<script src="account-gate.js"></script>
 <script src="vendors-form.js"></script>
+<script>
+  GPC_ACCOUNT_GATE.mount({
+    authPrefix: '/api/vendor-auth',
+    gateId: 'account-gate',
+    formId: 'vendor-form',
+    noun: 'vendor',
+  });
+</script>
 </body>
 </html>
