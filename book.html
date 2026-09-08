@@ -136,12 +136,6 @@ function money(n) {
     : dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 }
 
-// Always shows cents, even when they're zero — used for the discounted
-// subtotal, the last figure before tax is applied.
-function moneyFixed(n) {
-  return '$' + (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function addonLabel(a, visitsCount) {
   if (a.occurrences >= visitsCount) return visitsCount === 1 ? 'this visit' : `every visit ×${visitsCount}`;
   if (a.occurrences === 1) return 'one-time';
@@ -527,13 +521,15 @@ function renderSchedule() {
       ` : ''}
       ${totals.discount > 0 ? `
         <p class="muted" style="font-size:11px;font-style:italic;margin:2px 0 0">Discounts apply to the visit price only — add-ons are never discounted.</p>
-        <div class="row" style="border-top:1px solid #e3ded2;margin-top:8px;padding-top:8px"><span>Subtotal (discounted)</span><span>${moneyFixed(totals.subtotal)}</span></div>
+        ${totals.planDiscount > 0 && totals.firstTimeDiscount > 0 ? `
+          <div class="row" style="font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:8px"><span>Total discounts</span><span style="color:#1a7a3d">−${money(totals.discount)}</span></div>
+        ` : ''}
       ` : ''}
       ${totals.taxRate > 0 ? `<div class="row"><span class="muted">FL Sales Tax (${Math.round(totals.taxRate * 100)}%)</span><span>${money(totals.tax)}</span></div>` : ''}
       <div class="row" style="font-size:20px;font-weight:600;border-top:1px solid #e3ded2;margin-top:8px;padding-top:12px">
         <span>Final price</span><span style="color:#8a6221">${money(totals.finalTotal)}</span>
       </div>
-      ${totals.discount > 0 ? `<p style="font-size:12.5px;color:#1a7a3d;margin-top:8px">You're saving ${money(totals.discount)} — ${money(totals.perVisit)} per visit instead of ${money(draft.standardPrice)}.</p>` : ''}
+      ${totals.discount > 0 ? `<p style="font-size:12.5px;color:#1a7a3d;margin-top:8px">${money(totals.perVisit)} per visit instead of ${money(draft.standardPrice)}.</p>` : ''}
       ${!totals.applyFirstTimeDiscount ? '<p class="muted" style="font-size:11.5px;margin-top:8px">The first-time-customer discount applies to a first booking only — once per account and once per service address.</p>' : ''}
     </div>
 
