@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { verifyPassword, newSessionToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { isFirstTimeCustomer } from '../../_lib/first-time.js';
 
 export async function onRequestPost({ env, request }) {
   let body;
@@ -34,12 +35,10 @@ export async function onRequestPost({ env, request }) {
       return new Response(JSON.stringify({ error: 'incorrect password' }), { status: 401 });
     }
 
-    // This is only an estimate for the pre-payment preview — the authoritative
-    // check (functions/api/bookings.js) also matches on the service address.
-    const bookingRows = address
-      ? await sql`select 1 from bookings where customer_id = ${customer.id} or lower(address) = lower(${address}) limit 1`
-      : await sql`select 1 from bookings where customer_id = ${customer.id} limit 1`;
-    const isFirstTime = bookingRows.length === 0;
+    // Same helper the authoritative check in functions/api/bookings.js uses,
+    // so the price previewed before payment and the price actually charged
+    // cannot disagree.
+    const isFirstTime = await isFirstTimeCustomer(sql, customer.id, address);
 
     const token = newSessionToken();
     await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customer.id}, ${sessionExpiry()})`;

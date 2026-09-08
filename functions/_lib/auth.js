@@ -67,7 +67,7 @@ export async function getCustomerFromSession(sql, request) {
   const token = getSessionToken(request);
   if (!token) return null;
   const rows = await sql`
-    select c.id, c.email
+    select c.id, c.email, c.address
     from sessions s
     join customers c on c.id = s.customer_id
     where s.token = ${token} and s.expires_at > now()

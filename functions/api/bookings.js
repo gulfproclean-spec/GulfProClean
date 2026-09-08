@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../_lib/auth.js';
 import { computeBookingPricing, PricingError } from '../_lib/pricing.js';
+import { isFirstTimeCustomer } from '../_lib/first-time.js';
 import { getBookedSlots, findSlotConflict } from '../_lib/scheduling.js';
 
 const PAGES = new Set(['residential', 'commercial']);
@@ -19,7 +20,9 @@ export async function onRequestPost({ env, request }) {
   }
   const {
     page, notes, tier, bookingType, months, frequency,
-    sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
+    sqft, areas, propertyType, occupancy, hardFloorPct,
+    bedrooms, fullBaths, halfBaths, kitchens, livingAreas, pets, condition, lastCleaned, levels,
+    restrooms, breakRooms, offices, entrances, afterHours,
     addons, addonsApplied, extraAddons, scheduledDate, scheduledTime, visitDates,
     firstName, lastName, phone, addressLine1, unit, city, state, zip,
     billingName, billingAddress, agreementAccepted,
@@ -47,18 +50,13 @@ export async function onRequestPost({ env, request }) {
   const billingNameVal = typeof billingName === 'string' && billingName.trim() ? billingName.trim() : null;
   const billingAddressVal = typeof billingAddress === 'string' && billingAddress.trim() ? billingAddress.trim() : null;
 
-  // First-time-customer discount eligibility is checked against both the
-  // account and the service address — a new account at an address that's
-  // already been serviced isn't a first-time customer, even if the email
-  // is new. This is the authoritative check; the pre-payment estimate on
-  // book.html mirrors it via signup/login but this is what actually gets
-  // charged.
-  const priorBookings = await sql`
-    select 1 from bookings
-    where customer_id = ${customer.id} or lower(address) = lower(${address})
-    limit 1
-  `;
-  const isFirstTime = priorBookings.length === 0;
+  // First-time-customer discount eligibility: checked against both the
+  // account and the service address, so a new account at an address we have
+  // already cleaned is not a first-time customer even though the email is
+  // new. This is the authoritative check — the pre-payment estimate on
+  // book.html mirrors it via signup/login, but this is what actually gets
+  // charged. Both go through the same helper so they cannot disagree.
+  const isFirstTime = await isFirstTimeCustomer(sql, customer.id, address);
 
   // Price is derived entirely server-side from raw selections — nothing
   // computed by the browser is trusted here. See functions/_lib/pricing.js.
@@ -66,7 +64,9 @@ export async function onRequestPost({ env, request }) {
   try {
     pricing = await computeBookingPricing(sql, {
       page, tier, booking: bookingType, months, frequency,
-      sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct,
+      sqft, areas, propertyType, occupancy, hardFloorPct,
+      bedrooms, fullBaths, halfBaths, kitchens, livingAreas, pets, condition, lastCleaned, levels,
+      restrooms, breakRooms, offices, entrances, afterHours,
       addons: Array.isArray(addons) ? addons.map(a => ({ name: a && a.name, occurrences: a && a.occurrences })) : [],
       extraAddons: Array.isArray(extraAddons) ? extraAddons.map(e => ({ name: e && e.name })) : [],
     }, isFirstTime);
@@ -111,7 +111,13 @@ export async function onRequestPost({ env, request }) {
   }
 
   const monthsVal = bookingType === 'Monthly' ? (Number(months) || 1) : 1;
-  const pricingInput = { sqft, restroomBand, areas, propertyType, occupancy, hardFloorPct };
+  // Persist every raw input the pricing engine consumes, so a booking can be
+  // re-priced later (add-ons, plan changes) from exactly what was quoted.
+  const pricingInput = page === 'residential'
+    ? { sqft, bedrooms, fullBaths, halfBaths, kitchens, livingAreas,
+        pets, condition, lastCleaned, levels, occupancy }
+    : { sqft, restrooms, breakRooms, offices, entrances, areas,
+        propertyType, occupancy, hardFloorPct, afterHours };
 
   // after_frequency_price stores the One-Time/Standard Service Price
   // (pricing.standardPrice), not the pre-surcharge base rate — it's the

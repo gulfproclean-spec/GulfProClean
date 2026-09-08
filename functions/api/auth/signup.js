@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { hashPassword, newSessionToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { isFirstTimeCustomer } from '../../_lib/first-time.js';
 
 export async function onRequestPost({ env, request }) {
   let body;
@@ -43,15 +44,11 @@ export async function onRequestPost({ env, request }) {
     const token = newSessionToken();
     await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customerId}, ${sessionExpiry()})`;
 
-    // A brand-new account is otherwise always "first-time," but this is only
-    // an estimate — the authoritative check (functions/api/bookings.js) also
-    // matches on the service address, so mirror that here for an accurate
-    // pre-payment preview.
-    let isFirstTime = true;
-    if (address) {
-      const priorAtAddress = await sql`select 1 from bookings where lower(address) = lower(${address}) limit 1`;
-      isFirstTime = priorAtAddress.length === 0;
-    }
+    // A brand-new account has no bookings of its own, so everything here
+    // turns on the service address. Same helper the authoritative check in
+    // functions/api/bookings.js uses, so the price previewed before payment
+    // and the price actually charged cannot disagree.
+    const isFirstTime = await isFirstTimeCustomer(sql, customerId, address);
 
     return new Response(JSON.stringify({ email, isFirstTime }), {
       status: 201,

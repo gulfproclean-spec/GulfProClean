@@ -1,14 +1,26 @@
-// Server-side mirror of the pricing formulas in residential.html and
-// commercial.html's Calculator components. This is the source of truth for
-// what actually gets charged — client-submitted totals are never trusted,
-// only raw selections (property size, tier, frequency, addon picks) are.
-// Keep this in sync by hand if those calculators' formulas change.
+// What actually gets charged. Client-submitted totals are never trusted —
+// only raw selections (property details, tier, frequency, add-on picks).
+//
+// This file used to be a hand-maintained *mirror* of the calculators' math,
+// with its own copy of the price bands and the discount ladder. It drifted:
+// the calculators moved to the pricing-model.js engine and a new ladder while
+// this file kept pricing off the sq-ft bands and the old percentages, so the
+// price a customer was shown and the price Stripe charged were computed by two
+// different engines and disagreed by up to 23%.
+//
+// It is no longer a mirror. It imports the same engine the browser does, so
+// there is one definition of price, one discount ladder, and one cost floor.
+// pricing_tiers is now used only to decide whether a property size is
+// serviceable at all — never to compute a price.
+import '../../pricing-model.js';
+
+const MODEL = globalThis.GPC_PRICING;
+if (!MODEL) throw new Error('pricing-model.js did not load — GPC_PRICING is undefined');
 
 export class PricingError extends Error {}
 
-const ONE_TIME_SURCHARGE = 0.30;
-export const monthlyDiscountFor = (m) => (m >= 12 ? 0.15 : m >= 6 ? 0.10 : m >= 1 ? 0.07 : 0.05);
-export const VALID_MONTHS = [0.5, 1, 6, 12];
+export const monthlyDiscountFor = MODEL.monthlyDiscountFor;
+export const VALID_MONTHS = MODEL.VALID_MONTHS;
 
 const RESIDENTIAL_FREQ_ADJ = {
   "1 visit weekly": 0,
@@ -77,13 +89,19 @@ async function getResidentialSizeTier(sql, sqft) {
   return { Essential: Number(band.essential), Preferred: Number(band.preferred), Premium: Number(band.premium) };
 }
 
-async function getCommercialBaseMap(sql) {
-  const rows = await sql`
-    select essential, preferred, premium from pricing_tiers
-    where page = 'commercial' and band_order = 1
-  `;
-  if (rows.length === 0) throw new PricingError('Pricing is not configured.');
-  return { Essential: Number(rows[0].essential), Preferred: Number(rows[0].preferred), Premium: Number(rows[0].premium) };
+
+// The engine's factor tables are the schema: a value either exists as a key
+// or the booking is rejected. Keeps the server from silently scoring an
+// unknown value as zero, which would quietly undercharge.
+function reqEnum(value, table, label) {
+  if (!(value in table)) throw new PricingError(`Invalid ${label}.`);
+  return value;
+}
+
+function reqCount(value, label) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 100) throw new PricingError(`Invalid ${label}.`);
+  return n;
 }
 
 function requireTier(tier) {
@@ -100,16 +118,32 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   const monthsVal = booking === 'Monthly' ? Number(months) : 1;
   if (booking === 'Monthly' && !VALID_MONTHS.includes(monthsVal)) throw new PricingError('Invalid number of months.');
 
-  let afterSize, afterFrequency, visitsCount, scopeVal;
+  let modelInput, visitsCount, scopeVal;
 
   if (page === 'residential') {
     const sqft = Number(input.sqft);
     if (!Number.isFinite(sqft) || sqft <= 0) throw new PricingError('Invalid property size.');
     if (!(frequency in RESIDENTIAL_FREQ_ADJ)) throw new PricingError('Invalid cleaning frequency.');
-    const sizeTier = await getResidentialSizeTier(sql, sqft);
-    if (!sizeTier) throw new PricingError('This property size is priced individually — please request a quote instead.');
-    afterSize = sizeTier[tier];
-    afterFrequency = booking === 'One-time' ? afterSize : afterSize * (1 + RESIDENTIAL_FREQ_ADJ[frequency]);
+    // pricing_tiers is consulted only for serviceability: the top band is
+    // flagged unavailable so oversized homes are quoted by hand rather than
+    // by the engine. The band's dollar amounts are ignored.
+    const serviceable = await getResidentialSizeTier(sql, sqft);
+    if (!serviceable) throw new PricingError('This property size is priced individually — please request a quote instead.');
+
+    modelInput = {
+      sqft,
+      bedrooms:    reqCount(input.bedrooms, 'bedrooms'),
+      fullBaths:   reqCount(input.fullBaths, 'full bathrooms'),
+      halfBaths:   reqCount(input.halfBaths, 'half bathrooms'),
+      kitchens:    reqCount(input.kitchens, 'kitchens'),
+      livingAreas: reqCount(input.livingAreas, 'living areas'),
+      pets:        reqEnum(input.pets, MODEL.RES_FACTORS.pets, 'pets'),
+      condition:   reqEnum(input.condition, MODEL.RES_FACTORS.condition, 'condition'),
+      lastCleaned: reqEnum(input.lastCleaned, MODEL.RES_FACTORS.lastCleaned, 'last cleaned'),
+      levels:      reqEnum(input.levels, MODEL.RES_FACTORS.levels, 'levels'),
+      occupancy:   reqEnum(input.occupancy, MODEL.RES_FACTORS.occupancy, 'occupancy'),
+    };
+
     const visitsPerMonth = parseInt(frequency, 10) || 1;
     const isWeeklyCadence = !frequency.toLowerCase().includes('monthly');
     visitsCount = booking === 'One-time' ? 1 : (isWeeklyCadence ? visitsPerMonth * monthsVal * 4 : visitsPerMonth * monthsVal);
@@ -120,22 +154,20 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
     if (!Number.isFinite(sqft) || sqft <= 0) throw new PricingError('Invalid property size.');
     if (!Number.isFinite(areas) || areas < 0) throw new PricingError('Invalid service area count.');
     if (!(frequency in COMMERCIAL_FREQ_ADJ)) throw new PricingError('Invalid cleaning frequency.');
-    if (!(input.propertyType in COMMERCIAL_TYPE_ADJ)) throw new PricingError('Invalid property type.');
-    if (!(input.occupancy in COMMERCIAL_OCCUPANCY_ADJ)) throw new PricingError('Invalid occupancy level.');
-    if (!(input.restroomBand in COMMERCIAL_RESTROOM_BAND_COUNT)) throw new PricingError('Invalid restroom count.');
-    if (!(input.hardFloorPct in COMMERCIAL_HARD_FLOOR_ADJ)) throw new PricingError('Invalid hard floor percentage.');
 
-    const baseMap = await getCommercialBaseMap(sql);
-    const restrooms = COMMERCIAL_RESTROOM_BAND_COUNT[input.restroomBand];
-    const isHighRestroom = restrooms >= highRestroomThreshold(sqft);
-    const complexityMult = 1
-      + COMMERCIAL_TYPE_ADJ[input.propertyType]
-      + COMMERCIAL_OCCUPANCY_ADJ[input.occupancy]
-      + (isHighRestroom ? 0.10 : 0)
-      + COMMERCIAL_HARD_FLOOR_ADJ[input.hardFloorPct]
-      + areaAdj(areas);
-    const afterComplexity = baseMap[tier] * complexityMult;
-    afterFrequency = booking === 'One-time' ? afterComplexity : afterComplexity * (1 + COMMERCIAL_FREQ_ADJ[frequency]);
+    const restrooms = reqCount(input.restrooms, 'restrooms');
+    modelInput = {
+      sqft,
+      restrooms,
+      breakRooms: reqCount(input.breakRooms, 'break rooms'),
+      offices:    reqCount(input.offices, 'offices'),
+      entrances:  reqCount(input.entrances, 'entrances'),
+      propertyType: reqEnum(input.propertyType, MODEL.COM_FACTORS.propertyType, 'property type'),
+      occupancy:    reqEnum(input.occupancy, MODEL.COM_FACTORS.occupancy, 'occupancy'),
+      hardFloorPct: reqEnum(input.hardFloorPct, MODEL.COM_FACTORS.hardFloorPct, 'hard floor percentage'),
+      afterHours:   reqEnum(input.afterHours, MODEL.COM_FACTORS.afterHours, 'service window'),
+    };
+
     const visitsPerWeek = parseInt(frequency, 10) || 1;
     visitsCount = booking === 'One-time' ? 1 : visitsPerWeek * monthsVal * 4;
     scopeVal = { sqft, restrooms, areas };
@@ -143,17 +175,18 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
     throw new PricingError('Invalid page.');
   }
 
-  // The One-Time/Standard Service Price — what a single non-committed visit
-  // costs — is the reference for every subscription discount. A 10% "6-month
-  // discount" is 10% off that standard price, not off the pre-surcharge base
-  // rate, so it matches what the service agreement promises Client.
-  const monthlyDiscountPct = booking === 'Monthly' ? monthlyDiscountFor(monthsVal) : 0;
-  // Rounded to a whole dollar here (not just for display) so it's the same
-  // number used for Total, Discount, and Final price — Total always equals
-  // Price per visit × visits (+ add-ons), with cents only appearing once
-  // percentage math (discount/tax) is actually applied on top of it.
-  const standardPrice = Math.round(afterFrequency * (1 + ONE_TIME_SURCHARGE));
-  const afterBooking = booking === 'One-time' ? standardPrice : standardPrice * (1 - monthlyDiscountPct);
+  // One engine, shared with the browser. est.price is the One-Time/Standard
+  // Service Price — already positioned against the cost floor and the market
+  // reference — and every recurring discount comes off it.
+  const est = MODEL.quote(page, modelInput, tier);
+  const standardPrice = est.price;
+
+  // recurringPerVisit applies the ladder AND the cost-floor clamp, so the
+  // customer is charged exactly the number the calculator showed them. The
+  // clamp means the delivered discount can be smaller than the nominal
+  // percentage; appliedDiscountPct reports what was actually given.
+  const afterBooking = MODEL.recurringPerVisit(est, booking, monthsVal);
+  const monthlyDiscountPct = MODEL.appliedDiscountPct(est, booking, monthsVal);
 
   const resolveAddon = page === 'residential'
     ? (name, occ) => resolveResidentialAddon(name, occ, visitsCount)
@@ -184,7 +217,11 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   const finalTotal = subtotal + tax;
 
   return {
-    tier, visitsCount, perVisit, afterFrequency, standardPrice, addonsTotalAmount,
+    tier, visitsCount, perVisit, standardPrice, addonsTotalAmount,
+    // Kept for callers that persist after_frequency_price; it has always
+    // stored the One-Time/Standard Service Price, which is now est.price.
+    afterFrequency: standardPrice,
+    costFloor: est.costFloor, estimatedHours: est.hours, monthlyDiscountPct,
     resolvedAddons, resolvedExtraAddons, extraAddonsTotal,
     grossTotal, taxRate, tax, finalTotal,
   };
@@ -202,7 +239,9 @@ export function resolveSingleAddonPrice(page, name, pricingInput, visitsCount) {
   if (!spec) return null;
   const scopeVal = {
     sqft: Number(pricingInput.sqft),
-    restrooms: COMMERCIAL_RESTROOM_BAND_COUNT[pricingInput.restroomBand],
+    restrooms: Number.isFinite(Number(pricingInput.restrooms))
+      ? Number(pricingInput.restrooms)
+      : COMMERCIAL_RESTROOM_BAND_COUNT[pricingInput.restroomBand],
     areas: Number(pricingInput.areas),
   };
   if (!Number.isFinite(scopeVal.sqft) || !Number.isFinite(scopeVal.restrooms) || !Number.isFinite(scopeVal.areas)) return null;
