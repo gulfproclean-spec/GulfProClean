@@ -68,7 +68,7 @@ ul.ticks li::before { content: "—"; position: absolute; left: 0; color: var(--
 .field > span.label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
 .field .hint { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
 input[type=text], input[type=email], input[type=tel], input[type=date], input[type=number],
-input[type=url], select, textarea {
+input[type=url], input[type=password], select, textarea {
   width: 100%; min-height: 42px; padding: 9px 12px; font-size: 14.5px; font-family: inherit;
   border: 1px solid var(--rule); border-radius: 4px; background: #fff; color: var(--navy);
 }
@@ -86,6 +86,15 @@ legend { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transfo
 }
 .notice strong { color: var(--navy); }
 .legal { font-size: 13px; line-height: 1.6; color: var(--muted); }
+
+/* ---- account gate (applicant/vendor signup-or-login, see account-gate.js) ---- */
+.gate-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+.gate-tab {
+  flex: 1; padding: 10px; text-align: center; border: 1px solid var(--rule); cursor: pointer;
+  font-size: 13.5px; font-weight: 500; background: #fff; color: var(--ink);
+}
+.gate-tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.gate-error { color: #b3261e; font-size: 13px; margin: -6px 0 14px; }
 
 .msg-error { color: #b3261e; font-size: 14px; margin: 12px 0 0; }
 .msg-ok { color: #1a7a3d; font-size: 15px; margin: 12px 0 0; }

@@ -21,12 +21,17 @@
   <span class="kicker">Employment application</span>
   <h1 class="page" style="font-size:clamp(30px,4.2vw,42px)">Apply to Gulf ProClean</h1>
   <p class="lead" id="role-line">Applying for a position with Gulf ProClean.</p>
+  <p class="lead" style="font-size:14.5px;">Before you apply, here is <a href="careers-process.html" style="color:var(--gold-dark)">general information about our hiring process</a> — what we ask at each stage, what we check and when, and your rights as an applicant.</p>
 
   <div class="notice">
     <strong>Do not send documents yet.</strong> This application asks for no Social Security number, no date of birth, no driver license image and no immigration paperwork. If we make you a conditional offer, we will send you a separate secure link to complete Form I-9 and authorize a background check at that point — and not before.
   </div>
 
-  <form id="application-form" novalidate>
+  <h2 class="sec" style="font-size:20px;margin-top:34px;">Create your applicant account</h2>
+  <p class="body" style="max-width:60ch;">An account keeps your application tied to you, lets us send status updates to the right place, and is required before you can submit.</p>
+  <div class="card" id="account-gate" style="margin-top:16px;"></div>
+
+  <form id="application-form" novalidate style="display:none;">
     <fieldset>
       <legend>About you</legend>
       <div class="row">
@@ -256,6 +261,15 @@
 
 <script src="site-chrome.js"></script>
 <script src="careers-data.js"></script>
+<script src="account-gate.js"></script>
 <script src="apply-form.js"></script>
+<script>
+  GPC_ACCOUNT_GATE.mount({
+    authPrefix: '/api/applicant-auth',
+    gateId: 'account-gate',
+    formId: 'application-form',
+    noun: 'applicant',
+  });
+</script>
 </body>
 </html>

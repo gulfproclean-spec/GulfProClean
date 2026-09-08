@@ -22,19 +22,22 @@ business hours.
 - `ds-base.js`, `image-slot.js`, `tweaks-panel.jsx`, `_ds/` — shared design-system assets imported from the Claude Design project
 - `functions/api/content/[page].js` — GET (public) / PUT (admin-token-protected) page copy
 - `functions/api/schedule.js` — GET (public) / PUT (admin-token-protected) weekly business hours
-- `functions/api/auth/{signup,login,logout,me}.js` — password hashing (PBKDF2) + session cookies
+- `functions/api/auth/{signup,login,logout,me}.js` — customer accounts: password hashing (PBKDF2) + session cookie (`session`)
+- `functions/api/applicant-auth/{signup,login,logout,me}.js` — applicant accounts, same pattern, separate cookie (`applicant_session`) — required before `/api/applications` accepts a submission
+- `functions/api/vendor-auth/{signup,login,logout,me}.js` — vendor accounts, same pattern, separate cookie (`vendor_session`) — required before `/api/vendors` accepts a submission
+- `account-gate.js` — shared signup/login widget used by `apply.html` and `vendors-bid.html`; mounted with the right auth prefix for each
 - `functions/api/bookings.js`, `functions/api/bookings/[id].js` — create/list/get/reschedule bookings
 - `functions/api/bookings/[id]/checkout.js` — creates a Stripe Checkout Session for a booking's total
 - `functions/api/bookings/[id]/verify-payment.js` — confirms payment when the browser returns from Stripe (fast-path; the webhook is the source of truth)
 - `functions/api/bookings/[id]/addons.js` — adds a paid add-on to an already-confirmed booking
 - `functions/api/stripe/webhook.js` — Stripe calls this on `checkout.session.completed` and `checkout.session.async_payment_succeeded`; marks the booking paid and sends the confirmation email. The webhook endpoint must be subscribed to **both** events — see **Payments** below
 - `functions/api/pricing/[page].js` — GET (public) / PUT (admin-token-protected) tier pricing
-- `functions/api/applications.js`, `functions/api/applications/[id].js` — job applications: POST is public, GET/PATCH are admin-token-protected
+- `functions/api/applications.js`, `functions/api/applications/[id].js` — job applications: POST requires a signed-in applicant account (see `functions/api/applicant-auth/`), GET/PATCH are admin-token-protected
 - `functions/api/onboarding/[token].js` — the pre-hire authorization page, reachable only with the token issued alongside a conditional offer
-- `functions/api/vendors.js`, `functions/api/vendors/[id].js` — vendor pricing submissions, same public-POST / admin-read shape
+- `functions/api/vendors.js`, `functions/api/vendors/[id].js` — vendor pricing submissions: POST requires a signed-in vendor account (see `functions/api/vendor-auth/`), GET is admin-token-protected
 - `functions/api/requests.js`, `functions/api/requests/[id].js` — admin-only view of refund and plan-change requests. The PATCH refuses to mark one settled without the id of the Stripe object that settled it, because this app never moves money itself
 - `functions/_lib/auth.js`, `functions/_lib/email.js`, `functions/_lib/stripe.js`, `functions/_lib/payments.js` — shared helpers
-- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `026_drop_drug_policy_column.sql`.
+- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`, `applicant_accounts`, `applicant_sessions`, `vendor_accounts`, `vendor_sessions`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `027_applicant_vendor_accounts.sql`.
 
 ## Local preview
 
