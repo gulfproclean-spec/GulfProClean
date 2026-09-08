@@ -338,7 +338,6 @@ function Calculator({ navy, gold, pricing, preset }) {
       ? dollars.toLocaleString("en-US")
       : dollars.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
-  const moneyFixed = (n) => (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const selStyle = { minHeight: 36, padding: "6px 10px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 3, fontFamily: "inherit", background: "#fff", width: "100%" };
   const labelStyle = { display: "block", fontSize: 12.5, color: "#7a746a", marginBottom: 6 };
 
@@ -521,10 +520,6 @@ function Calculator({ navy, gold, pricing, preset }) {
                       <span style={{ color: "#9ee6a8" }}>−${money(totalDiscountAmount)}</span>
                     </div>
                     <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic", margin: "4px 0 0" }}>Applies to the visit price only, never to one-time bookings — add-ons are never discounted.</p>
-                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.12)", display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-                      <span style={{ color: "rgba(255,255,255,0.75)" }}>Subtotal (discounted)</span>
-                      <span>${moneyFixed(finalDiscounted)}</span>
-                    </div>
                   </>
                 )}
 
