@@ -27,13 +27,14 @@ business hours.
 - `functions/api/bookings/[id]/checkout.js` — creates a Stripe Checkout Session for a booking's total
 - `functions/api/bookings/[id]/verify-payment.js` — confirms payment when the browser returns from Stripe (fast-path; the webhook is the source of truth)
 - `functions/api/bookings/[id]/addons.js` — adds a paid add-on to an already-confirmed booking
-- `functions/api/stripe/webhook.js` — Stripe calls this on `checkout.session.completed`; marks the booking paid and sends the confirmation email
+- `functions/api/stripe/webhook.js` — Stripe calls this on `checkout.session.completed` and `checkout.session.async_payment_succeeded`; marks the booking paid and sends the confirmation email. The webhook endpoint must be subscribed to **both** events — see **Payments** below
 - `functions/api/pricing/[page].js` — GET (public) / PUT (admin-token-protected) tier pricing
 - `functions/api/applications.js`, `functions/api/applications/[id].js` — job applications: POST is public, GET/PATCH are admin-token-protected
 - `functions/api/onboarding/[token].js` — the pre-hire authorization page, reachable only with the token issued alongside a conditional offer
 - `functions/api/vendors.js`, `functions/api/vendors/[id].js` — vendor pricing submissions, same public-POST / admin-read shape
+- `functions/api/requests.js`, `functions/api/requests/[id].js` — admin-only view of refund and plan-change requests. The PATCH refuses to mark one settled without the id of the Stripe object that settled it, because this app never moves money itself
 - `functions/_lib/auth.js`, `functions/_lib/email.js`, `functions/_lib/stripe.js`, `functions/_lib/payments.js` — shared helpers
-- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `022_vendor_submissions.sql`.
+- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `025_request_resolution.sql`.
 
 ## Local preview
 
@@ -87,8 +88,20 @@ Setup:
 2. **Developers → API keys** → copy the **Secret key** (`sk_test_...` while testing,
    `sk_live_...` once you're ready for real charges) → set it as `STRIPE_SECRET_KEY`.
 3. **Developers → Webhooks → Add endpoint** → URL: `https://<your-site>/api/stripe/webhook`
-   → select the `checkout.session.completed` event → save, then copy the
-   **Signing secret** (`whsec_...`) → set it as `STRIPE_WEBHOOK_SECRET`.
+   → select **both** of these events:
+   - `checkout.session.completed`
+   - `checkout.session.async_payment_succeeded`
+
+   Then save and copy the **Signing secret** (`whsec_...`) → set it as `STRIPE_WEBHOOK_SECRET`.
+
+   Both events matter. Card payments settle instantly and arrive as
+   `checkout.session.completed` with `payment_status: paid`. Delayed methods
+   (ACH, Cash App Pay, bank debits) send `checkout.session.completed` first with
+   the payment *not* yet paid — the handler correctly ignores that — and then
+   `checkout.session.async_payment_succeeded` when the funds actually clear. If
+   you subscribe only to the first event, those bookings stay `unpaid` forever
+   while the customer's money is gone. `functions/api/stripe/webhook.js` already
+   handles both; the endpoint just has to be told to send them.
 4. Redeploy (env var changes need a new deployment to take effect, or restart the Function).
 
 **Without both of these set, "Confirm booking" will fail** with a clear
@@ -113,6 +126,75 @@ details (restroom count, etc.) are still self-reported by the customer —
 no web form can verify the true size of a building. What's closed off is
 independent manipulation of price, discounts, add-on cost, visit count,
 or tax once a stated size is given.
+
+### Going live
+
+Switching from test to live is only the two environment variables — there is
+nothing else to migrate. Amounts are built from `booking.final_total` through
+Stripe's `price_data` at request time, so there are no Product or Price objects
+in the Stripe account to recreate.
+
+1. Flip the Stripe dashboard to **live mode** (toggle, top right) and redo the
+   webhook endpoint step above against your real domain. A test-mode endpoint
+   does not receive live events, and its signing secret will not verify them.
+2. Copy the live secret key (`sk_live_...`) and the live endpoint's signing
+   secret (`whsec_...`).
+3. In Cloudflare Pages → Settings → Environment variables, set both **on the
+   Production environment only.** Leave Preview on the test key — otherwise
+   every preview branch deployment takes real money off real cards.
+4. Redeploy, then put one real card through a small booking and refund yourself
+   from the Stripe dashboard to confirm the whole loop.
+
+## Refunds and plan changes — done by hand
+
+**No code path in this application moves money out of Stripe.** This is
+deliberate. `functions/api/bookings/[id]/refund.js` and
+`.../plan-change.js` compute an amount, write a row to `refund_requests` or
+`plan_change_requests`, and stop. Auto-issuing refunds against a freshly
+written proration calculation, with no human in the loop, was not a risk worth
+taking.
+
+The consequence is that **somebody has to actually do it in Stripe**, or the
+customer is never paid. Pending requests appear in the **Money requests**
+section at the top of `/admin.html`.
+
+### Issuing a refund
+
+1. `/admin.html` → **Money requests** → find the pending request. It shows the
+   amount owed, visits delivered vs. remaining, and a link straight to the
+   original payment in Stripe.
+2. Click that link (or Stripe dashboard → **Payments** → find the payment
+   intent).
+3. **Refund** (top right) → enter the amount from the admin screen — it is
+   usually a *partial* refund, because delivered visits are deducted — → pick a
+   reason → **Refund**.
+4. Copy the refund id (`re_...`) from the resulting refund.
+5. Back in **Money requests**, paste the `re_...` id and your name, then
+   **Record as processed**. The screen refuses to mark it settled without that
+   id, on purpose: it is the only thing tying the record to real money.
+6. Email the customer. Nothing here notifies them automatically. Stripe returns
+   card refunds in 5–10 business days.
+
+### Applying a plan change
+
+Same shape, except the difference can go either direction. The admin screen
+shows it as **charge** or **credit**:
+
+- **Credit** (customer moved to a cheaper plan): refund the difference against
+  the original payment, exactly as above.
+- **Charge** (customer moved to a more expensive plan): Stripe dashboard →
+  **Payments → Create payment**, or send an invoice from **Invoices → Create
+  invoice** to their email. Do not ask for card details over the phone.
+
+Then record the resulting `pi_...` or `re_...` id in **Money requests** and
+adjust `months` / `visits_count` on the booking to match what they now have.
+
+### What is not automated
+
+Neither request type emails the customer, and declining a request does not
+notify them either. Contact them yourself. If that becomes a burden, the place
+to add it is `functions/_lib/email.js`, alongside the booking templates.
+
 
 ## Email (Gmail — contact form, booking confirmations)
 
@@ -380,6 +462,7 @@ lapse before it becomes a claim.
 ## Reviewing applicants and vendors
 
 Both live in `/admin.html` (`admin-hiring.js`) behind the same admin token as
-the content and pricing editors. Applicants can be moved through the status
+the content and pricing editors, alongside **Money requests** (`admin-requests.js`),
+which is where refund and plan-change requests surface. Applicants can be moved through the status
 pipeline, annotated, and issued the pre-hire link; vendors can be marked
 verified, checked off for COI/W-9/workers' comp, and approved.
