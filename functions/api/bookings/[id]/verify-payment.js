@@ -54,6 +54,7 @@ export async function onRequestGet({ env, request, params }) {
   const result = await markBookingPaid(sql, env, booking.id, {
     customerEmail: customer.email,
     paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
+    subscriptionId: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
   });
   return json({ paid: true, justPaid: result.justPaid });
 }
