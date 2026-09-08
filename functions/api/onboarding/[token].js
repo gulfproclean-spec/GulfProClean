@@ -48,9 +48,6 @@ export async function onRequestPost({ env, request, params }) {
   if (!body.i9_acknowledged) {
     return json({ error: 'The Form I-9 acknowledgement in section C is required.' }, 400);
   }
-  if (!body.drug_policy_acknowledged) {
-    return json({ error: 'The drug-free workplace acknowledgement in section D is required.' }, 400);
-  }
   if (!body.esign_acknowledged) {
     return json({ error: 'Please confirm that typing your name is your electronic signature.' }, 400);
   }
@@ -83,7 +80,6 @@ export async function onRequestPost({ env, request, params }) {
       fcra_summary_received = true,
       mvr_authorized = ${!!body.mvr_authorized},
       i9_acknowledged = true,
-      drug_policy_acknowledged = true,
       esign_acknowledged = true,
       signed_ip = ${ip},
       signed_user_agent = ${ua ? ua.slice(0, 500) : null},

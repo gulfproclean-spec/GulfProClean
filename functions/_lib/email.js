@@ -438,7 +438,6 @@ export async function sendPrehireCompletedEmail(env, s) {
       ${row('Background check authorized', 'Yes')}
       ${row('Driving record authorized', s.mvrAuthorized ? 'Yes' : 'Not authorized / not applicable')}
       ${row('Form I-9 acknowledged', 'Yes')}
-      ${row('Drug-free workplace acknowledged', 'Yes')}
       ${row('Confirmed start date', s.startDate || 'Not given')}
       ${row('Signed at', s.signedAt)}
     </table>
@@ -461,7 +460,6 @@ export async function sendPrehireCopyToCandidateEmail(env, s) {
       ${row('Background check authorization', 'Signed')}
       ${row('Driving record authorization', s.mvrAuthorized ? 'Signed' : 'Not signed')}
       ${row('Form I-9 acknowledgement', 'Signed')}
-      ${row('Drug-free workplace acknowledgement', 'Signed')}
       ${row('Confirmed start date', s.startDate || 'To be confirmed')}
     </table>
     <p style="color:#3d4a4d;line-height:1.6;font-size:14px">The background check company will email you a link

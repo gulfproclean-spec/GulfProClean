@@ -88,14 +88,7 @@
         <label for="i9_ack">I understand I will complete Form I-9 on my first day and present documents of my own choosing from the Lists of Acceptable Documents. *</label>
       </div>
 
-      <h2 class="sec" style="margin-top:52px;">D. Drug-free workplace</h2>
-      <p class="body" style="margin-top:0;">Gulf ProClean maintains a drug-free workplace under sections 440.101–440.102, Florida Statutes. The full written policy — substances tested, the licensed laboratory used, medications that can affect results, consequences of refusal, and employee assistance resources — is attached to your offer email.</p>
-      <div class="check">
-        <input type="checkbox" id="dfw_ack" name="dfw_ack" required>
-        <label for="dfw_ack">I have received and read the drug-free workplace policy. I consent to a pre-employment drug test and to testing on reasonable suspicion or following a workplace accident. I understand that if a test is confirmed positive, the Medical Review Officer will notify me and <strong>I have five working days to contest or explain the result to the MRO</strong> before it is reported to Gulf ProClean. *</label>
-      </div>
-
-      <h2 class="sec" style="margin-top:52px;">E. Signature</h2>
+      <h2 class="sec" style="margin-top:52px;">D. Signature</h2>
       <fieldset>
         <legend>Sign and date</legend>
         <div class="row">
@@ -188,7 +181,6 @@
 
     if (!d.fcra_auth || !d.fcra_summary) return fail('Please read section A and check both boxes to authorize the background check.');
     if (!d.i9_ack) return fail('Please acknowledge the Form I-9 process in section C.');
-    if (!d.dfw_ack) return fail('Please acknowledge the drug-free workplace policy in section D.');
     if (!String(d.legal_name || '').trim()) return fail('Please type your full legal name to sign.');
     if (!d.esign_ack) return fail('Please confirm that typing your name is your electronic signature.');
 
@@ -204,7 +196,6 @@
           fcra_summary_received: true,
           mvr_authorized: !!d.mvr_auth,
           i9_acknowledged: true,
-          drug_policy_acknowledged: true,
           esign_acknowledged: true,
         }),
       });

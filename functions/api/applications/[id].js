@@ -29,7 +29,7 @@ export async function onRequestGet({ env, request, params }) {
     select a.*, p.token as prehire_token, p.completed_at as prehire_completed_at,
            p.legal_name as prehire_legal_name, p.confirmed_start_date,
            p.fcra_authorized, p.mvr_authorized, p.i9_acknowledged,
-           p.drug_policy_acknowledged, p.signed_ip
+           p.signed_ip
       from job_applications a
       left join prehire_authorizations p on p.application_id = a.id
      where a.id = ${params.id}
