@@ -208,7 +208,17 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   // including One-time — eligibility is based on the service address never
   // having been serviced before (see isFirstTime's caller), not on which
   // plan was picked. Never applies to add-ons.
-  const perVisit = afterBooking * (isFirstTime ? 0.90 : 1);
+  //
+  // It ADDS to the plan discount rather than compounding on top of it: the
+  // plan's percentage (monthlyDiscountPct, floor-aware — see
+  // recurringPerVisit/appliedDiscountPct above) and the flat 10% first-time
+  // percentage are summed into one combined percentage, which comes off the
+  // Standard Service Price exactly once. This must match book.html's
+  // computeTotals() exactly — that page shows the customer the price this
+  // function then charges.
+  const firstTimeDiscountPct = isFirstTime ? 0.10 : 0;
+  const combinedDiscountPct = monthlyDiscountPct + firstTimeDiscountPct;
+  const perVisit = standardPrice * (1 - combinedDiscountPct);
   const plannedSubtotal = perVisit * visitsCount + addonsTotalAmount;
   const subtotal = plannedSubtotal + extraAddonsTotal;
   const grossTotal = standardPrice * visitsCount + addonsTotalAmount;
