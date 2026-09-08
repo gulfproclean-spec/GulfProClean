@@ -77,7 +77,7 @@ window.GPC_JOBS = [
   {
     slug: "vacation-rental-turnover-specialist",
     title: "Vacation Rental Turnover Specialist",
-    open: true,
+    open: false,
     type: "Full-time, seasonal peaks",
     schedule: "Turn days — heavy Friday through Monday; hard check-in deadlines",
     location: "Field — vacation rentals from Navarre through 30A and Panama City Beach",
@@ -168,7 +168,7 @@ window.GPC_JOBS = [
   {
     slug: "floor-care-technician",
     title: "Floor Care & Deep Clean Technician",
-    open: true,
+    open: false,
     type: "Full-time",
     schedule: "Scheduled projects — nights and weekends around client operating hours",
     location: "Field — commercial and residential, project-based",
@@ -215,7 +215,7 @@ window.GPC_JOBS = [
   {
     slug: "crew-lead",
     title: "Crew Lead",
-    open: true,
+    open: false,
     type: "Full-time",
     schedule: "Daytime, Monday–Saturday",
     location: "Field — leads a two to four person crew",
@@ -259,7 +259,7 @@ window.GPC_JOBS = [
   {
     slug: "field-quality-supervisor",
     title: "Field Quality & Home Watch Supervisor",
-    open: true,
+    open: false,
     type: "Full-time",
     schedule: "Daytime with on-call rotation during storm season",
     location: "Field — across the full service area",
@@ -306,7 +306,7 @@ window.GPC_JOBS = [
   {
     slug: "client-care-scheduler",
     title: "Client Care Coordinator / Scheduler",
-    open: true,
+    open: false,
     type: "Full-time",
     schedule: "Monday–Friday business hours, rotating Saturday morning coverage",
     location: "Office / hybrid — Emerald Coast",
@@ -350,7 +350,7 @@ window.GPC_JOBS = [
   {
     slug: "vendor-maintenance-coordinator",
     title: "Vendor & Maintenance Coordinator",
-    open: true,
+    open: false,
     type: "Full-time",
     schedule: "Monday–Friday business hours",
     location: "Office / hybrid — Emerald Coast",

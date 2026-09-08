@@ -34,7 +34,7 @@ business hours.
 - `functions/api/vendors.js`, `functions/api/vendors/[id].js` — vendor pricing submissions, same public-POST / admin-read shape
 - `functions/api/requests.js`, `functions/api/requests/[id].js` — admin-only view of refund and plan-change requests. The PATCH refuses to mark one settled without the id of the Stripe object that settled it, because this app never moves money itself
 - `functions/_lib/auth.js`, `functions/_lib/email.js`, `functions/_lib/stripe.js`, `functions/_lib/payments.js` — shared helpers
-- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `025_request_resolution.sql`.
+- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `026_drop_drug_policy_column.sql`.
 
 ## Local preview
 
@@ -406,7 +406,7 @@ documents. After an offer, admin issues a one-time token that unlocks
   requirement (15 U.S.C. § 1681b(b)(2)) is what most employers get wrong.
 - A **separate** motor-vehicle-record authorization, shown only for roles whose
   `drives` flag is true.
-- Acknowledgment of the Form I-9 process and the drug-free workplace policy.
+- Acknowledgment of the Form I-9 process.
 
 Identifiers (SSN, date of birth) go to the consumer reporting agency through
 its own portal — this app never stores them. I-9 documents are examined in
@@ -431,9 +431,8 @@ it is what an applicant will hold you to.
 
 **This is a working process, not legal advice.** Have an employment attorney
 review `careers-process.html`, `apply.html` and `onboarding.html` before the
-first hire, and get the actual drug-free workplace policy and FCRA Summary of
-Rights PDFs in place — the pages reference them as attachments to the offer
-email.
+first hire, and get the actual FCRA Summary of Rights PDF in place — the
+pages reference it as an attachment to the offer email.
 
 ## Vendors
 
