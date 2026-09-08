@@ -117,6 +117,34 @@
       </div>
       <div id="vendors-list">Loading…</div>
     </div>
+
+    <div class="page-block">
+      <h2>Crew</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">
+        The technicians new bookings auto-assign to — whoever has the lightest load on a given day
+        gets the next booking on it. Deactivating someone here drops them out of auto-assignment
+        immediately without touching jobs already assigned to them.
+      </p>
+      <div id="crew-roster">Loading…</div>
+      <div class="rev-actions" style="margin-top:14px">
+        <input type="text" id="crew-new-name" placeholder="Name" style="min-width:160px">
+        <input type="text" id="crew-new-email" placeholder="Email (optional)" style="min-width:180px">
+        <input type="text" id="crew-new-phone" placeholder="Phone (optional)" style="min-width:140px">
+        <button id="crew-add-employee">Add technician</button>
+        <span class="status" id="crew-add-status"></span>
+      </div>
+    </div>
+
+    <div class="page-block">
+      <h2>Bookings &amp; assignments</h2>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">
+        Every paid, upcoming booking and who it's assigned to. Reassign anyone to anyone, anytime —
+        auto-assignment only ever set the starting pick.
+      </p>
+      <div class="filters"><button class="secondary" id="crew-bookings-refresh" style="background:#e3ded2">Refresh</button></div>
+      <div id="crew-bookings">Loading…</div>
+    </div>
+
     <div class="page-block">
       <h2>Residential page</h2>
       <textarea id="residential"></textarea>
@@ -336,6 +364,7 @@ document.getElementById('unlock').addEventListener('click', async () => {
   if (!token) return;
   document.getElementById('editors').style.display = 'block';
   GPC_HIRING.init(token);
+  GPC_CREW.init(token);
   await Promise.all([loadVisits()].concat(['residential', 'commercial'].map(loadPage)).concat(PRICING_PAGES.map(loadPricing)).concat([loadSchedule()]));
 });
 
@@ -374,5 +403,6 @@ document.querySelectorAll('button[data-page]').forEach(btn => {
 </script>
 <script src="careers-data.js"></script>
 <script src="admin-hiring.js"></script>
+<script src="admin-crew.js"></script>
 </body>
 </html>
