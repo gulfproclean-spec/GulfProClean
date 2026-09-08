@@ -72,6 +72,7 @@ let state = {
   addonPanelId: null, addonSelection: {},
   refundPanelId: null, refundData: {},
   planChangePanelId: null, planChangeSelection: {}, planChangeData: {},
+  cancelSubPanelId: null, cancelSubState: {},
 };
 
 const PLAN_OPTIONS = [
@@ -325,6 +326,8 @@ function renderBookings() {
     const allowed = canReschedule(b);
     const unpaid = b.payment_status && b.payment_status !== 'paid';
     const canceled = !!b.canceled_at;
+    const noCommitmentPlan = b.booking_type === 'Monthly' && (Number(b.months) === 0.5 || Number(b.months) === 1);
+    const canSelfCancel = noCommitmentPlan && !!b.stripe_subscription_id && !canceled && b.subscription_status !== 'canceling';
     const categoryLabelStyle = 'font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#7a746a;margin:0 0 6px';
     card.innerHTML = `
       <div class="booking-header">
@@ -332,6 +335,8 @@ function renderBookings() {
           <span class="tag">${b.page === 'residential' ? 'Residential' : 'Commercial'}</span>
           ${unpaid ? '<span class="tag" style="color:#b3261e;background:#fbe9e7">Unpaid</span>' : ''}
           ${canceled ? '<span class="tag" style="color:#7a746a;background:#f0ede5">Canceled</span>' : ''}
+          ${!canceled && b.subscription_status === 'canceling' ? '<span class="tag" style="color:#8a6221;background:#fdf3e3">Canceling</span>' : ''}
+          ${!canceled && b.subscription_status === 'past_due' ? '<span class="tag" style="color:#b3261e;background:#fbe9e7">Payment issue</span>' : ''}
           <p style="margin:8px 0 0;font-weight:500">${b.tier} — ${b.address}</p>
           <p class="muted" style="font-size:13px;margin-top:4px">${scheduled}</p>
         </div>
@@ -339,6 +344,8 @@ function renderBookings() {
       </div>
       ${unpaid ? `<p class="muted" style="font-size:12px;margin-top:8px">Payment was never completed for this booking, so it isn't confirmed yet.</p>` : ''}
       ${canceled ? `<p class="muted" style="font-size:12px;margin-top:8px">This booking was canceled${b.canceled_at ? ' on ' + new Date(b.canceled_at).toLocaleDateString() : ''}. Any refund is handled separately.</p>` : ''}
+      ${!canceled && b.subscription_status === 'canceling' ? `<p class="muted" style="font-size:12px;margin-top:8px">Your subscription is set to cancel at the end of the current billing period — no further charges after that.</p>` : ''}
+      ${!canceled && b.subscription_status === 'past_due' ? `<p class="muted" style="font-size:12px;margin-top:8px;color:#b3261e">Your last payment didn't go through. Please update your card with us so service isn't interrupted.</p>` : ''}
       ${b.scheduled_date && !canceled ? monthCalendarHtml(b.scheduled_date, b.scheduled_time) : ''}
       <div class="error" id="pay-err-${b.id}" style="display:none"></div>
       ${unpaid ? `<div style="margin-top:14px"><button data-pay-now="${b.id}">Pay now</button></div>` : ''}
@@ -355,6 +362,7 @@ function renderBookings() {
             <p style="${categoryLabelStyle}">Billing &amp; Plan</p>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
               <button class="secondary" data-addon-toggle="${b.id}">Add an add-on</button>
+              ${canSelfCancel ? `<button class="secondary" data-cancelsub-toggle="${b.id}">Cancel subscription</button>` : ''}
               <button class="secondary" data-refund-toggle="${b.id}">Request a refund</button>
               ${b.booking_type === 'Monthly' ? `<button class="secondary" data-planchange-toggle="${b.id}">Change subscription billing</button>` : ''}
             </div>
@@ -371,6 +379,7 @@ function renderBookings() {
       <div id="addon-panel-${b.id}"></div>
       <div id="refund-panel-${b.id}"></div>
       <div id="planchange-panel-${b.id}"></div>
+      <div id="cancelsub-panel-${b.id}"></div>
     `;
     list.appendChild(card);
     const payBtn = card.querySelector(`[data-pay-now="${b.id}"]`);
@@ -416,6 +425,11 @@ function renderBookings() {
       state.planChangePanelId = state.planChangePanelId === b.id ? null : b.id;
       render();
     };
+    const cancelSubBtn = card.querySelector(`[data-cancelsub-toggle="${b.id}"]`);
+    if (cancelSubBtn) cancelSubBtn.onclick = () => {
+      state.cancelSubPanelId = state.cancelSubPanelId === b.id ? null : b.id;
+      render();
+    };
     if (state.reschedulingId === b.id) {
       renderReschedulePanel(card.querySelector(`#reschedule-panel-${b.id}`), b);
     }
@@ -428,7 +442,40 @@ function renderBookings() {
     if (state.planChangePanelId === b.id) {
       renderPlanChangePanel(card.querySelector(`#planchange-panel-${b.id}`), b);
     }
+    if (state.cancelSubPanelId === b.id) {
+      renderCancelSubPanel(card.querySelector(`#cancelsub-panel-${b.id}`), b);
+    }
   });
+}
+
+function renderCancelSubPanel(container, booking) {
+  const st = state.cancelSubState[booking.id] || {};
+  container.innerHTML = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px">Cancel subscription</p>
+      <p class="muted" style="font-size:12px;margin:0 0 8px">You'll keep any visit(s) already covered by the billing period you've paid for — you just won't be charged again after that. Want money back for visits in the current period you won't use? Use "Request a refund" instead.</p>
+      <div class="error" id="cancelsub-err-${booking.id}" style="display:none"></div>
+      <button id="confirm-cancelsub-${booking.id}">Yes, cancel my subscription</button>
+    </div>
+  `;
+  const confirmBtn = $(`#confirm-cancelsub-${booking.id}`, container);
+  if (confirmBtn) confirmBtn.onclick = async () => {
+    const errEl = $(`#cancelsub-err-${booking.id}`, container);
+    errEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/cancel-subscription`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not cancel your subscription');
+      state.cancelSubPanelId = null;
+      await loadBookings();
+      render();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      confirmBtn.disabled = false;
+    }
+  };
 }
 
 async function loadRefundEstimate(bookingId) {
