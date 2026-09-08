@@ -3,10 +3,19 @@ import { sendBookingConfirmationEmail, sendBookingNotificationEmail } from './em
 // Idempotent: only flips payment_status + sends the confirmation email the
 // first time a booking is marked paid (webhook and the client-side
 // verify-payment fallback both call this, and either can arrive first).
-export async function markBookingPaid(sql, env, bookingId, { customerEmail, paymentIntentId } = {}) {
+//
+// subscriptionId is passed for Monthly bookings paid via a mode:'subscription'
+// Checkout Session (see functions/api/bookings/[id]/checkout.js) — it's
+// stored alongside stripe_subscription_id so later webhook events
+// (invoice.paid, customer.subscription.updated/deleted) can find this
+// booking by subscription id.
+export async function markBookingPaid(sql, env, bookingId, { customerEmail, paymentIntentId, subscriptionId } = {}) {
   const rows = await sql`
     update bookings
-    set payment_status = 'paid', stripe_payment_intent_id = coalesce(${paymentIntentId || null}, stripe_payment_intent_id)
+    set payment_status = 'paid',
+        stripe_payment_intent_id = coalesce(${paymentIntentId || null}, stripe_payment_intent_id),
+        stripe_subscription_id = coalesce(${subscriptionId || null}, stripe_subscription_id),
+        subscription_status = case when ${subscriptionId || null}::text is not null then 'active' else subscription_status end
     where id = ${bookingId} and payment_status != 'paid'
     returning *
   `;

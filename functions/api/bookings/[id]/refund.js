@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../../_lib/auth.js';
 import { estimateRefund } from '../../../_lib/refunds.js';
+import { stripeRequest } from '../../../_lib/stripe.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -72,6 +73,29 @@ export async function onRequestPost({ env, request, params }) {
     values (${booking.id}, ${customer.id}, ${estimate.refundAmount}, ${estimate.visitsDelivered}, ${estimate.visitsRemaining})
     returning id, amount, status, requested_at
   `;
-  await sql`update bookings set canceled_at = now() where id = ${booking.id}`;
+
+  // A booking with a real Stripe subscription (see functions/_lib/
+  // stripe-customer.js / checkout.js) would otherwise keep billing every
+  // cycle after this cancellation — the refund request alone only stops the
+  // *next* thing (the recorded request), not the subscription itself. Cancel
+  // it immediately (not at period end — the customer is being refunded for
+  // undelivered visits, so there's nothing left to let run out). Best-effort:
+  // a Stripe-side failure (e.g. it's already canceled) does not block the
+  // cancellation/refund-request itself, since the booking is the source of
+  // truth for the business and the office can reconcile Stripe by hand via
+  // the "Money requests" admin panel either way.
+  if (booking.stripe_subscription_id && env.STRIPE_SECRET_KEY) {
+    try {
+      await stripeRequest(env, 'DELETE', `subscriptions/${booking.stripe_subscription_id}`);
+    } catch (e) {
+      // swallow — see comment above
+    }
+  }
+
+  await sql`
+    update bookings
+    set canceled_at = now(), subscription_status = case when stripe_subscription_id is not null then 'canceled' else subscription_status end
+    where id = ${booking.id}
+  `;
   return json({ ok: true, request: rows[0] }, 201);
 }

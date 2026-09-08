@@ -180,7 +180,7 @@ export async function onRequestGet({ env, request }) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });
   }
   const rows = await sql`
-    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, visit_dates, payment_status, canceled_at, first_name, last_name, phone, created_at
+    select id, page, address, tier, booking_type, months, frequency, addons, addons_applied, extra_addons, visits_count, final_total, scheduled_date, scheduled_time, visit_dates, payment_status, canceled_at, first_name, last_name, phone, created_at, stripe_subscription_id, subscription_status
     from bookings where customer_id = ${customer.id} order by created_at desc
   `;
   return new Response(JSON.stringify({ bookings: rows }), { headers: { 'Content-Type': 'application/json' } });
