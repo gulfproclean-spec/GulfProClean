@@ -30,11 +30,20 @@ function eligibilityError(booking) {
 // size, and cleaning frequency — none of which change when only the billing
 // plan does — so it stays the correct base for the new discount rate.
 // is_first_time is reused as originally recorded, not re-checked.
+//
+// Additive, matching functions/_lib/pricing.js and book.html: the new
+// plan's percentage and the flat 10% first-time percentage (if any) are
+// summed into one combined percentage and taken off the standard price
+// once — not compounded. This ladder discount is not floor-clamped here
+// the way a fresh booking is (no property inputs are available to
+// recompute est.recurringCostFloor from just the stored booking row), which
+// matches how this endpoint already worked before this change.
 function computeNewPerVisit(booking, newMonths) {
   const standardPrice = Number(booking.after_frequency_price);
   const newDiscountPct = monthlyDiscountFor(newMonths);
-  const firstTimeMultiplier = booking.is_first_time ? 0.90 : 1;
-  return Math.round(standardPrice * (1 - newDiscountPct) * firstTimeMultiplier * 100) / 100;
+  const firstTimeDiscountPct = booking.is_first_time ? 0.10 : 0;
+  const combinedDiscountPct = newDiscountPct + firstTimeDiscountPct;
+  return Math.round(standardPrice * (1 - combinedDiscountPct) * 100) / 100;
 }
 
 function computeEstimate(booking, newMonths) {

@@ -1,12 +1,15 @@
 // The booking summary itemises two discounts (billing plan, first-time
-// customer) instead of showing one merged number. That is a PRESENTATION
-// change: the money charged must not move, and the two rows must add up to
-// exactly what the single row used to say.
+// customer) instead of showing one merged number, and applies them
+// ADDITIVELY: every eligible percentage is summed into one combined
+// percentage, which comes off the Standard Service Price exactly once —
+// not compounded (10% off an already plan-discounted price).
 //
 //   node test-booking-totals.mjs
 //
 // computeTotals is extracted from book.html itself rather than copied, so
-// this tests the code that actually ships.
+// this tests the code that actually ships. functions/_lib/pricing.js
+// applies the identical combined-percentage formula server-side; this file
+// only covers the client-side display.
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('./book.html', import.meta.url), 'utf8');
@@ -57,15 +60,17 @@ for (const taxRate of [0, 0.06]) {
     failures.push(`${where}: plan $${t.planDiscount.toFixed(2)} + firstTime $${t.firstTimeDiscount.toFixed(2)} != combined $${t.discount.toFixed(2)}`);
   }
 
-  // 2. Per-visit price must be unchanged from the original formula:
-  //    afterBooking, then 10% off if first-time.
+  // 2. Per-visit price is the STANDARD price with the combined percentage
+  //    (plan % + first-time %) taken off once — additive, not compounding.
+  //    Algebraically: standard*(1 - planPct - ftPct) = after - standard*ftPct,
+  //    since after = standard*(1 - planPct) already.
   checks++;
-  const expectedPerVisit = plan.after * (isFirstTime ? 0.90 : 1);
+  const expectedPerVisit = plan.after - (isFirstTime ? plan.standard * 0.10 : 0);
   if (!near(t.perVisit, expectedPerVisit)) {
     failures.push(`${where}: perVisit $${t.perVisit.toFixed(2)}, expected $${expectedPerVisit.toFixed(2)}`);
   }
 
-  // 3. Final total must be unchanged from the original formula.
+  // 3. Final total must match that same additive formula.
   checks++;
   const expectedFinal = (expectedPerVisit * visits + addons) * (1 + taxRate);
   if (!near(t.finalTotal, expectedFinal)) {
@@ -85,17 +90,20 @@ for (const taxRate of [0, 0.06]) {
     if (t.planDiscount !== 0) failures.push(`${where}: One-time showed a plan discount of $${t.planDiscount.toFixed(2)}`);
   }
 
-  // 6. The first-time 10% comes off the ALREADY-discounted plan price, and
-  //    applies to every booking type including One-time.
+  // 6. The first-time 10% is measured off the STANDARD price (the same base
+  //    the plan discount is measured against) — not off the
+  //    already-plan-discounted price. That is what makes this additive: a
+  //    biweekly (5%) first-time customer gets 15% off standard, not 10% off
+  //    a 5%-discounted price. Applies to every booking type including
+  //    One-time.
   //
   //    NOT rounded to cents. functions/_lib/pricing.js computes the charged
-  //    price as afterBooking * 0.90 at full precision and does not round
-  //    either, so rounding here would make the shown price differ from the
-  //    charged one — which is the exact class of bug this codebase already
-  //    had once. A visit priced at $403.75 yields $40.375 of discount, and
-  //    that is correct; only the DISPLAY rounds, via money().
+  //    price at full precision and does not round either, so rounding here
+  //    would make the shown price differ from the charged one — which is
+  //    the exact class of bug this codebase already had once. Only the
+  //    DISPLAY rounds, via money().
   checks++;
-  const expectedFirstTime = isFirstTime ? plan.after * 0.10 * visits : 0;
+  const expectedFirstTime = isFirstTime ? plan.standard * 0.10 * visits : 0;
   if (!near(t.firstTimeDiscount, expectedFirstTime)) {
     failures.push(`${where}: firstTime $${t.firstTimeDiscount.toFixed(3)}, expected $${expectedFirstTime.toFixed(3)}`);
   }
@@ -127,4 +135,4 @@ if (failures.length) {
   failures.slice(0, 20).forEach(f => console.error('  ' + f));
   process.exit(1);
 }
-console.log('PASS — itemising the discounts did not move a single dollar');
+console.log('PASS — additive discount stacking checks out against the standard price');
