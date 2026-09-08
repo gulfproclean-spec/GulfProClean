@@ -27,17 +27,19 @@ business hours.
 - `functions/api/vendor-auth/{signup,login,logout,me}.js` — vendor accounts, same pattern, separate cookie (`vendor_session`) — required before `/api/vendors` accepts a submission
 - `account-gate.js` — shared signup/login widget used by `apply.html` and `vendors-bid.html`; mounted with the right auth prefix for each
 - `functions/api/bookings.js`, `functions/api/bookings/[id].js` — create/list/get/reschedule bookings
-- `functions/api/bookings/[id]/checkout.js` — creates a Stripe Checkout Session for a booking's total
+- `functions/api/bookings/[id]/checkout.js` — creates a Stripe Checkout Session for a booking: `mode: 'subscription'` (with a recurring `price_data`) for `booking_type: 'Monthly'` bookings, `mode: 'payment'` for `One-time` ones
+- `functions/api/bookings/[id]/cancel-subscription.js` — self-serve cancellation for no-commitment plans (Biweekly/Monthly, i.e. `months` 0.5 or 1) — cancels the Stripe subscription at period end. 6/12-month plans go through `.../refund.js` instead (see **Payments** below)
 - `functions/api/bookings/[id]/verify-payment.js` — confirms payment when the browser returns from Stripe (fast-path; the webhook is the source of truth)
 - `functions/api/bookings/[id]/addons.js` — adds a paid add-on to an already-confirmed booking
-- `functions/api/stripe/webhook.js` — Stripe calls this on `checkout.session.completed` and `checkout.session.async_payment_succeeded`; marks the booking paid and sends the confirmation email. The webhook endpoint must be subscribed to **both** events — see **Payments** below
+- `functions/api/stripe/webhook.js` — handles `checkout.session.completed`, `checkout.session.async_payment_succeeded` (marks a booking paid and sends the confirmation email — one-time and the first cycle of a subscription both arrive this way), plus `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted` for ongoing subscription billing. The webhook endpoint must be subscribed to **all six** — see **Payments** below
+- `functions/_lib/stripe-customer.js` — creates (once) and persists a real Stripe Customer object per account (`customers.stripe_customer_id`), reused across every subscription that account starts
 - `functions/api/pricing/[page].js` — GET (public) / PUT (admin-token-protected) tier pricing
 - `functions/api/applications.js`, `functions/api/applications/[id].js` — job applications: POST requires a signed-in applicant account (see `functions/api/applicant-auth/`), GET/PATCH are admin-token-protected
 - `functions/api/onboarding/[token].js` — the pre-hire authorization page, reachable only with the token issued alongside a conditional offer
 - `functions/api/vendors.js`, `functions/api/vendors/[id].js` — vendor pricing submissions: POST requires a signed-in vendor account (see `functions/api/vendor-auth/`), GET is admin-token-protected
 - `functions/api/requests.js`, `functions/api/requests/[id].js` — admin-only view of refund and plan-change requests. The PATCH refuses to mark one settled without the id of the Stripe object that settled it, because this app never moves money itself
-- `functions/_lib/auth.js`, `functions/_lib/email.js`, `functions/_lib/stripe.js`, `functions/_lib/payments.js` — shared helpers
-- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`, `applicant_accounts`, `applicant_sessions`, `vendor_accounts`, `vendor_sessions`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `027_applicant_vendor_accounts.sql`.
+- `functions/_lib/auth.js`, `functions/_lib/email.js`, `functions/_lib/stripe.js`, `functions/_lib/stripe-customer.js`, `functions/_lib/payments.js` — shared helpers
+- `migrations/*.sql` — schema: `site_content`, `customers`, `sessions`, `bookings`, `schedule_settings`, `pricing_tiers`, `refund_requests`, `contact_messages`, `job_applications`, `prehire_authorizations`, `vendor_submissions`, `plan_change_requests`, `applicant_accounts`, `applicant_sessions`, `vendor_accounts`, `vendor_sessions`. **After pulling new migrations, run them against the live database** — paste each new `.sql` file's contents into the Neon console's SQL Editor (console.neon.tech → your project → SQL Editor) and run it once. As of this repo, the latest is `028_stripe_subscriptions.sql`.
 
 ## Local preview
 
@@ -77,13 +79,57 @@ days/times customers can pick when booking.
 
 Booking now requires real payment. When a customer confirms a booking, the
 site creates the booking row as `unpaid`, opens a **Stripe Checkout
-Session** for the total, and redirects them to Stripe's hosted payment
-page. On success they're redirected back and the booking is marked `paid`
-(see `functions/api/bookings/[id]/verify-payment.js`); a Stripe **webhook**
-is the actual source of truth for this (`functions/api/stripe/webhook.js`),
-so payment still gets recorded correctly even if the customer closes the
-tab right after paying. No card details ever touch this app's servers —
-Stripe hosts the entire payment form.
+Session**, and redirects them to Stripe's hosted payment page. No card
+details ever touch this app's servers — Stripe hosts the entire payment
+form.
+
+**One-time bookings** (`booking_type: 'One-time'`) use `mode: 'payment'` for
+the full amount, same as always.
+
+**Recurring bookings** (`booking_type: 'Monthly'` — Biweekly/Monthly/6-Month/
+12-Month plans) use `mode: 'subscription'` — this is real recurring billing,
+not a single lump-sum charge for the whole term. `functions/api/bookings/[id]/
+checkout.js` builds a `price_data.recurring` line item from the booking's
+already-computed `per_visit_price`:
+
+- **Biweekly (0.5mo)** bills every 2 weeks; **Monthly, 6-Month, and 12-Month**
+  all bill monthly. (The 6- and 12-month plans are a *commitment*, not a
+  billing cadence — the customer is still charged every month, just for a
+  guaranteed 6 or 12 cycles. Stripe has no native "committed term" concept, so
+  it's enforced via `subscription_data.cancel_at` set to the term's end date —
+  Stripe stops billing and cancels automatically there rather than renewing
+  forever.)
+- Each cycle's charge is `per_visit_price × visits in that cycle` (visits/week
+  × 4, or × 2 for the biweekly cycle) — derived from the booking's own stored
+  `visits_count`/`months`, never recomputed from scratch.
+- The first Stripe Customer object for an account is created lazily on first
+  subscription checkout and persisted as `customers.stripe_customer_id`
+  (`functions/_lib/stripe-customer.js`), then reused for every later booking
+  by that account.
+
+On success they're redirected back and the booking is marked `paid` (see
+`functions/api/bookings/[id]/verify-payment.js`); a Stripe **webhook** is the
+actual source of truth for this (`functions/api/stripe/webhook.js`), so
+payment still gets recorded correctly even if the customer closes the tab
+right after paying.
+
+### Cancellation
+
+- **No-commitment plans (Biweekly/Monthly)**: self-serve, from **My
+  Account** → **Cancel subscription**
+  (`functions/api/bookings/[id]/cancel-subscription.js`). Cancels at the end
+  of the current billing period — no further charges, and the customer keeps
+  whatever's already been paid for in the period they're in.
+- **Committed plans (6/12-Month)**: no self-serve cancel button — these carry
+  a real discount tied to the commitment, so early cancellation goes through
+  the existing **Request a refund** review flow
+  (`functions/api/bookings/[id]/refund.js`), same as before. That endpoint now
+  also cancels the underlying Stripe subscription immediately when it
+  processes a cancellation, so a refunded booking can't keep billing.
+- Either path, `functions/api/stripe/webhook.js`'s
+  `customer.subscription.deleted` handler is what finalizes `canceled_at` and
+  `subscription_status = 'canceled'` once Stripe confirms the subscription is
+  actually gone.
 
 Setup:
 
@@ -91,20 +137,27 @@ Setup:
 2. **Developers → API keys** → copy the **Secret key** (`sk_test_...` while testing,
    `sk_live_...` once you're ready for real charges) → set it as `STRIPE_SECRET_KEY`.
 3. **Developers → Webhooks → Add endpoint** → URL: `https://<your-site>/api/stripe/webhook`
-   → select **both** of these events:
+   → select **all six** of these events:
    - `checkout.session.completed`
    - `checkout.session.async_payment_succeeded`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
 
    Then save and copy the **Signing secret** (`whsec_...`) → set it as `STRIPE_WEBHOOK_SECRET`.
 
-   Both events matter. Card payments settle instantly and arrive as
+   The first two matter for both one-time and the *first* cycle of a
+   subscription. Card payments settle instantly and arrive as
    `checkout.session.completed` with `payment_status: paid`. Delayed methods
    (ACH, Cash App Pay, bank debits) send `checkout.session.completed` first with
    the payment *not* yet paid — the handler correctly ignores that — and then
-   `checkout.session.async_payment_succeeded` when the funds actually clear. If
-   you subscribe only to the first event, those bookings stay `unpaid` forever
-   while the customer's money is gone. `functions/api/stripe/webhook.js` already
-   handles both; the endpoint just has to be told to send them.
+   `checkout.session.async_payment_succeeded` when the funds actually clear.
+   The other four track a subscription after that first cycle: renewal
+   payments, failed cards, Stripe-side status changes, and cancellation.
+   Missing any of the six leaves some part of the subscription lifecycle
+   silently unreflected in the database while Stripe's side of it keeps
+   going.
 4. Redeploy (env var changes need a new deployment to take effect, or restart the Function).
 
 **Without both of these set, "Confirm booking" will fail** with a clear
@@ -133,9 +186,10 @@ or tax once a stated size is given.
 ### Going live
 
 Switching from test to live is only the two environment variables — there is
-nothing else to migrate. Amounts are built from `booking.final_total` through
-Stripe's `price_data` at request time, so there are no Product or Price objects
-in the Stripe account to recreate.
+nothing else to migrate. Amounts are built from the booking's own stored
+total/per-visit price through Stripe's `price_data` at request time (one-time
+and recurring alike), so there are no Product or Price objects in the Stripe
+account to recreate.
 
 1. Flip the Stripe dashboard to **live mode** (toggle, top right) and redo the
    webhook endpoint step above against your real domain. A test-mode endpoint
@@ -155,7 +209,11 @@ deliberate. `functions/api/bookings/[id]/refund.js` and
 `.../plan-change.js` compute an amount, write a row to `refund_requests` or
 `plan_change_requests`, and stop. Auto-issuing refunds against a freshly
 written proration calculation, with no human in the loop, was not a risk worth
-taking.
+taking. (`refund.js` is the one exception to "no code path moves money": it
+does immediately cancel the booking's underlying Stripe *subscription* — not
+issue a refund — so a canceled booking with a real Stripe subscription
+attached can't keep billing while the actual refund waits on human review.
+See **Payments → Cancellation** above.)
 
 The consequence is that **somebody has to actually do it in Stripe**, or the
 customer is never paid. Pending requests appear in the **Money requests**
