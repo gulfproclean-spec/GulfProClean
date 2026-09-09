@@ -26,8 +26,14 @@ export async function onRequestPatch({ env, request, params }) {
   const found = await sql`select id from employees where id = ${params.id}`;
   if (!found.length) return json({ error: 'not found' }, 404);
 
+  // employees has first_name/last_name, not a single `name` column — see
+  // functions/api/employees.js for why this endpoint still accepts/returns
+  // one `name` string rather than changing admin.html's single input.
   if (typeof body.name === 'string' && body.name.trim()) {
-    await sql`update employees set name = ${body.name.trim()} where id = ${params.id}`;
+    const parts = body.name.trim().split(/\s+/);
+    const firstName = parts[0];
+    const lastName = parts.slice(1).join(' ') || parts[0];
+    await sql`update employees set first_name = ${firstName}, last_name = ${lastName} where id = ${params.id}`;
   }
   if (typeof body.email === 'string') {
     await sql`update employees set email = ${body.email.trim() || null} where id = ${params.id}`;
@@ -39,6 +45,9 @@ export async function onRequestPatch({ env, request, params }) {
     await sql`update employees set active = ${body.active} where id = ${params.id}`;
   }
 
-  const rows = await sql`select id, name, email, phone, active, created_at from employees where id = ${params.id}`;
+  const rows = await sql`
+    select id, (first_name || ' ' || last_name) as name, email, phone, active, created_at
+    from employees where id = ${params.id}
+  `;
   return json({ ok: true, employee: rows[0] });
 }

@@ -6,8 +6,12 @@
 // PATCH /api/bookings/:id/assign (see admin.html's Crew panel).
 export async function pickAutoAssignEmployee(sql, scheduledDate) {
   if (!scheduledDate) return null;
+  // employees has first_name/last_name, not a single `name` column — this
+  // query used to reference e.name directly, which doesn't exist, so every
+  // booking (any plan, not just subscriptions) failed with a Postgres
+  // "column e.name does not exist" error the moment it reached auto-assign.
   const rows = await sql`
-    select e.id, e.name,
+    select e.id, (e.first_name || ' ' || e.last_name) as name,
            count(b.id) filter (
              where b.scheduled_date = ${scheduledDate}
                and b.canceled_at is null
@@ -15,8 +19,8 @@ export async function pickAutoAssignEmployee(sql, scheduledDate) {
       from employees e
       left join bookings b on b.assigned_employee_id = e.id
      where e.active = true
-     group by e.id, e.name
-     order by load asc, e.name asc
+     group by e.id, e.first_name, e.last_name
+     order by load asc, name asc
      limit 1
   `;
   return rows[0] || null;
