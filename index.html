@@ -16,9 +16,14 @@
     nav { flex-wrap: wrap; row-gap: 6px !important; column-gap: 14px !important; padding: 12px 20px !important; font-size: 12.5px !important; }
     .nav-item { padding-bottom: 0; margin-bottom: 0; display: flex; flex-direction: column; align-items: flex-start; }
     .nav-item .nav-menu {
-      display: flex !important; position: static !important; box-shadow: none !important; border: none !important;
+      position: static !important; box-shadow: none !important; border: none !important;
       padding: 2px 0 0 10px !important; margin-top: 2px !important; min-width: 0 !important; background: transparent !important;
     }
+    /* On phone there's no hover, so the Residential/Commercial links under each
+       header (Service Tiers, Plans, Add-Ons, Pricing) stay hidden until the
+       header itself is tapped — see the click-toggle script below, which adds
+       .open to the .nav-item. :focus-within is kept too for keyboard/switch users. */
+    .nav-item.open .nav-menu, .nav-item:focus-within .nav-menu { display: flex !important; }
     .nav-menu a { padding: 3px 0 !important; font-size: 12px !important; color: #7a746a !important; }
   }
   .nav-item { position: relative; padding-bottom: 14px; margin-bottom: -14px; }
@@ -138,5 +143,32 @@
   </main>
 
   <footer style="padding:0 clamp(20px,5vw,56px) 48px;font-size:13px;color:#7a746a;"><div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px;"><a href="careers.html" style="color:#8a6221;">Careers — we're hiring</a><a href="vendors.html" style="color:#8a6221;">Vendors &amp; subcontractors</a><a href="contact.html" style="color:#8a6221;">Contact</a></div>Gulf ProClean — a veteran-owned, family-operated business serving homes and businesses from Pensacola to Panama City Beach.</footer>
+
+  <script>
+    // Phone screens have no hover state, so each nav header's Residential/
+    // Commercial links (normally revealed on :hover) need a tap-to-toggle
+    // instead. Adding .open on the parent .nav-item is what the mobile CSS
+    // above keys off of; this has no visual effect above 720px, where hover
+    // already handles it, so desktop behavior is unchanged.
+    document.querySelectorAll('.nav-item').forEach(function (item) {
+      var label = item.querySelector('.nav-label');
+      if (!label) return;
+      function toggle(e) {
+        e.preventDefault();
+        var wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.nav-item.open').forEach(function (o) { o.classList.remove('open'); });
+        if (!wasOpen) item.classList.add('open');
+      }
+      label.addEventListener('click', toggle);
+      label.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') toggle(e);
+      });
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.nav-item')) {
+        document.querySelectorAll('.nav-item.open').forEach(function (o) { o.classList.remove('open'); });
+      }
+    });
+  </script>
 </body>
 </html>
