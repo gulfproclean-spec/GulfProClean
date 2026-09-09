@@ -197,7 +197,6 @@ function AuthGate({ side, children }) {
         <Kicker gold="#8a6221">Pricing</Kicker>
         <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>General pricing &amp; plans</h1>
         <p style={{ fontSize: 15, color: "#3d4a4d", marginTop: 10, maxWidth: "62ch" }}>
-          Below are our plans and starting prices, calculated by the same pricing engine we use for every job — open to everyone, no account needed.
           For your exact price based on your property's size and details, create a free account below. It takes a minute and there's no obligation to book.
         </p>
       </section>
