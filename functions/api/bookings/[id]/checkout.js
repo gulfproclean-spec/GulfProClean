@@ -46,7 +46,21 @@ function commitmentCancelAt(booking, months) {
   return Math.floor(end.getTime() / 1000);
 }
 
-export async function onRequestPost({ env, request, params }) {
+export async function onRequestPost(context) {
+  // A handful of steps below (the initial booking lookup chief among them)
+  // weren't wrapped in their own try/catch and could throw straight past
+  // this function, which Cloudflare turns into an HTML error page instead
+  // of JSON — the client then fails with a cryptic "Unexpected token '<' ...
+  // is not valid JSON" instead of a readable error. Same guard, same
+  // reasoning as functions/api/bookings.js and functions/api/auth/signup.js.
+  try {
+    return await startCheckout(context);
+  } catch (e) {
+    return json({ error: e.message || 'Could not start checkout' }, 500);
+  }
+}
+
+async function startCheckout({ env, request, params }) {
   if (!env.STRIPE_SECRET_KEY) {
     return json({ error: 'Payments are not configured yet. Please contact us to complete your booking.' }, 500);
   }

@@ -29,6 +29,41 @@ export async function onRequestPost({ env, request }) {
     billingName, billingAddress, agreementAccepted,
   } = body;
 
+  // Everything past this point can fail in ways that aren't already turned
+  // into a clean 4xx JSON response (a DB error, a bug in a helper, etc).
+  // Without this, an uncaught error here returns an empty/HTML response
+  // body, which shows up client-side as a cryptic "Unexpected token '<' ...
+  // is not valid JSON" instead of a readable error — see
+  // functions/api/auth/signup.js for the same guard, same reasoning.
+  try {
+    return await createBooking({ env, sql, customer, body: {
+      page, notes, tier, bookingType, months, frequency,
+      sqft, areas, propertyType, occupancy, hardFloorPct,
+      bedrooms, fullBaths, halfBaths, kitchens, livingAreas, pets, condition, lastCleaned, levels,
+      restrooms, breakRooms, offices, entrances, afterHours,
+      addons, addonsApplied, extraAddons, scheduledDate, scheduledTime, visitDates,
+      firstName, lastName, phone, addressLine1, unit, city, state, zip,
+      billingName, billingAddress, agreementAccepted,
+    } });
+  } catch (e) {
+    if (e instanceof PricingError) {
+      return new Response(JSON.stringify({ error: e.message }), { status: 400 });
+    }
+    return new Response(JSON.stringify({ error: e.message || 'Something went wrong creating your booking.' }), { status: 500 });
+  }
+}
+
+async function createBooking({ env, sql, customer, body }) {
+  const {
+    page, notes, tier, bookingType, months, frequency,
+    sqft, areas, propertyType, occupancy, hardFloorPct,
+    bedrooms, fullBaths, halfBaths, kitchens, livingAreas, pets, condition, lastCleaned, levels,
+    restrooms, breakRooms, offices, entrances, afterHours,
+    addons, addonsApplied, extraAddons, scheduledDate, scheduledTime, visitDates,
+    firstName, lastName, phone, addressLine1, unit, city, state, zip,
+    billingName, billingAddress, agreementAccepted,
+  } = body;
+
   const requiredStrings = { firstName, lastName, phone, addressLine1, city, state, zip };
   const missing = Object.entries(requiredStrings).filter(([, v]) => typeof v !== 'string' || !v.trim());
   if (!PAGES.has(page) || !tier || !bookingType || !frequency || missing.length > 0) {
