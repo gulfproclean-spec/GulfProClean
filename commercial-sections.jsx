@@ -554,8 +554,3 @@ function Calculator({ navy, gold, pricing, preset }) {
     </section>
   );
 }
-
-function WhatWeWatch({ navy, gold }) {
-  const items = ["Cleaning & Quality", "HVAC & Filters", "Plumbing & Leaks", "Appliances", "Pool & Equipment", "Supplies", "Doors & Windows", "Exterior", "Storm Readiness", "Maintenance", "Vendors & Repairs", "Upcoming Projects"];
-  return null;
-}
