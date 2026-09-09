@@ -50,8 +50,6 @@ function ServiceTiers({ navy, gold }) {
       <Kicker gold="#8a6221">Service tiers</Kicker>
       <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Choose how deep we go</h1>
       <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Every tier includes everything in the tier before it — compare all three at a glance.</p>
-      <PricingRanges navy={navy} gold={gold} side="residential" />
-      <p style={{ fontSize: 13, color: "#7a746a", margin: "-4px 0 0" }}>Ranges span a small studio up to a large single-family home — recurring plans discount further off these numbers. <a href="residential-quote.html" style={{ color: "#8a6221" }}>Get your exact price</a> in under a minute — no account needed.</p>
       <div style={{ overflowX: "auto", marginTop: 32 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
           <thead>
@@ -566,7 +564,7 @@ function Calculator({ navy, gold, pricing, preset }) {
               </>
             )}
             <button type="button" onClick={handleBookIt} style={{ display: "inline-block", marginTop: 18, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, border: "none", cursor: "pointer" }}>Book It</button>
-            <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>You'll create an account and pick a visit time next. First-time discounts are confirmed there.</p>
+            <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 10 }}>Next, you'll pick a visit time. First-time discounts are confirmed there.</p>
           </div>
         </div>
       </div>
