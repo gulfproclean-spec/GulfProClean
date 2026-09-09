@@ -66,7 +66,12 @@ async function createBooking({ env, sql, customer, body }) {
 
   const requiredStrings = { firstName, lastName, phone, addressLine1, city, state, zip };
   const missing = Object.entries(requiredStrings).filter(([, v]) => typeof v !== 'string' || !v.trim());
-  if (!PAGES.has(page) || !tier || !bookingType || !frequency || missing.length > 0) {
+  // frequency ("N visits weekly") only means something for a recurring
+  // booking — the client deliberately leaves it blank for One-time (see
+  // residential-sections.jsx/commercial-sections.jsx's hasAllInputs), so
+  // requiring it unconditionally here rejected every one-time booking with
+  // this same generic message before it ever reached pricing.
+  if (!PAGES.has(page) || !tier || !bookingType || (bookingType !== 'One-time' && !frequency) || missing.length > 0) {
     return new Response(JSON.stringify({ error: 'Please fill in all required fields (name, phone, and full address).' }), { status: 400 });
   }
   const unitVal = typeof unit === 'string' ? unit.trim() : '';
