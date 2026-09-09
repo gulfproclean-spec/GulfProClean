@@ -12,11 +12,14 @@ export async function onRequestGet({ env, request }) {
   if (auth !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: 'unauthorized' }, 401);
 
   const sql = neon(env.DATABASE_URL);
+  // employees has first_name/last_name, not a single `name` column — this
+  // used to select e.name directly, which doesn't exist, so this whole list
+  // (the Crew panel's booking/assignment table) 500'd.
   const rows = await sql`
     select b.id, b.page, b.address, b.tier, b.booking_type, b.frequency,
            b.scheduled_date, b.scheduled_time, b.payment_status, b.canceled_at,
            b.first_name, b.last_name, b.phone,
-           b.assigned_employee_id, e.name as assigned_employee_name
+           b.assigned_employee_id, (e.first_name || ' ' || e.last_name) as assigned_employee_name
       from bookings b
       left join employees e on e.id = b.assigned_employee_id
      where b.payment_status = 'paid' and b.canceled_at is null
