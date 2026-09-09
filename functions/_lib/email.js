@@ -314,6 +314,110 @@ export async function sendContactNotificationEmail(env, { name, email, phone, me
   });
 }
 
+// Notifies the business inbox whenever a customer cancels a booking from
+// My Account — the single self-serve cancellation path for every booking
+// type (functions/api/bookings/[id]/cancel.js). Customers no longer see or
+// request a specific refund amount (that changed from the original
+// customer-facing "Request a refund" flow this replaced); `estimate` is the
+// existing functions/_lib/refunds.js policy math, included here as a
+// starting number FOR STAFF ONLY. Nothing is refunded automatically —
+// issuing any refund is still a fully manual step in the Stripe dashboard.
+export async function sendCancellationNotificationEmail(env, {
+  customerEmail, firstName, lastName, phone, page, tier, address, bookingType, months, finalTotal,
+  immediate, estimate,
+}) {
+  const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
+  const billingLabel = billingLabelFor(bookingType, months);
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const isOneTimeSurcharge = !!(estimate && estimate.cancellationSurcharge);
+
+  const timingNote = immediate
+    ? 'Canceled immediately — this was either a one-time booking or a committed-term subscription (no unused period to run out).'
+    : 'Set to cancel at the end of the current billing period — no further charges after that.';
+
+  const estimateRows = !estimate ? '' : isOneTimeSurcharge
+    ? `
+      ${row('Amount paid', money(estimate.remainingValue))}
+      ${row('Less: $50 cancellation fee (policy)', estimate.cancellationSurcharge ? '−' + money(estimate.cancellationSurcharge) : null)}
+      ${row('Suggested refund', money(estimate.refundAmount))}
+    `
+    : `
+      ${row('Visits delivered / remaining', `${estimate.visitsDelivered} / ${estimate.visitsRemaining}`)}
+      ${row('Remaining visits value', money(estimate.remainingValue))}
+      ${row('Less: discount already applied', estimate.totalDiscount ? '−' + money(estimate.totalDiscount) : null)}
+      ${row('Suggested refund', money(estimate.refundAmount))}
+    `;
+
+  const inner = `
+    <p style="color:#3d4a4d;margin:0 0 4px">A customer canceled a booking from My Account.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+      ${row('Customer', fullName)}
+      ${row('Email', customerEmail)}
+      ${row('Phone', phone)}
+      ${row('Service', `${tier} (${pageLabel})`)}
+      ${row('Address', address)}
+      ${row('Plan', billingLabel)}
+      ${row('Last paid total', finalTotal !== undefined && finalTotal !== null ? money(finalTotal) : null)}
+    </table>
+    <p style="font-size:13px;color:#7a746a">${timingNote}</p>
+    ${estimate ? `
+      <h3 style="font-size:15px;margin:22px 0 6px">Suggested refund (staff reference only — not shown to the customer)</h3>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+        ${estimateRows}
+      </table>
+      <div style="border-left:3px solid #b68235;padding:10px 14px;background:#faf8f4;font-size:13.5px;color:#3d4a4d">
+        This app never moves money and nothing here has been requested or promised to the customer. Decide whether a
+        refund is owed, then issue it directly in the Stripe dashboard if so.
+      </div>
+    ` : ''}
+  `;
+
+  await sendGmail(env, {
+    to: CONTACT_INBOX,
+    subject: `Booking canceled: ${fullName || 'customer'} (${pageLabel})`,
+    html: shell('Booking canceled', inner),
+    replyTo: customerEmail || undefined,
+  });
+}
+
+// Notifies the business inbox when a customer submits a plan-change request
+// (functions/api/bookings/[id]/plan-change.js). Same "compute + record, a
+// human executes" pattern as refund requests, and had the same visibility
+// gap — nothing surfaced it until now.
+export async function sendPlanChangeRequestNotificationEmail(env, {
+  customerEmail, firstName, lastName, phone, page, tier, address,
+  currentPlan, newPlan, priceDifference,
+}) {
+  const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const diffLabel = priceDifference >= 0
+    ? `${money(Math.abs(priceDifference))} additional charge`
+    : `${money(Math.abs(priceDifference))} credit`;
+
+  const inner = `
+    <p style="color:#3d4a4d;margin:0 0 4px">A customer requested a plan change. Nothing has been charged or credited yet.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+      ${row('Customer', fullName)}
+      ${row('Email', customerEmail)}
+      ${row('Phone', phone)}
+      ${row('Service', `${tier} (${pageLabel})`)}
+      ${row('Address', address)}
+      ${row('Plan change', `${currentPlan} → ${newPlan}`)}
+      ${row('Difference', diffLabel)}
+    </table>
+    <div style="border-left:3px solid #b68235;padding:10px 14px;background:#faf8f4;font-size:13.5px;color:#3d4a4d">
+      Review and process this on the Money requests screen in admin.html.
+    </div>
+  `;
+
+  await sendGmail(env, {
+    to: CONTACT_INBOX,
+    subject: `Plan change requested: ${fullName || 'customer'} (${currentPlan} → ${newPlan})`,
+    html: shell('Plan change requested', inner),
+    replyTo: customerEmail || undefined,
+  });
+}
+
 // -- Careers and vendors ---------------------------------------------------
 
 // Applicant- and vendor-supplied text is interpolated into these templates, so
