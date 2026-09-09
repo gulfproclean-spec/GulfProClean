@@ -26,7 +26,7 @@ const SECTION_PAGES = {
     { slug: "residential-tiers.html",    nav: "Service Tiers", title: "Choose how deep we go", blurb: "Essential, Preferred and Premium compared line by line." },
     { slug: "residential-plans.html",    nav: "Plans",         title: "One-time or on repeat", blurb: "A single visit, or standing coverage billed monthly. No contracts." },
     { slug: "residential-addons.html",   nav: "Add-Ons",       title: "Add-on services",       blurb: "Ovens, windows, baseboards, carpets — added to any visit." },
-    { slug: "residential-quote.html",    nav: "Pricing",       title: "Your price, right now",  blurb: "Your exact price from square footage, tier and frequency — no callback, no waiting." },
+    { slug: "residential-quote.html",    nav: "Pricing",       title: "Pricing & plans",  blurb: "General pricing and plans for everyone — create a free account for your exact price." },
     { slug: "residential-home-os.html",  nav: "Home Care",     title: "Home Operating System", blurb: "What we watch between visits, and how cleaning becomes home care." },
   ],
   commercial: [
@@ -34,7 +34,7 @@ const SECTION_PAGES = {
     { slug: "commercial-tiers.html",  nav: "Service Tiers", title: "Choose how deep we go", blurb: "Essential, Preferred and Premium compared line by line." },
     { slug: "commercial-plans.html",  nav: "Plans",         title: "One-time or on repeat", blurb: "A single service, or a standing schedule billed monthly." },
     { slug: "commercial-addons.html", nav: "Add-Ons",       title: "Add-on services",       blurb: "Post-construction, pressure washing, carpet extraction and more." },
-    { slug: "commercial-quote.html",  nav: "Pricing",    title: "Your price, right now", blurb: "Your exact price from square footage, restrooms and frequency — no callback, no waiting." },
+    { slug: "commercial-quote.html",  nav: "Pricing",    title: "Pricing & plans", blurb: "General pricing and plans for everyone — create a free account for your exact price." },
   ],
 };
 
@@ -106,6 +106,92 @@ function Kicker({ children, gold }) {
   return <span style={{ display: "block", fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: gold, marginBottom: 14 }}>{children}</span>;
 }
 
+// Gates a page's exact-price calculator behind a customer account. General
+// pricing (the Plans breakdown — starting prices from the same pricing
+// engine the calculator uses) is shown to every visitor with no account
+// needed; the calculator itself (children) only renders once
+// GET /api/auth/me confirms a logged-in session. Signing up or logging in
+// here does not navigate away — it just flips this component into its
+// authed state so the calculator appears in place, same page.
+function AuthGate({ side, children }) {
+  const navy = NAVY, gold = GOLD;
+  const [status, setStatus] = React.useState("checking"); // checking | gated | authed
+  const [mode, setMode] = React.useState("signup");
+  const [booking, setBooking] = React.useState("Subscription");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [err, setErr] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(data => setStatus(data && data.loggedIn ? "authed" : "gated"))
+      .catch(() => setStatus("gated"));
+  }, []);
+
+  if (status === "checking") {
+    return <div style={{ padding: "120px 24px", textAlign: "center", color: "#7a746a", fontSize: 14 }}>Loading…</div>;
+  }
+  if (status === "authed") {
+    return children;
+  }
+
+  const submit = async () => {
+    setErr("");
+    setBusy(true);
+    try {
+      const url = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Something went wrong");
+      setStatus("authed");
+    } catch (e) {
+      setErr(e.message);
+      setBusy(false);
+    }
+  };
+  const selStyle = { width: "100%", minHeight: 40, padding: "8px 12px", fontSize: 14, border: "1px solid #d8d3c8", borderRadius: 4, fontFamily: "inherit", marginBottom: 16, boxSizing: "border-box" };
+  const tabStyle = (active) => ({ flex: 1, padding: 10, textAlign: "center", border: `1px solid ${active ? navy : "#d8d3c8"}`, cursor: "pointer", fontSize: 13.5, fontWeight: 500, background: active ? navy : "#fff", color: active ? "#fff" : navy });
+
+  return (
+    <div>
+      <section style={{ padding: "56px clamp(20px,5vw,56px) 0", maxWidth: 1200, margin: "0 auto" }}>
+        <Kicker gold="#8a6221">Pricing</Kicker>
+        <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>General pricing &amp; plans</h1>
+        <p style={{ fontSize: 15, color: "#3d4a4d", marginTop: 10, maxWidth: "62ch" }}>
+          Below are our plans and starting prices, calculated by the same pricing engine we use for every job — open to everyone, no account needed.
+          For your exact price based on your property's size and details, create a free account below. It takes a minute and there's no obligation to book.
+        </p>
+      </section>
+      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} pricing={null} />
+      <section style={{ padding: "0 clamp(20px,5vw,56px) 64px", maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ background: "#fff", border: "1px solid #d8d3c8", borderRadius: 8, padding: 28 }}>
+          <p style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: "0 0 6px" }}>Get your exact price</p>
+          <p style={{ fontSize: 13.5, color: "#7a746a", margin: "0 0 20px" }}>Create a free account to get an exact price for your property — no obligation to book anything.</p>
+          <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
+            <div onClick={() => setMode("signup")} style={tabStyle(mode !== "login")}>New customer</div>
+            <div onClick={() => setMode("login")} style={tabStyle(mode === "login")}>I have an account</div>
+          </div>
+          <label style={{ display: "block", fontSize: 13, color: "#7a746a", marginBottom: 6 }}>Email</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={selStyle} />
+          <label style={{ display: "block", fontSize: 13, color: "#7a746a", marginBottom: 6 }}>Password</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === "login" ? "Your password" : "At least 8 characters"} style={selStyle} />
+          {err && <p style={{ color: "#b3261e", fontSize: 13, marginTop: -8, marginBottom: 14 }}>{err}</p>}
+          <button type="button" onClick={submit} disabled={busy || !email.trim() || !password} style={{ background: gold, color: navy, fontWeight: 600, border: "none", borderRadius: 4, padding: "11px 20px", cursor: busy ? "not-allowed" : "pointer", fontSize: 14, opacity: busy ? 0.6 : 1 }}>
+            {busy ? "Please wait…" : (mode === "login" ? "Log in" : "Create account & continue")}
+          </button>
+          <p style={{ fontSize: 12, color: "#7a746a", marginTop: 14 }}>No commitment — you'll see your exact price and can walk away before booking or paying anything.</p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Services({ navy, items }) {
   return (
     <section id="services" style={{ padding: "56px clamp(20px,5vw,56px)", maxWidth: 1200, margin: "0 auto" }}>
@@ -119,77 +205,6 @@ function Services({ navy, items }) {
         ))}
       </div>
     </section>
-  );
-}
-
-// Representative small and large properties for each side, used only to
-// compute honest ballpark price RANGES for prospects who have not run the
-// full calculator yet — visible with no login and no account. Priced through
-// the same GPC_PRICING engine as the calculator (see pricing-model.js), so a
-// range shown here can never state a number the calculator wouldn't also
-// produce for some real property. These are one-time, per-visit prices;
-// recurring plans discount further off them (see the Plans/Calculator
-// sections).
-const PRICING_RANGE_PROPERTIES = {
-  residential: {
-    small: { bedrooms: 1, fullBaths: 1, halfBaths: 0, kitchens: 1, livingAreas: 1, sqft: 700 },
-    large: { bedrooms: 5, fullBaths: 3, halfBaths: 1, kitchens: 1, livingAreas: 2, sqft: 3500 },
-  },
-  commercial: {
-    small: { sqft: 1500, restrooms: 2, breakRooms: 1, offices: 4, entrances: 1 },
-    large: { sqft: 8000, restrooms: 6, breakRooms: 2, offices: 15, entrances: 3 },
-  },
-};
-const PRICING_RANGE_TIERS = ["Essential", "Preferred", "Premium"];
-
-// compact=true renders a slim banner (used on the overview pages, right under
-// the hero, so a first-time visitor sees a price idea before clicking
-// anything). compact=false renders a row of cards (used inside ServiceTiers,
-// which already has its own heading/intro above it).
-function PricingRanges({ navy, gold, side, quoteHref, compact = false }) {
-  const props = PRICING_RANGE_PROPERTIES[side];
-  if (!window.GPC_PRICING || !props) return null;
-  const ranges = PRICING_RANGE_TIERS.map(tier => {
-    const a = GPC_PRICING.quote(side, props.small, tier).price;
-    const b = GPC_PRICING.quote(side, props.large, tier).price;
-    return { tier, lo: Math.min(a, b), hi: Math.max(a, b) };
-  });
-  const fmt = (n) => "$" + Math.round(n).toLocaleString("en-US");
-
-  if (compact) {
-    return (
-      <section style={{ padding: "0 clamp(20px,5vw,56px)", maxWidth: 1200, margin: "40px auto 0" }}>
-        <div style={{ border: "1px solid #e3ded2", borderRadius: 8, background: "#fff", padding: "26px 28px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 24, justifyContent: "space-between" }}>
-          <div style={{ flex: "1 1 260px" }}>
-            <Kicker gold="#8a6221">Ballpark pricing</Kicker>
-            <p style={{ fontSize: 14.5, color: "#3d4a4d", margin: 0, maxWidth: "48ch" }}>General ranges for a typical property, so you can get an idea before you're ready to talk details — no account needed.</p>
-          </div>
-          <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-            {ranges.map(r => (
-              <div key={r.tier}>
-                <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{r.tier}</p>
-                <p style={{ fontSize: 17, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>{fmt(r.lo)}–{fmt(r.hi)}<span style={{ fontSize: 11.5, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
-              </div>
-            ))}
-          </div>
-          {quoteHref && (
-            <a href={quoteHref} style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 13.5, padding: "10px 18px", borderRadius: 3 }}>Get your exact price</a>
-          )}
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, margin: "24px 0 8px" }}>
-      {ranges.map(r => (
-        <div key={r.tier} style={{ border: "1px solid #e3ded2", borderRadius: 8, padding: "18px 20px", background: "#fff" }}>
-          <p style={{ fontSize: 13, color: "#7a746a", margin: 0 }}>{r.tier}</p>
-          <p style={{ fontSize: 22, fontWeight: 600, color: "#8a6221", margin: "4px 0 0" }}>{fmt(r.lo)}–{fmt(r.hi)}</p>
-          <p style={{ fontSize: 12, color: "#7a746a", margin: "2px 0 0" }}>per visit, one-time price</p>
-        </div>
-      ))}
-    </div>
   );
 }
 
