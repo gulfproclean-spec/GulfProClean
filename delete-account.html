@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Delete your account — Gulf ProClean</title>
+<style>
+  body { margin: 0; background: #f5f2ec; color: #153238; font-family: system-ui, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 48px 20px 80px; line-height: 1.6; }
+  h1 { font-weight: 600; }
+  label { display: block; margin-top: 14px; font-weight: 500; font-size: 14px; }
+  input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #d8d3c8; border-radius: 8px; margin-top: 6px; font: inherit; }
+  button { margin-top: 18px; width: 100%; padding: 14px; border: none; border-radius: 8px; background: #b3261e; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; }
+  .status { margin-top: 12px; font-size: 14px; min-height: 18px; }
+  .ok { color: #1a7a3d; } .err { color: #b3261e; }
+  .muted { color: #7a746a; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Delete your account</h1>
+  <p>This permanently removes your Gulf ProClean login, contact details and saved addresses. Bookings you have already paid for are kept in our records for accounting purposes, but they will no longer be linked to you and cannot be managed online afterward.</p>
+  <p class="muted">If you have an upcoming paid visit, contact us first so we can reschedule or refund it — deleting your account does not cancel a scheduled visit.</p>
+  <form id="f">
+    <label>Email<input type="email" id="email" required autocomplete="username"></label>
+    <label>Password<input type="password" id="password" required autocomplete="current-password"></label>
+    <label>Type <strong>DELETE</strong> to confirm<input type="text" id="confirm" required autocomplete="off"></label>
+    <button type="submit" id="go">Delete my account</button>
+    <div class="status" id="status"></div>
+  </form>
+</main>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const st = document.getElementById('status'); const btn = document.getElementById('go');
+  if (document.getElementById('confirm').value.trim() !== 'DELETE') { st.textContent = 'Type DELETE to confirm.'; st.className = 'status err'; return; }
+  btn.disabled = true; st.textContent = 'Deleting…'; st.className = 'status';
+  try {
+    const res = await fetch('/api/auth/delete-account', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: document.getElementById('email').value.trim(), password: document.getElementById('password').value }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    st.textContent = 'Your account has been deleted. Thank you for choosing Gulf ProClean.'; st.className = 'status ok';
+    document.getElementById('f').reset();
+  } catch (err) { st.textContent = err.message; st.className = 'status err'; btn.disabled = false; }
+});
+</script>
+</body>
+</html>

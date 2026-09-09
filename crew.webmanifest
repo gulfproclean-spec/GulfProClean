@@ -1,0 +1,14 @@
+{
+  "name": "Gulf ProClean Crew",
+  "short_name": "GPC Crew",
+  "description": "Job checklists, clock in/out and supply checks for Gulf ProClean technicians.",
+  "start_url": "/employee.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#153238",
+  "theme_color": "#153238",
+  "icons": [
+    { "src": "assets/app/crew-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/app/crew-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
