@@ -263,10 +263,6 @@ const DEFAULT_CONTENT_RESIDENTIAL = {
     { title: "Vacation rentals", body: "Guest turnovers between check-out and check-in, photo-documented, so the listing looks exactly like its photos every time." },
     { title: "Move-in / move-out", body: "A single deep clean for the property's next chapter — empty rooms, every surface, ready for the walkthrough." }
   ],
-  quote: {
-    text: "They've turned our rental over between every single guest for two years — never once a cleanliness complaint. That's the whole business, honestly.",
-    caption: "— placeholder quote, swap for a real client"
-  },
   contact: { note: "Properties over 5,001 sq ft:" }
 };
 
