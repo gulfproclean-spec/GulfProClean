@@ -77,12 +77,13 @@ export async function onRequestPost({ env, request }) {
   }
 
   // Fires whether the subscription ended via self-serve cancel-at-period-end
-  // (functions/api/bookings/[id]/cancel-subscription.js), the 6/12-month
-  // commitment's cancel_at being reached, or a manual cancel from the Stripe
-  // dashboard. canceled_at is only set here if it isn't already set, so a
-  // booking canceled through the refund-request flow (which cancels the
-  // Stripe subscription itself and sets canceled_at immediately) isn't
-  // double-processed when this event arrives after the fact.
+  // (functions/api/bookings/[id]/cancel.js, no-commitment plans), the
+  // 6/12-month commitment's cancel_at being reached, or a manual cancel from
+  // the Stripe dashboard. canceled_at is only set here if it isn't already
+  // set, so a booking canceled immediately by that same endpoint (committed
+  // plans and One-time bookings, which cancel the Stripe subscription and
+  // set canceled_at right away) isn't double-processed when this event
+  // arrives after the fact.
   if (event.type === 'customer.subscription.deleted') {
     const sub = event.data.object;
     const booking = await findBookingBySubscription(sql, sub.id);
