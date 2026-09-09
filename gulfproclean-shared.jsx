@@ -40,8 +40,30 @@ const SECTION_PAGES = {
 
 function Nav({ navy = NAVY, gold = GOLD, side = "residential", active = "" }) {
   const other = side === "residential" ? ["Commercial →", "commercial.html"] : ["Residential →", "residential.html"];
-  const sectionLinks = SECTION_PAGES[side].map(s => [s.nav, s.slug]);
-  const links = [["Home", "index.html"], ...sectionLinks, ["Careers", "careers.html"], ["Vendors", "vendors.html"], ["Contact Us", "contact.html"], ["My Account", "account.html"], other];
+  const pages = SECTION_PAGES[side];
+  const overview = pages[0];
+  // Everything past the side's own overview page (tiers, plans, add-ons,
+  // pricing, home care) is grouped under one "Explore" dropdown instead of
+  // sitting flat in the bar — the flat list was 12 links wide and wrapped
+  // onto multiple rows on smaller screens.
+  const exploreLinks = pages.slice(1).map(s => [s.nav, s.slug]);
+  const isExploreActive = exploreLinks.some(([, href]) => href === active);
+  const [exploreOpen, setExploreOpen] = React.useState(false);
+  const exploreRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!exploreOpen) return;
+    const onDocClick = (e) => { if (exploreRef.current && !exploreRef.current.contains(e.target)) setExploreOpen(false); };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [exploreOpen]);
+  const before = [["Home", "index.html"], [overview.nav, overview.slug]];
+  const after = [["Careers", "careers.html"], ["Vendors", "vendors.html"], ["Contact Us", "contact.html"], ["My Account", "account.html"], other];
+  const navLink = ([label, href]) => {
+    const isActive = href === active;
+    return (
+      <a key={label + href} href={href} style={{ color: "inherit", opacity: isActive ? 1 : 0.92, fontWeight: isActive ? 600 : 400, borderBottom: isActive ? `2px solid ${gold}` : "2px solid transparent", paddingBottom: 2 }}>{label}</a>
+    );
+  };
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: 22, padding: "18px clamp(20px,5vw,56px)", color: navy, fontSize: 14, background: CREAM, borderBottom: "1px solid #e3ded2", flexWrap: "wrap", rowGap: 8 }}>
       <a href="index.html" style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600, fontSize: 15, letterSpacing: "0.06em", marginRight: "auto", color: navy }}>
@@ -54,12 +76,23 @@ function Nav({ navy = NAVY, gold = GOLD, side = "residential", active = "" }) {
         </svg>
         GULF PROCLEAN
       </a>
-      {links.map(([label, href]) => {
-        const isActive = href === active;
-        return (
-          <a key={label + href} href={href} style={{ color: "inherit", opacity: isActive ? 1 : 0.92, fontWeight: isActive ? 600 : 400, borderBottom: isActive ? `2px solid ${gold}` : "2px solid transparent", paddingBottom: 2 }}>{label}</a>
-        );
-      })}
+      {before.map(navLink)}
+      <div ref={exploreRef} style={{ position: "relative" }}>
+        <button type="button" onClick={() => setExploreOpen(o => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: isExploreActive ? 1 : 0.92, fontWeight: isExploreActive ? 600 : 400, borderBottom: isExploreActive ? `2px solid ${gold}` : "2px solid transparent", paddingBottom: 2 }}>
+          Explore <span style={{ fontSize: 9, marginTop: 1 }}>{exploreOpen ? "▲" : "▼"}</span>
+        </button>
+        {exploreOpen && (
+          <div style={{ position: "absolute", top: "calc(100% + 12px)", left: 0, background: "#fff", border: "1px solid #e3ded2", borderRadius: 6, boxShadow: "0 10px 28px rgba(20,30,32,0.14)", minWidth: 200, zIndex: 60, padding: 6 }}>
+            {exploreLinks.map(([label, href]) => {
+              const isActive = href === active;
+              return (
+                <a key={href} href={href} onClick={() => setExploreOpen(false)} style={{ display: "block", padding: "9px 12px", borderRadius: 4, fontSize: 13.5, color: navy, fontWeight: isActive ? 600 : 400, background: isActive ? CREAM : "transparent" }}>{label}</a>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {after.map(navLink)}
     </nav>
   );
 }
@@ -168,7 +201,7 @@ function AuthGate({ side, children }) {
           For your exact price based on your property's size and details, create a free account below. It takes a minute and there's no obligation to book.
         </p>
       </section>
-      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} pricing={null} />
+      <Plans navy={navy} gold={gold} booking={booking} setBooking={setBooking} pricing={null} showCards={false} />
       <section style={{ padding: "0 clamp(20px,5vw,56px) 64px", maxWidth: 560, margin: "0 auto" }}>
         <div style={{ background: "#fff", border: "1px solid #d8d3c8", borderRadius: 8, padding: 28 }}>
           <p style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: "0 0 6px" }}>Get your exact price</p>
@@ -263,10 +296,6 @@ const DEFAULT_CONTENT_RESIDENTIAL = {
     { title: "Vacation rentals", body: "Guest turnovers between check-out and check-in, photo-documented, so the listing looks exactly like its photos every time." },
     { title: "Move-in / move-out", body: "A single deep clean for the property's next chapter — empty rooms, every surface, ready for the walkthrough." }
   ],
-  quote: {
-    text: "They've turned our rental over between every single guest for two years — never once a cleanliness complaint. That's the whole business, honestly.",
-    caption: "— placeholder quote, swap for a real client"
-  },
   contact: { note: "Properties over 5,001 sq ft:" }
 };
 

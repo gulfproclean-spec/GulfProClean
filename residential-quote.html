@@ -57,7 +57,6 @@
 
 function Page() {
   const pricing = usePricing('residential', DEFAULT_PRICING_RESIDENTIAL);
-  const content = useSiteContent('residential', DEFAULT_CONTENT_RESIDENTIAL);
   const preset = usePlanPreset();
   const [booking, setBooking] = React.useState("Subscription");
   return (
@@ -65,7 +64,6 @@ function Page() {
       <AuthGate side="residential">
         <Calculator navy={NAVY} gold={GOLD} pricing={pricing} preset={preset} />
       </AuthGate>
-      <Quote navy={NAVY} text={content.quote.text} caption={content.quote.caption} />
     </SectionPage>
   );
 }
