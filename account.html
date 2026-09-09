@@ -53,6 +53,22 @@
   .day-btn { border: 1px solid #d8d3c8; border-radius: 4px; padding: 8px 6px; background: #fff; cursor: pointer; font-size: 12px; text-align: center; }
   .day-btn.selected { background: #b68235; border-color: #b68235; color: #153238; font-weight: 600; }
   .day-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .addon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 320px; overflow-y: auto; padding: 2px; }
+  .addon-card { position: relative; display: flex; flex-direction: column; gap: 8px; border: 1.5px solid #d8d3c8; border-radius: 10px; padding: 12px 14px 13px; cursor: pointer; background: #fff; transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease, transform .1s ease; user-select: none; }
+  .addon-card:hover { border-color: #cbab6c; box-shadow: 0 2px 6px rgba(21,50,56,0.06); }
+  .addon-card:active { transform: scale(0.98); }
+  .addon-card.selected { border-color: #b68235; background: #fbf5e9; box-shadow: 0 0 0 1px #b68235 inset; }
+  .addon-card input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
+  .addon-card-top { display: flex; align-items: flex-start; gap: 10px; }
+  .addon-check { flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 6px; border: 1.5px solid #d8d3c8; background: #fff; display: flex; align-items: center; justify-content: center; transition: background-color .15s ease, border-color .15s ease; }
+  .addon-card.selected .addon-check { background: #b68235; border-color: #b68235; }
+  .addon-check svg { width: 12px; height: 12px; opacity: 0; transform: scale(0.6); transition: opacity .1s ease, transform .1s ease; }
+  .addon-card.selected .addon-check svg { opacity: 1; transform: scale(1); }
+  .addon-name { font-size: 13.5px; font-weight: 600; color: #153238; line-height: 1.35; }
+  .addon-owned-tag { display: inline-block; font-size: 10.5px; font-weight: 600; color: #8a6221; background: #f5f2ec; border-radius: 10px; padding: 2px 7px; margin-top: 3px; }
+  .addon-price { font-size: 12.5px; color: #7a746a; margin: 0; padding-left: 30px; }
+  .addon-qty-row { display: flex; align-items: center; gap: 8px; padding-left: 30px; margin-top: -2px; }
+  .addon-qty-row select { width: auto; min-height: 32px; padding: 4px 8px; font-size: 12.5px; margin-bottom: 0; border-radius: 6px; background: #fff; }
 </style>
 </head>
 <body>
@@ -591,29 +607,37 @@ function renderAddonPanel(container, booking) {
     const opt = options.find(o => o.name === name);
     return s + (opt ? opt.price * qty : 0);
   }, 0);
+  const checkSvg = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5L6.2 11.5L13 4.5" stroke="#153238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   container.innerHTML = `
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e3ded2">
       <p style="font-size:13px;font-weight:500;margin:0 0 4px">Add an add-on to this booking</p>
-      <p class="muted" style="font-size:12px;margin:0 0 8px">Charged immediately to this booking's total.</p>
-      <div style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;border:1px solid #d8d3c8;border-radius:3px;padding:10px">
+      <p class="muted" style="font-size:12px;margin:0 0 10px">Charged immediately to this booking's total. Click a card to select it.</p>
+      <div class="addon-grid">
         ${options.map(o => `
-          <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0ede5;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
-              <input type="checkbox" data-addon-name="${o.name}" ${selected[o.name] != null ? 'checked' : ''} />
-              ${o.name}${o.alreadyOwned ? ' <span class="muted" style="font-size:11px">(more of this)</span>' : ''}
-            </label>
-            <span class="muted" style="margin-left:auto;font-size:13px">${money(o.price)} each</span>
+          <label class="addon-card ${selected[o.name] != null ? 'selected' : ''}">
+            <input type="checkbox" data-addon-name="${o.name}" ${selected[o.name] != null ? 'checked' : ''} />
+            <div class="addon-card-top">
+              <span class="addon-check">${checkSvg}</span>
+              <div>
+                <div class="addon-name">${o.name}</div>
+                ${o.alreadyOwned ? '<span class="addon-owned-tag">More of this</span>' : ''}
+              </div>
+            </div>
+            <p class="addon-price">${money(o.price)} each</p>
             ${selected[o.name] != null ? `
-              <select data-addon-qty="${o.name}" style="font-size:12px;padding:4px 8px;border:1px solid #d8d3c8;border-radius:3px;font-family:inherit;background:#faf8f3;width:110px;min-height:auto;margin-bottom:0">
-                ${Array.from({ length: 10 }, (_, i) => i + 1).map(n => `<option value="${n}" ${selected[o.name] === n ? 'selected' : ''}>${n}× (${money(o.price * n)})</option>`).join('')}
-              </select>
+              <div class="addon-qty-row" onclick="event.preventDefault()">
+                <span class="muted" style="font-size:12px">Qty</span>
+                <select data-addon-qty="${o.name}">
+                  ${Array.from({ length: 10 }, (_, i) => i + 1).map(n => `<option value="${n}" ${selected[o.name] === n ? 'selected' : ''}>${n}× (${money(o.price * n)})</option>`).join('')}
+                </select>
+              </div>
             ` : ''}
-          </div>
+          </label>
         `).join('')}
       </div>
-      ${booking.page === 'commercial' ? `<p class="muted" style="font-size:12px;margin-top:6px">Want a service not listed here? <a href="mailto:hello@gulfproclean.com" style="color:#8a6221">Contact us</a> for accurate pricing based on your property.</p>` : ''}
+      ${booking.page === 'commercial' ? `<p class="muted" style="font-size:12px;margin-top:10px">Want a service not listed here? <a href="mailto:hello@gulfproclean.com" style="color:#8a6221">Contact us</a> for accurate pricing based on your property.</p>` : ''}
       <div class="error" id="addon-err-${booking.id}" style="display:none"></div>
-      <button id="confirm-addon-${booking.id}" ${selectedTotal > 0 ? '' : 'disabled'}>${selectedTotal > 0 ? `Add & charge ${money(selectedTotal)}` : 'Select an add-on'}</button>
+      <button id="confirm-addon-${booking.id}" style="margin-top:12px" ${selectedTotal > 0 ? '' : 'disabled'}>${selectedTotal > 0 ? `Add & charge ${money(selectedTotal)}` : 'Select an add-on'}</button>
     </div>
   `;
   container.querySelectorAll('[data-addon-name]').forEach(cb => {
