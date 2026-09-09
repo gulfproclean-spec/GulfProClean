@@ -314,22 +314,42 @@ export async function sendContactNotificationEmail(env, { name, email, phone, me
   });
 }
 
-// Notifies the business inbox when a customer self-serve cancels a
-// no-commitment subscription (Biweekly/Monthly) from My Account
-// (functions/api/bookings/[id]/cancel-subscription.js). The cancellation
-// has already taken effect in Stripe (cancel_at_period_end) by the time
-// this fires — this is visibility for the office, not a trigger. Committed
-// 6/12-month plan cancellations go through the refund-request flow instead
-// and are covered by sendRefundRequestNotificationEmail below.
-export async function sendSubscriptionCancellationNotificationEmail(env, {
+// Notifies the business inbox whenever a customer cancels a booking from
+// My Account — the single self-serve cancellation path for every booking
+// type (functions/api/bookings/[id]/cancel.js). Customers no longer see or
+// request a specific refund amount (that changed from the original
+// customer-facing "Request a refund" flow this replaced); `estimate` is the
+// existing functions/_lib/refunds.js policy math, included here as a
+// starting number FOR STAFF ONLY. Nothing is refunded automatically —
+// issuing any refund is still a fully manual step in the Stripe dashboard.
+export async function sendCancellationNotificationEmail(env, {
   customerEmail, firstName, lastName, phone, page, tier, address, bookingType, months, finalTotal,
+  immediate, estimate,
 }) {
   const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
   const billingLabel = billingLabelFor(bookingType, months);
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const isOneTimeSurcharge = !!(estimate && estimate.cancellationSurcharge);
+
+  const timingNote = immediate
+    ? 'Canceled immediately — this was either a one-time booking or a committed-term subscription (no unused period to run out).'
+    : 'Set to cancel at the end of the current billing period — no further charges after that.';
+
+  const estimateRows = !estimate ? '' : isOneTimeSurcharge
+    ? `
+      ${row('Amount paid', money(estimate.remainingValue))}
+      ${row('Less: $50 cancellation fee (policy)', estimate.cancellationSurcharge ? '−' + money(estimate.cancellationSurcharge) : null)}
+      ${row('Suggested refund', money(estimate.refundAmount))}
+    `
+    : `
+      ${row('Visits delivered / remaining', `${estimate.visitsDelivered} / ${estimate.visitsRemaining}`)}
+      ${row('Remaining visits value', money(estimate.remainingValue))}
+      ${row('Less: discount already applied', estimate.totalDiscount ? '−' + money(estimate.totalDiscount) : null)}
+      ${row('Suggested refund', money(estimate.refundAmount))}
+    `;
 
   const inner = `
-    <p style="color:#3d4a4d;margin:0 0 4px">A customer canceled their subscription from My Account.</p>
+    <p style="color:#3d4a4d;margin:0 0 4px">A customer canceled a booking from My Account.</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
       ${row('Customer', fullName)}
       ${row('Email', customerEmail)}
@@ -339,52 +359,23 @@ export async function sendSubscriptionCancellationNotificationEmail(env, {
       ${row('Plan', billingLabel)}
       ${row('Last paid total', finalTotal !== undefined && finalTotal !== null ? money(finalTotal) : null)}
     </table>
-    <p style="font-size:13px;color:#7a746a">No further charges after the current billing period ends. No action needed unless they also request a refund.</p>
+    <p style="font-size:13px;color:#7a746a">${timingNote}</p>
+    ${estimate ? `
+      <h3 style="font-size:15px;margin:22px 0 6px">Suggested refund (staff reference only — not shown to the customer)</h3>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+        ${estimateRows}
+      </table>
+      <div style="border-left:3px solid #b68235;padding:10px 14px;background:#faf8f4;font-size:13.5px;color:#3d4a4d">
+        This app never moves money and nothing here has been requested or promised to the customer. Decide whether a
+        refund is owed, then issue it directly in the Stripe dashboard if so.
+      </div>
+    ` : ''}
   `;
 
   await sendGmail(env, {
     to: CONTACT_INBOX,
-    subject: `Subscription canceled: ${fullName || 'customer'} (${pageLabel})`,
-    html: shell('Subscription canceled', inner),
-    replyTo: customerEmail || undefined,
-  });
-}
-
-// Notifies the business inbox when a customer submits a refund request
-// (functions/api/bookings/[id]/refund.js). That endpoint only computes and
-// records an amount — nothing is refunded automatically — so this is what
-// makes sure a human actually sees it, the same gap
-// sendContactNotificationEmail closes for the contact form.
-export async function sendRefundRequestNotificationEmail(env, {
-  customerEmail, firstName, lastName, phone, page, tier, address, bookingType, months,
-  amount, visitsDelivered, visitsRemaining,
-}) {
-  const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
-  const billingLabel = billingLabelFor(bookingType, months);
-  const fullName = [firstName, lastName].filter(Boolean).join(' ');
-
-  const inner = `
-    <p style="color:#3d4a4d;margin:0 0 4px">A customer requested a refund. Their booking was canceled immediately; the refund itself has not been processed yet.</p>
-    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-      ${row('Customer', fullName)}
-      ${row('Email', customerEmail)}
-      ${row('Phone', phone)}
-      ${row('Service', `${tier} (${pageLabel})`)}
-      ${row('Address', address)}
-      ${row('Plan', billingLabel)}
-      ${row('Visits delivered / remaining', `${visitsDelivered} / ${visitsRemaining}`)}
-      ${row('Refund owed', money(amount))}
-    </table>
-    <div style="border-left:3px solid #b68235;padding:10px 14px;background:#faf8f4;font-size:13.5px;color:#3d4a4d">
-      This app never moves money. Review the original payment in the Stripe dashboard, issue the refund there,
-      then record it as processed on the Money requests screen in admin.html.
-    </div>
-  `;
-
-  await sendGmail(env, {
-    to: CONTACT_INBOX,
-    subject: `Refund requested: ${fullName || 'customer'} — ${money(amount)}`,
-    html: shell('Refund requested', inner),
+    subject: `Booking canceled: ${fullName || 'customer'} (${pageLabel})`,
+    html: shell('Booking canceled', inner),
     replyTo: customerEmail || undefined,
   });
 }
