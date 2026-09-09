@@ -123,7 +123,10 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
   if (page === 'residential') {
     const sqft = Number(input.sqft);
     if (!Number.isFinite(sqft) || sqft <= 0) throw new PricingError('Invalid property size.');
-    if (!(frequency in RESIDENTIAL_FREQ_ADJ)) throw new PricingError('Invalid cleaning frequency.');
+    // frequency is meaningless for a one-time visit (visitsCount is forced
+    // to 1 below regardless of it) — same carve-out as the required-field
+    // check in functions/api/bookings.js.
+    if (booking !== 'One-time' && !(frequency in RESIDENTIAL_FREQ_ADJ)) throw new PricingError('Invalid cleaning frequency.');
     // pricing_tiers is consulted only for serviceability: the top band is
     // flagged unavailable so oversized homes are quoted by hand rather than
     // by the engine. The band's dollar amounts are ignored.
@@ -153,7 +156,8 @@ export async function computeBookingPricing(sql, input, isFirstTime) {
     const areas = Number(input.areas);
     if (!Number.isFinite(sqft) || sqft <= 0) throw new PricingError('Invalid property size.');
     if (!Number.isFinite(areas) || areas < 0) throw new PricingError('Invalid service area count.');
-    if (!(frequency in COMMERCIAL_FREQ_ADJ)) throw new PricingError('Invalid cleaning frequency.');
+    // Same one-time carve-out as the residential branch above.
+    if (booking !== 'One-time' && !(frequency in COMMERCIAL_FREQ_ADJ)) throw new PricingError('Invalid cleaning frequency.');
 
     const restrooms = reqCount(input.restrooms, 'restrooms');
     modelInput = {
