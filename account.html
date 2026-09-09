@@ -81,6 +81,15 @@ const PLAN_OPTIONS = [
   { months: 12, label: '12-Month Subscription (15% discount)' },
 ];
 
+// Plain plan name for a booking card, without the discount percentage
+// (PLAN_OPTIONS' labels are for the plan-change picker, where the discount
+// is the point of the choice).
+const PLAN_TYPE_LABELS = { 0.5: 'Biweekly', 1: 'Monthly', 6: '6-Month Subscription', 12: '12-Month Subscription' };
+function planTypeLabel(b) {
+  if (b.booking_type !== 'Monthly') return 'One-Time';
+  return PLAN_TYPE_LABELS[Number(b.months)] || 'Monthly';
+}
+
 const RESIDENTIAL_ADDON_CATALOG = {
   "Inside refrigerator": 40, "Inside oven": 40, "Refrigerator + oven": 70,
   "Interior windows (package)": 110, "Baseboard detail": 75, "Inside cabinets": 100,
@@ -336,6 +345,7 @@ function renderBookings() {
           ${!canceled && b.subscription_status === 'canceling' ? '<span class="tag" style="color:#8a6221;background:#fdf3e3">Canceling</span>' : ''}
           ${!canceled && b.subscription_status === 'past_due' ? '<span class="tag" style="color:#b3261e;background:#fbe9e7">Payment issue</span>' : ''}
           <p style="margin:8px 0 0;font-weight:500">${b.tier} — ${b.address}</p>
+          <p class="muted" style="font-size:13px;margin-top:4px">${planTypeLabel(b)} · ${b.visits_count} visit${Number(b.visits_count) === 1 ? '' : 's'}</p>
           <p class="muted" style="font-size:13px;margin-top:4px">${scheduled}</p>
         </div>
         <p style="font-size:18px;font-weight:600;color:#8a6221;margin:0">${money(b.final_total)}</p>
