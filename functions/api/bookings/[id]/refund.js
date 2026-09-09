@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../../_lib/auth.js';
 import { estimateRefund } from '../../../_lib/refunds.js';
 import { stripeRequest } from '../../../_lib/stripe.js';
+import { sendRefundRequestNotificationEmail } from '../../../_lib/email.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -97,5 +98,24 @@ export async function onRequestPost({ env, request, params }) {
     set canceled_at = now(), subscription_status = case when stripe_subscription_id is not null then 'canceled' else subscription_status end
     where id = ${booking.id}
   `;
+
+  // Best-effort, mirrors the Money requests admin panel's own reasoning for
+  // existing: a refund request that sits unseen until someone happens to
+  // check admin.html is the exact bug this notification closes.
+  await sendRefundRequestNotificationEmail(env, {
+    customerEmail: customer.email,
+    firstName: booking.first_name,
+    lastName: booking.last_name,
+    phone: booking.phone,
+    page: booking.page,
+    tier: booking.tier,
+    address: booking.address,
+    bookingType: booking.booking_type,
+    months: booking.months,
+    amount: estimate.refundAmount,
+    visitsDelivered: estimate.visitsDelivered,
+    visitsRemaining: estimate.visitsRemaining,
+  });
+
   return json({ ok: true, request: rows[0] }, 201);
 }
