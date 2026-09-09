@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../../_lib/auth.js';
 import { estimateRefund } from '../../../_lib/refunds.js';
 import { monthlyDiscountFor, VALID_MONTHS } from '../../../_lib/pricing.js';
+import { sendPlanChangeRequestNotificationEmail } from '../../../_lib/email.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -118,5 +119,21 @@ export async function onRequestPost({ env, request, params }) {
     )
     returning id, status, requested_at
   `;
+
+  // Best-effort — same visibility gap as refund requests, on the same
+  // Money requests screen, closed the same way.
+  await sendPlanChangeRequestNotificationEmail(env, {
+    customerEmail: customer.email,
+    firstName: booking.first_name,
+    lastName: booking.last_name,
+    phone: booking.phone,
+    page: booking.page,
+    tier: booking.tier,
+    address: booking.address,
+    currentPlan: est.currentPlan,
+    newPlan: est.newPlan,
+    priceDifference: est.priceDifference,
+  });
+
   return json({ ok: true, request: rows[0] }, 201);
 }
