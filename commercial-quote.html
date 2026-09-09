@@ -62,7 +62,9 @@ function Page() {
   const [booking, setBooking] = React.useState("Subscription");
   return (
     <SectionPage side="commercial" current="commercial-quote.html">
-      <Calculator navy={NAVY} gold={GOLD} pricing={pricing} preset={preset} />
+      <AuthGate side="commercial">
+        <Calculator navy={NAVY} gold={GOLD} pricing={pricing} preset={preset} />
+      </AuthGate>
       <Quote navy={NAVY} text={content.quote.text} caption={content.quote.caption} />
     </SectionPage>
   );
