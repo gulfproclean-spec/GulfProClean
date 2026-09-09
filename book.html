@@ -899,8 +899,27 @@ async function handlePaymentReturn() {
 async function init() {
   if (state.step === 'payment') {
     await handlePaymentReturn();
-  } else {
+  } else if (state.step === 'account') {
+    // The pricing page now requires an account before it will show the
+    // calculator (see AuthGate in gulfproclean-shared.jsx), so most visitors
+    // arriving here are already logged in — skip asking again and go
+    // straight to scheduling. Anyone who somehow isn't (an old saved draft,
+    // an expired session) still gets the signup/login step as a fallback.
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data.loggedIn) {
+        state.email = data.email;
+        state.isFirstTime = data.isFirstTime;
+        state.step = 'schedule';
+        await loadSchedule();
+        render();
+        return;
+      }
+    } catch {}
     state.mode = 'signup';
+    render();
+  } else {
     render();
   }
 }
