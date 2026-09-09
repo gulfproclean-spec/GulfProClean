@@ -27,6 +27,7 @@
     nav { column-gap: 10px !important; font-size: 11.5px !important; }
   }
 </style>
+  <script src="./pricing-model.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -76,6 +77,7 @@ function App() {
       <PromoBanner navy={navy} gold={gold} />
       <Hero navy={navy} gold={gold} heroPhoto={t.heroPhoto} hero={content.hero}
             image="assets/commercial-hero.jpg" quoteHref="commercial-quote.html" tiersHref="commercial-tiers.html" />
+      <PricingRanges navy={navy} gold={gold} side="commercial" quoteHref="commercial-quote.html" compact />
       <Services navy={navy} items={content.services} />
       <SectionIndex side="commercial" navy={navy} gold={gold} />
       <Quote navy={navy} text={content.quote.text} caption={content.quote.caption} />
