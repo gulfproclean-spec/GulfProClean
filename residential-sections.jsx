@@ -78,7 +78,7 @@ function ServiceTiers({ navy, gold }) {
   );
 }
 
-function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
+function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing, showCards = true }) {
   // "Starting at" figures are produced by the same pricing engine the
   // calculator uses, on a defined starter property — so this section can
   // never quote a number the calculator would not honor. est.price is
@@ -112,43 +112,49 @@ function Plans({ navy, gold, booking, setBooking, onSelectPlan, pricing }) {
         <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 36, color: navy, margin: 0, maxWidth: 640 }}>Book once, or let us handle it on repeat</h1>
         <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Pricing scales with your room count and property size — <a href="residential-quote.html" style={{ color: "#8a6221" }}>see your exact price</a> on the pricing page.</p>
 
-        <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-            <div>
-              <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>One-time clean</h3>
-              <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 8, maxWidth: "56ch" }}>A single visit — move-in, move-out, a deep clean before guests or a big event. No commitment, scheduled around your date.</p>
+        {showCards && (
+          <div onClick={() => setBooking("One-Time")} style={{ border: `1px solid ${booking === "One-Time" ? gold : "#d8d3c8"}`, boxShadow: booking === "One-Time" ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "28px 30px", background: "#fff", cursor: "pointer", marginTop: 44 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+              <div>
+                <h3 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 22, color: navy, margin: 0 }}>One-time clean</h3>
+                <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "#3d4a4d", marginTop: 8, maxWidth: "56ch" }}>A single visit — move-in, move-out, a deep clean before guests or a big event. No commitment, scheduled around your date.</p>
+              </div>
+              <a href="residential-quote.html" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Get one-time pricing</a>
             </div>
-            <a href="residential-quote.html" style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3 }}>Get one-time pricing</a>
+            <div style={{ display: "flex", gap: 24, marginTop: 20, flexWrap: "wrap" }}>
+              {subs.map(([name]) => {
+                const p = standardPriceFor(name);
+                return (
+                  <div key={name}>
+                    <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
+                    <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>
+                      {p ? <>Starting at ${Math.round(p)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></> : "See your price"}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 24, marginTop: 20, flexWrap: "wrap" }}>
-            {subs.map(([name]) => {
-              const p = standardPriceFor(name);
-              return (
-                <div key={name}>
-                  <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{name}</p>
-                  <p style={{ fontSize: 18, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>
-                    {p ? <>Starting at ${Math.round(p)}<span style={{ fontSize: 12, fontWeight: 400, color: "#7a746a" }}> / visit</span></> : "See your price"}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
-        <p id="recurring-plans" style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0, scrollMarginTop: 90 }}>Recurring plans</p>
-        <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for second homes, primary residences and high-use properties, billed monthly. No contracts — cancel anytime.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
-          {subs.map(([name, badge, audience, cadence, features, calcFrequency]) => (
-            <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
-              {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
-              <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
-              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "6px 0 0" }}>{audience}</p>
-              <p style={{ fontSize: 12.5, color: "#7a746a", margin: "16px 0 0" }}>{cadence}</p>
-              <PlanList gold={gold} items={features} />
-              <a href={quoteLinkFor("residential", { tier: name, frequency: calcFrequency })} style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name} — get your price</a>
+        {showCards && (
+          <>
+            <p id="recurring-plans" style={{ fontSize: 20, fontWeight: 500, color: navy, marginTop: 56, marginBottom: 0, scrollMarginTop: 90 }}>Recurring plans</p>
+            <p style={{ fontSize: 14.5, color: "#7a746a", marginTop: 8, maxWidth: "56ch" }}>Standing coverage for second homes, primary residences and high-use properties, billed monthly. No contracts — cancel anytime.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 28, marginTop: 28 }} onClick={() => setBooking("Subscription")}>
+              {subs.map(([name, badge, audience, cadence, features, calcFrequency]) => (
+                <div key={name} style={{ border: `1px solid ${badge ? gold : (booking === "Subscription" ? gold : "#d8d3c8")}`, boxShadow: badge ? `0 0 0 3px ${gold}22` : "none", borderRadius: 6, padding: "30px 26px", background: "#fff", cursor: "pointer", position: "relative" }}>
+                  {badge && <span style={{ position: "absolute", top: -12, left: 26, background: gold, color: navy, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20 }}>{badge}</span>}
+                  <h4 style={{ fontFamily: "inherit", fontWeight: 500, fontSize: 20, color: navy, margin: 0 }}>{name}</h4>
+                  <p style={{ fontSize: 12.5, color: "#7a746a", margin: "6px 0 0" }}>{audience}</p>
+                  <p style={{ fontSize: 12.5, color: "#7a746a", margin: "16px 0 0" }}>{cadence}</p>
+                  <PlanList gold={gold} items={features} />
+                  <a href={quoteLinkFor("residential", { tier: name, frequency: calcFrequency })} style={{ display: "inline-block", marginTop: 22, background: gold, color: navy, fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 3, width: "100%", textAlign: "center", boxSizing: "border-box" }}>Choose {name} — get your price</a>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </section>
   );
