@@ -53,20 +53,32 @@ export async function onRequest(context) {
     const url = new URL(request.url);
     const page = TRACKED_PATHS[url.pathname];
     if (page && !isBot(request.headers.get('user-agent'))) {
+      // Cloudflare's edge already resolved the visitor's IP to a
+      // country/region/city — no external lookup needed.
+      const cf = request.cf || {};
+      const geo = {
+        ip: request.headers.get('CF-Connecting-IP') || null,
+        country: cf.country || null,
+        region: cf.region || null,
+        city: cf.city || null,
+      };
       // waitUntil lets this finish after the response is already on its way
       // to the browser — tracking never adds latency to a page load, and a
       // failure here (e.g. DB hiccup) never breaks the page itself.
-      context.waitUntil(logVisit(env, page, url.pathname));
+      context.waitUntil(logVisit(env, page, url.pathname, geo));
     }
   }
 
   return response;
 }
 
-async function logVisit(env, page, path) {
+async function logVisit(env, page, path, geo) {
   try {
     const sql = neon(env.DATABASE_URL);
-    await sql`insert into page_views (page, path) values (${page}, ${path})`;
+    await sql`
+      insert into page_views (page, path, ip_address, country, region, city)
+      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city})
+    `;
   } catch (e) {
     // Swallow — visit tracking must never surface an error to the visitor.
   }

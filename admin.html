@@ -32,6 +32,7 @@
   table.visits-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13.5px; }
   table.visits-table th { text-align: left; font-size: 11px; color: #7a746a; text-transform: uppercase; letter-spacing: 0.04em; padding: 0 0 8px; border-bottom: 1px solid #d8d3c8; }
   table.visits-table td { padding: 8px 0; border-bottom: 1px solid #e3ded2; text-transform: capitalize; }
+  table.visits-table td.mono { text-transform: none; font-family: ui-monospace, monospace; font-size: 12.5px; }
   .rev-item { border: 1px solid #d8d3c8; border-radius: 6px; background: #fff; padding: 16px 18px; margin-bottom: 12px; }
   .rev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .rev-head strong { font-size: 16px; }
@@ -73,11 +74,17 @@
   <div id="editors" style="display:none">
     <div class="page-block">
       <h2>Site visits</h2>
-      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Anonymous page-view counts — no IPs, cookies, or visitor identity stored. Requests identifying as crawlers, bots or uptime monitors are filtered out, so this is human traffic minus the obvious automation.</p>
+      <p style="font-size:13px;color:#7a746a;margin-top:-8px">Page-view counts with approximate visitor location (country/region/city) and IP address, sourced from Cloudflare's edge data — no cookies or persistent visitor IDs. Requests identifying as crawlers, bots or uptime monitors are filtered out, so this is human traffic minus the obvious automation.</p>
       <div id="visits-summary" class="visits-summary">Loading…</div>
       <table id="visits-table" class="visits-table" style="display:none">
         <thead><tr><th>Page</th><th>Views</th></tr></thead>
         <tbody id="visits-tbody"></tbody>
+      </table>
+      <p id="visits-country" style="font-size:13px;color:#7a746a;margin-top:14px"></p>
+      <h3 style="font-size:14px;margin:18px 0 6px">Recent visits</h3>
+      <table id="visits-recent-table" class="visits-table" style="display:none">
+        <thead><tr><th>Page</th><th>Location</th><th>IP</th><th>Time</th></tr></thead>
+        <tbody id="visits-recent-tbody"></tbody>
       </table>
     </div>
 
@@ -225,6 +232,9 @@ async function loadVisits() {
   const summaryEl = document.getElementById('visits-summary');
   const tableEl = document.getElementById('visits-table');
   const tbody = document.getElementById('visits-tbody');
+  const countryEl = document.getElementById('visits-country');
+  const recentTableEl = document.getElementById('visits-recent-table');
+  const recentTbody = document.getElementById('visits-recent-tbody');
   try {
     const res = await fetch('/api/admin/visits', { headers: { 'Authorization': 'Bearer ' + token } });
     if (!res.ok) throw new Error((await res.json()).error || res.statusText);
@@ -237,6 +247,20 @@ async function loadVisits() {
       tableEl.style.display = 'table';
     } else {
       tableEl.style.display = 'none';
+    }
+    if (data.byCountry && data.byCountry.length) {
+      countryEl.innerHTML = 'By country: ' + data.byCountry.map(r => `${r.country} (${r.count.toLocaleString()})`).join(' &middot; ');
+    } else {
+      countryEl.textContent = '';
+    }
+    if (data.recentVisits && data.recentVisits.length) {
+      recentTbody.innerHTML = data.recentVisits.map(r => {
+        const loc = [r.city, r.region, r.country].filter(Boolean).join(', ') || 'Unknown';
+        return `<tr><td>${r.page}</td><td>${loc}</td><td class="mono">${r.ip_address || ''}</td><td>${r.viewed_at}</td></tr>`;
+      }).join('');
+      recentTableEl.style.display = 'table';
+    } else {
+      recentTableEl.style.display = 'none';
     }
   } catch (e) {
     summaryEl.textContent = 'Failed to load visits: ' + e.message;
