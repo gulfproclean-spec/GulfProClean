@@ -4,11 +4,21 @@ import { computeBookingPricing, PricingError } from '../_lib/pricing.js';
 import { isFirstTimeCustomer } from '../_lib/first-time.js';
 import { getBookedSlots, findSlotConflict } from '../_lib/scheduling.js';
 import { pickAutoAssignEmployee } from '../_lib/assignment.js';
+import { checkRateLimit, clientIp } from '../_lib/rate-limit.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
 export async function onRequestPost({ env, request }) {
   const sql = neon(env.DATABASE_URL);
+
+  // Basic spam/abuse guard on booking submission: at most 10 per IP per
+  // 10-minute window. See functions/_lib/rate-limit.js for why this is
+  // database-backed rather than KV-backed.
+  const allowed = await checkRateLimit(sql, `booking:${clientIp(request)}`, 600, 10);
+  if (!allowed) {
+    return new Response(JSON.stringify({ error: 'Too many booking attempts. Please try again in a few minutes.' }), { status: 429 });
+  }
+
   const customer = await getCustomerFromSession(sql, request);
   if (!customer) {
     return new Response(JSON.stringify({ error: 'not logged in' }), { status: 401 });

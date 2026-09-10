@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { sendPrehireInviteEmail } from '../../_lib/email.js';
+import { timingSafeEqualString } from '../../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -10,7 +11,7 @@ const STATUSES = ['new', 'screening', 'interview', 'working_interview', 'offer',
 
 function requireAdmin(env, request) {
   const auth = request.headers.get('authorization');
-  return !!env.ADMIN_TOKEN && auth === `Bearer ${env.ADMIN_TOKEN}`;
+  return !!env.ADMIN_TOKEN && timingSafeEqualString(auth || '', `Bearer ${env.ADMIN_TOKEN}`);
 }
 
 // 32 hex characters from the platform CSPRNG. Long enough that the onboarding

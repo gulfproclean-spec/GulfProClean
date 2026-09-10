@@ -88,6 +88,21 @@ function money(n) {
     : dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 }
 
+// -- HTML escaping ---------------------------------------------------------
+// Every value interpolated into an email's HTML that originates from a
+// customer, applicant or vendor (name, address, phone, notes, message
+// bodies, etc.) is passed through this first. Without it, a value containing
+// markup would render as markup in whatever mail client opens the
+// notification — declared once here and used by every template below,
+// including the plain `<div>` templates (booking confirmation/notification,
+// contact form) that used to interpolate customer text directly.
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // -- Gmail API transport ----------------------------------------------
 // All outbound mail is sent through the Gmail API as gulfproclean@gmail.com,
 // authenticated via a long-lived OAuth2 refresh token (see README.md's
@@ -200,10 +215,10 @@ export async function sendBookingConfirmationEmail(env, {
       <h2 style="margin:0 0 8px">Booking confirmed</h2>
       <p style="color:#3d4a4d">Thanks for booking with Gulf ProClean. Here are your details:</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-        <tr><td style="padding:6px 0;color:#7a746a">Service</td><td style="padding:6px 0;text-align:right">${tier} (${pageLabel})</td></tr>
-        <tr><td style="padding:6px 0;color:#7a746a">Address</td><td style="padding:6px 0;text-align:right">${address}</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Service</td><td style="padding:6px 0;text-align:right">${esc(tier)} (${pageLabel})</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Address</td><td style="padding:6px 0;text-align:right">${esc(address)}</td></tr>
         <tr><td style="padding:6px 0;color:#7a746a">Billing</td><td style="padding:6px 0;text-align:right">${billingLabel}</td></tr>
-        ${dateStr ? `<tr><td style="padding:6px 0;color:#7a746a">Scheduled</td><td style="padding:6px 0;text-align:right">${dateStr} at ${scheduledTime}</td></tr>` : ''}
+        ${dateStr ? `<tr><td style="padding:6px 0;color:#7a746a">Scheduled</td><td style="padding:6px 0;text-align:right">${dateStr} at ${esc(scheduledTime)}</td></tr>` : ''}
         <tr><td style="padding:12px 0;font-weight:600;border-top:1px solid #e3ded2">Total paid</td><td style="padding:12px 0;font-weight:600;text-align:right;border-top:1px solid #e3ded2">${money(finalTotal)}</td></tr>
       </table>
       <p style="font-size:13px;color:#7a746a">No contracts — cancel anytime. ${refundNote}</p>
@@ -237,7 +252,7 @@ export async function sendRenewalReminderEmail(env, { to, page, tier, months, en
   const html = `
     <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;color:#153238">
       <h2 style="margin:0 0 8px">Your subscription is ending ${when}</h2>
-      <p style="color:#3d4a4d">Your ${months}-month ${tier} plan (${pageLabel}) ends on ${dateStr}. Renew from your account to keep your discounted rate and stay on schedule.</p>
+      <p style="color:#3d4a4d">Your ${months}-month ${esc(tier)} plan (${pageLabel}) ends on ${dateStr}. Renew from your account to keep your discounted rate and stay on schedule.</p>
       <p style="font-size:13px;color:#7a746a">No contracts — cancel anytime. Manage or renew this subscription anytime from your account.</p>
     </div>
   `;
@@ -248,7 +263,9 @@ export async function sendRenewalReminderEmail(env, { to, page, tier, months, en
 // Best-effort: notifies the business inbox whenever a booking is marked
 // paid, with everything the customer submitted plus the final price — the
 // company-facing counterpart to sendBookingConfirmationEmail, which only
-// goes to the customer.
+// goes to the customer. Almost every field here is customer-supplied
+// (name, email, phone, address, billing name/address, notes) and is escaped
+// before interpolation.
 export async function sendBookingNotificationEmail(env, {
   page, tier, address, billingName, billingAddress, scheduledDate, scheduledTime, finalTotal, grossTotal,
   bookingType, months, frequency, visitsCount, firstName, lastName, phone, customerEmail, notes,
@@ -262,18 +279,18 @@ export async function sendBookingNotificationEmail(env, {
     <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;color:#153238">
       <h2 style="margin:0 0 8px">New paid booking</h2>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-        <tr><td style="padding:6px 0;color:#7a746a">Customer</td><td style="padding:6px 0;text-align:right">${fullName}</td></tr>
-        <tr><td style="padding:6px 0;color:#7a746a">Email</td><td style="padding:6px 0;text-align:right">${customerEmail || ''}</td></tr>
-        ${phone ? `<tr><td style="padding:6px 0;color:#7a746a">Phone</td><td style="padding:6px 0;text-align:right">${phone}</td></tr>` : ''}
-        <tr><td style="padding:6px 0;color:#7a746a">Service</td><td style="padding:6px 0;text-align:right">${tier} (${pageLabel})</td></tr>
-        <tr><td style="padding:6px 0;color:#7a746a">Address</td><td style="padding:6px 0;text-align:right">${address}</td></tr>
-        ${billingName ? `<tr><td style="padding:6px 0;color:#7a746a">Billing name</td><td style="padding:6px 0;text-align:right">${billingName}</td></tr>` : ''}
-        ${billingAddress ? `<tr><td style="padding:6px 0;color:#7a746a">Billing address</td><td style="padding:6px 0;text-align:right">${billingAddress}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;color:#7a746a">Customer</td><td style="padding:6px 0;text-align:right">${esc(fullName)}</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Email</td><td style="padding:6px 0;text-align:right">${esc(customerEmail || '')}</td></tr>
+        ${phone ? `<tr><td style="padding:6px 0;color:#7a746a">Phone</td><td style="padding:6px 0;text-align:right">${esc(phone)}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;color:#7a746a">Service</td><td style="padding:6px 0;text-align:right">${esc(tier)} (${pageLabel})</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Address</td><td style="padding:6px 0;text-align:right">${esc(address)}</td></tr>
+        ${billingName ? `<tr><td style="padding:6px 0;color:#7a746a">Billing name</td><td style="padding:6px 0;text-align:right">${esc(billingName)}</td></tr>` : ''}
+        ${billingAddress ? `<tr><td style="padding:6px 0;color:#7a746a">Billing address</td><td style="padding:6px 0;text-align:right">${esc(billingAddress)}</td></tr>` : ''}
         <tr><td style="padding:6px 0;color:#7a746a">Billing</td><td style="padding:6px 0;text-align:right">${billingLabel}</td></tr>
-        <tr><td style="padding:6px 0;color:#7a746a">Frequency</td><td style="padding:6px 0;text-align:right">${frequency || '—'}</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Frequency</td><td style="padding:6px 0;text-align:right">${esc(frequency || '—')}</td></tr>
         ${visitsCount ? `<tr><td style="padding:6px 0;color:#7a746a">Visits</td><td style="padding:6px 0;text-align:right">${visitsCount}</td></tr>` : ''}
-        ${dateStr ? `<tr><td style="padding:6px 0;color:#7a746a">Scheduled</td><td style="padding:6px 0;text-align:right">${dateStr} at ${scheduledTime}</td></tr>` : ''}
-        ${notes ? `<tr><td style="padding:6px 0;color:#7a746a">Notes</td><td style="padding:6px 0;text-align:right">${notes}</td></tr>` : ''}
+        ${dateStr ? `<tr><td style="padding:6px 0;color:#7a746a">Scheduled</td><td style="padding:6px 0;text-align:right">${dateStr} at ${esc(scheduledTime)}</td></tr>` : ''}
+        ${notes ? `<tr><td style="padding:6px 0;color:#7a746a">Notes</td><td style="padding:6px 0;text-align:right">${esc(notes)}</td></tr>` : ''}
         <tr><td style="padding:12px 0;font-weight:600;border-top:1px solid #e3ded2">Total paid</td><td style="padding:12px 0;font-weight:600;text-align:right;border-top:1px solid #e3ded2">${money(finalTotal)}</td></tr>
       </table>
     </div>
@@ -289,20 +306,22 @@ export async function sendBookingNotificationEmail(env, {
 
 // Notifies the business inbox when a customer submits the Contact Us form.
 // The message itself is always stored in contact_messages regardless of
-// whether this email succeeds or Gmail is even configured.
+// whether this email succeeds or Gmail is even configured. name, email,
+// phone, page and message all come straight from the public form, so every
+// one of them is escaped before interpolation.
 export async function sendContactNotificationEmail(env, { name, email, phone, message, page }) {
-  const pageLabel = page ? page.charAt(0).toUpperCase() + page.slice(1) : 'General';
+  const pageLabel = page ? esc(page.charAt(0).toUpperCase() + page.slice(1)) : 'General';
 
   const html = `
     <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;color:#153238">
       <h2 style="margin:0 0 8px">New contact form submission</h2>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-        <tr><td style="padding:6px 0;color:#7a746a">From</td><td style="padding:6px 0;text-align:right">${name}</td></tr>
-        <tr><td style="padding:6px 0;color:#7a746a">Email</td><td style="padding:6px 0;text-align:right">${email}</td></tr>
-        ${phone ? `<tr><td style="padding:6px 0;color:#7a746a">Phone</td><td style="padding:6px 0;text-align:right">${phone}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;color:#7a746a">From</td><td style="padding:6px 0;text-align:right">${esc(name)}</td></tr>
+        <tr><td style="padding:6px 0;color:#7a746a">Email</td><td style="padding:6px 0;text-align:right">${esc(email)}</td></tr>
+        ${phone ? `<tr><td style="padding:6px 0;color:#7a746a">Phone</td><td style="padding:6px 0;text-align:right">${esc(phone)}</td></tr>` : ''}
         <tr><td style="padding:6px 0;color:#7a746a">Page</td><td style="padding:6px 0;text-align:right">${pageLabel}</td></tr>
       </table>
-      <p style="color:#3d4a4d;white-space:pre-wrap">${message}</p>
+      <p style="color:#3d4a4d;white-space:pre-wrap">${esc(message)}</p>
     </div>
   `;
 
@@ -419,16 +438,6 @@ export async function sendPlanChangeRequestNotificationEmail(env, {
 }
 
 // -- Careers and vendors ---------------------------------------------------
-
-// Applicant- and vendor-supplied text is interpolated into these templates, so
-// it is escaped first. Without this, a name containing markup would render as
-// markup in whatever mail client opens the notification.
-function esc(v) {
-  if (v === null || v === undefined) return '';
-  return String(v)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 function row(label, value) {
   if (value === null || value === undefined || value === '') return '';

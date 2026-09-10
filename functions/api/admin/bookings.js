@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -9,7 +10,7 @@ function json(obj, status = 200) {
 // view, and what admin.html's Crew panel reassigns from.
 export async function onRequestGet({ env, request }) {
   const auth = request.headers.get('Authorization') || '';
-  if (auth !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: 'unauthorized' }, 401);
+  if (!timingSafeEqualString(auth, `Bearer ${env.ADMIN_TOKEN}`)) return json({ error: 'unauthorized' }, 401);
 
   const sql = neon(env.DATABASE_URL);
   // employees has first_name/last_name, not a single `name` column — this

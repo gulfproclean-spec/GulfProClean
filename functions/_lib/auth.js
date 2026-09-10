@@ -8,7 +8,19 @@ function fromHex(hex) {
   return bytes;
 }
 
-function timingSafeEqual(a, b) {
+// Constant-time string comparison. Used below for password-hash comparison,
+// and also exported/reused by every admin- and cron-gated endpoint that
+// compares an incoming bearer token or shared secret against an environment
+// variable — see functions/api/admin/*.js, functions/api/{employees,
+// vendors,applications,requests,content,pricing,schedule}.js, and
+// functions/api/cron/renewal-reminders.js. Two equal-length inputs are
+// compared byte-by-byte with no early exit; differing lengths short-circuit
+// to `false` immediately (the same equal-length requirement Node's
+// crypto.timingSafeEqual and Web Crypto's timing-safe helpers have), which
+// leaks only that the lengths differ, never anything about either string's
+// content.
+export function timingSafeEqualString(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -36,7 +48,7 @@ export async function verifyPassword(password, hashHex, saltHex) {
     keyMaterial,
     256
   );
-  return timingSafeEqual(toHex(bits), hashHex);
+  return timingSafeEqualString(toHex(bits), hashHex);
 }
 
 export function newSessionToken() {
