@@ -198,7 +198,7 @@ async function sendGmail(env, { to, subject, html, replyTo, attachment }) {
 // -- Messages ------------------------------------------------------------
 
 export async function sendBookingConfirmationEmail(env, {
-  to, bookingId, page, tier, address, scheduledDate, scheduledTime, finalTotal, bookingType, months,
+  to, bookingId, page, tier, address, scheduledDate, scheduledTime, finalTotal, bookingType, months, technicianName,
 }) {
   const dateStr = formatDate(scheduledDate);
   const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
@@ -219,9 +219,11 @@ export async function sendBookingConfirmationEmail(env, {
         <tr><td style="padding:6px 0;color:#7a746a">Address</td><td style="padding:6px 0;text-align:right">${esc(address)}</td></tr>
         <tr><td style="padding:6px 0;color:#7a746a">Billing</td><td style="padding:6px 0;text-align:right">${billingLabel}</td></tr>
         ${dateStr ? `<tr><td style="padding:6px 0;color:#7a746a">Scheduled</td><td style="padding:6px 0;text-align:right">${dateStr} at ${esc(scheduledTime)}</td></tr>` : ''}
+        ${technicianName ? `<tr><td style="padding:6px 0;color:#7a746a">Technician</td><td style="padding:6px 0;text-align:right">${esc(technicianName)}</td></tr>` : ''}
         <tr><td style="padding:12px 0;font-weight:600;border-top:1px solid #e3ded2">Total paid</td><td style="padding:12px 0;font-weight:600;text-align:right;border-top:1px solid #e3ded2">${money(finalTotal)}</td></tr>
       </table>
       <p style="font-size:13px;color:#7a746a">No contracts — cancel anytime. ${refundNote}</p>
+      ${technicianName ? `<p style="font-size:13px;color:#7a746a">${esc(technicianName)} is assigned to this visit; the office may reassign it if needed.</p>` : ''}
       <p style="font-size:13px;color:#7a746a">Manage or reschedule this booking anytime from your account.</p>
       ${scheduledDate && scheduledTime ? '<p style="font-size:13px;color:#7a746a">A calendar invite for your first visit is attached.</p>' : ''}
     </div>
@@ -233,7 +235,7 @@ export async function sendBookingConfirmationEmail(env, {
     content: buildBookingIcs({
       bookingId,
       summary: `Gulf ProClean — ${tier} ${pageLabel} Cleaning`,
-      description: `${tier} ${pageLabel} cleaning visit. Billing: ${billingLabel}.`,
+      description: `${tier} ${pageLabel} cleaning visit. Billing: ${billingLabel}.${technicianName ? ` Technician: ${technicianName}.` : ''}`,
       location: address,
       scheduledDate, scheduledTime,
     }),
@@ -268,7 +270,7 @@ export async function sendRenewalReminderEmail(env, { to, page, tier, months, en
 // before interpolation.
 export async function sendBookingNotificationEmail(env, {
   page, tier, address, billingName, billingAddress, scheduledDate, scheduledTime, finalTotal, grossTotal,
-  bookingType, months, frequency, visitsCount, firstName, lastName, phone, customerEmail, notes,
+  bookingType, months, frequency, visitsCount, firstName, lastName, phone, customerEmail, notes, technicianName,
 }) {
   const dateStr = formatDate(scheduledDate);
   const pageLabel = page === 'residential' ? 'Residential' : 'Commercial';
@@ -290,6 +292,7 @@ export async function sendBookingNotificationEmail(env, {
         <tr><td style="padding:6px 0;color:#7a746a">Frequency</td><td style="padding:6px 0;text-align:right">${esc(frequency || '—')}</td></tr>
         ${visitsCount ? `<tr><td style="padding:6px 0;color:#7a746a">Visits</td><td style="padding:6px 0;text-align:right">${visitsCount}</td></tr>` : ''}
         ${dateStr ? `<tr><td style="padding:6px 0;color:#7a746a">Scheduled</td><td style="padding:6px 0;text-align:right">${dateStr} at ${esc(scheduledTime)}</td></tr>` : ''}
+        ${technicianName ? `<tr><td style="padding:6px 0;color:#7a746a">Assigned technician</td><td style="padding:6px 0;text-align:right">${esc(technicianName)}</td></tr>` : ''}
         ${notes ? `<tr><td style="padding:6px 0;color:#7a746a">Notes</td><td style="padding:6px 0;text-align:right">${esc(notes)}</td></tr>` : ''}
         <tr><td style="padding:12px 0;font-weight:600;border-top:1px solid #e3ded2">Total paid</td><td style="padding:12px 0;font-weight:600;text-align:right;border-top:1px solid #e3ded2">${money(finalTotal)}</td></tr>
       </table>

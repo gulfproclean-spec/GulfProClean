@@ -24,13 +24,25 @@ export async function markBookingPaid(sql, env, bookingId, { customerEmail, paym
   }
   const booking = rows[0];
   const email = customerEmail || (await sql`select email from customers where id = ${booking.customer_id}`)[0]?.email;
+
+  // The technician assigned at booking creation (functions/_lib/
+  // assignment.js) or since reassigned by the office (PATCH
+  // /api/bookings/:id/assign) — looked up fresh here rather than trusting
+  // anything cached on `booking`, since assignment can change any time
+  // before payment completes.
+  let technicianName = null;
+  if (booking.assigned_employee_id) {
+    const emp = await sql`select first_name, last_name from employees where id = ${booking.assigned_employee_id}`;
+    if (emp[0]) technicianName = `${emp[0].first_name} ${emp[0].last_name}`.trim();
+  }
+
   if (email) {
     await sendBookingConfirmationEmail(env, {
       to: email, bookingId: booking.id,
       page: booking.page, tier: booking.tier, address: booking.address,
       bookingType: booking.booking_type, months: booking.months || 1,
       scheduledDate: booking.scheduled_date, scheduledTime: booking.scheduled_time,
-      finalTotal: booking.final_total,
+      finalTotal: booking.final_total, technicianName,
     });
   }
   await sendBookingNotificationEmail(env, {
@@ -40,7 +52,7 @@ export async function markBookingPaid(sql, env, bookingId, { customerEmail, paym
     visitsCount: booking.visits_count, scheduledDate: booking.scheduled_date, scheduledTime: booking.scheduled_time,
     finalTotal: booking.final_total, grossTotal: booking.gross_total,
     firstName: booking.first_name, lastName: booking.last_name, phone: booking.phone, customerEmail: email,
-    notes: booking.notes,
+    notes: booking.notes, technicianName,
   });
   return { justPaid: true, booking };
 }
