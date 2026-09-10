@@ -1,8 +1,9 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../../_lib/auth.js';
 
 export async function onRequestGet({ env, request }) {
   const auth = request.headers.get('Authorization') || '';
-  if (auth !== `Bearer ${env.ADMIN_TOKEN}`) {
+  if (!timingSafeEqualString(auth, `Bearer ${env.ADMIN_TOKEN}`)) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
   }
 

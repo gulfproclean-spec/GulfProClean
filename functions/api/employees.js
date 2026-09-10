@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -6,7 +7,7 @@ function json(obj, status = 200) {
 
 function requireAdmin(env, request) {
   const auth = request.headers.get('authorization');
-  return !!env.ADMIN_TOKEN && auth === `Bearer ${env.ADMIN_TOKEN}`;
+  return !!env.ADMIN_TOKEN && timingSafeEqualString(auth || '', `Bearer ${env.ADMIN_TOKEN}`);
 }
 
 // employees has first_name/last_name, not a single `name` column — every

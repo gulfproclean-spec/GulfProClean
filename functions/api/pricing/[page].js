@@ -1,22 +1,17 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../../_lib/auth.js';
+import { applyCors } from '../../_lib/cors.js';
 
 const PAGES = new Set(['residential', 'commercial']);
 
-function cors(res) {
-  res.headers.set('Access-Control-Allow-Origin', '*');
-  res.headers.set('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
-  res.headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  return res;
+export async function onRequestOptions({ request }) {
+  return applyCors(request, new Response(null, { status: 204 }));
 }
 
-export async function onRequestOptions() {
-  return cors(new Response(null, { status: 204 }));
-}
-
-export async function onRequestGet({ params, env }) {
+export async function onRequestGet({ params, env, request }) {
   const page = params.page;
   if (!PAGES.has(page)) {
-    return cors(new Response(JSON.stringify({ error: 'unknown page' }), { status: 404 }));
+    return applyCors(request, new Response(JSON.stringify({ error: 'unknown page' }), { status: 404 }));
   }
   const sql = neon(env.DATABASE_URL);
   const rows = await sql`
@@ -25,7 +20,7 @@ export async function onRequestGet({ params, env }) {
            unavailable
     from pricing_tiers where page = ${page} order by band_order
   `;
-  return cors(new Response(JSON.stringify({ rows }), {
+  return applyCors(request, new Response(JSON.stringify({ rows }), {
     headers: { 'Content-Type': 'application/json' },
   }));
 }
@@ -33,21 +28,21 @@ export async function onRequestGet({ params, env }) {
 export async function onRequestPut({ params, env, request }) {
   const page = params.page;
   if (!PAGES.has(page)) {
-    return cors(new Response(JSON.stringify({ error: 'unknown page' }), { status: 404 }));
+    return applyCors(request, new Response(JSON.stringify({ error: 'unknown page' }), { status: 404 }));
   }
   const auth = request.headers.get('Authorization') || '';
-  if (auth !== `Bearer ${env.ADMIN_TOKEN}`) {
-    return cors(new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 }));
+  if (!timingSafeEqualString(auth, `Bearer ${env.ADMIN_TOKEN}`)) {
+    return applyCors(request, new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 }));
   }
   let body;
   try {
     body = await request.json();
   } catch {
-    return cors(new Response(JSON.stringify({ error: 'invalid json' }), { status: 400 }));
+    return applyCors(request, new Response(JSON.stringify({ error: 'invalid json' }), { status: 400 }));
   }
   const rows = Array.isArray(body.rows) ? body.rows : null;
   if (!rows || rows.length === 0 || rows.some(r => typeof r.band_label !== 'string' || !r.band_label.trim() || !Number.isFinite(Number(r.band_order)))) {
-    return cors(new Response(JSON.stringify({ error: 'invalid rows' }), { status: 400 }));
+    return applyCors(request, new Response(JSON.stringify({ error: 'invalid rows' }), { status: 400 }));
   }
 
   const sql = neon(env.DATABASE_URL);
@@ -63,7 +58,7 @@ export async function onRequestPut({ params, env, request }) {
       values (${page}, ${Number(r.band_order)}, ${r.band_label.trim()}, ${maxSqft}, ${essential}, ${preferred}, ${premium}, ${unavailable})
     `;
   }
-  return cors(new Response(JSON.stringify({ ok: true }), {
+  return applyCors(request, new Response(JSON.stringify({ ok: true }), {
     headers: { 'Content-Type': 'application/json' },
   }));
 }

@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -23,7 +24,7 @@ function str(v, max = 500) {
 // would mean only that somebody clicked a button.
 export async function onRequestPatch({ env, request, params }) {
   const auth = request.headers.get('authorization');
-  if (!env.ADMIN_TOKEN || auth !== `Bearer ${env.ADMIN_TOKEN}`) {
+  if (!env.ADMIN_TOKEN || !timingSafeEqualString(auth || '', `Bearer ${env.ADMIN_TOKEN}`)) {
     return json({ error: 'unauthorized' }, 401);
   }
 

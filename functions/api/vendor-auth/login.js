@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { verifyPassword, newSessionToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { checkRateLimit, clientIp } from '../../_lib/rate-limit.js';
 
 export async function onRequestPost({ env, request }) {
   let body;
@@ -19,6 +20,14 @@ export async function onRequestPost({ env, request }) {
 
   try {
     const sql = neon(env.DATABASE_URL);
+
+    // Basic brute-force guard: at most 10 login attempts per IP per
+    // 10-minute window. See functions/_lib/rate-limit.js.
+    const allowed = await checkRateLimit(sql, `login:vendor:${clientIp(request)}`, 600, 10);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many login attempts. Please try again in a few minutes.' }), { status: 429 });
+    }
+
     const rows = await sql`select id, password_hash, password_salt from vendor_accounts where email = ${email}`;
     if (rows.length === 0) {
       return new Response(JSON.stringify({ error: 'no vendor account with that email' }), { status: 401 });
