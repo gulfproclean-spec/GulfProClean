@@ -55,6 +55,33 @@ export function newSessionToken() {
   return toHex(crypto.getRandomValues(new Uint8Array(32)));
 }
 
+// Hashes a session token before it is ever written to or read from the
+// database. Only this digest is stored, in sessions.token_hash /
+// applicant_sessions.token_hash / vendor_sessions.token_hash — never the raw
+// token from newSessionToken(), which stays only in the browser's session
+// cookie and in-memory during a request. If the database were ever read by
+// someone unauthorized, a stolen token_hash cannot be replayed as a cookie
+// value the way a stolen raw token could.
+//
+// Plain SHA-256 (Web Crypto, the same API hashPassword/verifyPassword above
+// already use for PBKDF2 — there is no Node `crypto` module on Cloudflare
+// Pages Functions), not PBKDF2: PBKDF2's iteration cost defends a
+// low-entropy secret (a human password) against offline guessing. A session
+// token is already 256 bits straight out of the platform CSPRNG
+// (newSessionToken above) — nothing meaningful to "guess" — so a slow KDF
+// buys nothing here and would just add latency to every authenticated
+// request. Looking a hash up with plain SQL `=` (see getCustomerFromSession
+// etc. below) is likewise fine and deliberately not run through
+// timingSafeEqualString: that helper protects comparisons against a raw
+// secret (a password hash, a bearer token) where a timing difference could
+// leak information about the secret itself. Two SHA-256 digests being
+// compared for equality don't have that property — nothing about the
+// original token is recoverable from how long the comparison takes.
+export async function hashToken(token) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return toHex(digest);
+}
+
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 // Three separate account types (customer, applicant, vendor) share this one
@@ -83,11 +110,12 @@ export function getSessionToken(request, name = 'session') {
 export async function getCustomerFromSession(sql, request) {
   const token = getSessionToken(request);
   if (!token) return null;
+  const tokenHash = await hashToken(token);
   const rows = await sql`
     select c.id, c.email, c.address
     from sessions s
     join customers c on c.id = s.customer_id
-    where s.token = ${token} and s.expires_at > now()
+    where s.token_hash = ${tokenHash} and s.expires_at > now()
   `;
   return rows[0] || null;
 }
@@ -95,11 +123,12 @@ export async function getCustomerFromSession(sql, request) {
 export async function getApplicantFromSession(sql, request) {
   const token = getSessionToken(request, 'applicant_session');
   if (!token) return null;
+  const tokenHash = await hashToken(token);
   const rows = await sql`
     select a.id, a.email
     from applicant_sessions s
     join applicant_accounts a on a.id = s.applicant_account_id
-    where s.token = ${token} and s.expires_at > now()
+    where s.token_hash = ${tokenHash} and s.expires_at > now()
   `;
   return rows[0] || null;
 }
@@ -107,11 +136,12 @@ export async function getApplicantFromSession(sql, request) {
 export async function getVendorFromSession(sql, request) {
   const token = getSessionToken(request, 'vendor_session');
   if (!token) return null;
+  const tokenHash = await hashToken(token);
   const rows = await sql`
     select v.id, v.email
     from vendor_sessions s
     join vendor_accounts v on v.id = s.vendor_account_id
-    where s.token = ${token} and s.expires_at > now()
+    where s.token_hash = ${tokenHash} and s.expires_at > now()
   `;
   return rows[0] || null;
 }

@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { hashPassword, newSessionToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { hashPassword, newSessionToken, hashToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
 import { isFirstTimeCustomer } from '../../_lib/first-time.js';
 
 export async function onRequestPost({ env, request }) {
@@ -41,8 +41,12 @@ export async function onRequestPost({ env, request }) {
     `;
     const customerId = rows[0].id;
 
+    // The raw token goes to the browser as the session cookie; only its
+    // SHA-256 hash is ever written to the database (see hashToken in
+    // functions/_lib/auth.js).
     const token = newSessionToken();
-    await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customerId}, ${sessionExpiry()})`;
+    const tokenHash = await hashToken(token);
+    await sql`insert into sessions (token_hash, customer_id, expires_at) values (${tokenHash}, ${customerId}, ${sessionExpiry()})`;
 
     // A brand-new account has no bookings of its own, so everything here
     // turns on the service address. Same helper the authoritative check in
