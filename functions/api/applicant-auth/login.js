@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { verifyPassword, newSessionToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { verifyPassword, newSessionToken, hashToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
 import { checkRateLimit, clientIp } from '../../_lib/rate-limit.js';
 
 export async function onRequestPost({ env, request }) {
@@ -38,8 +38,12 @@ export async function onRequestPost({ env, request }) {
       return new Response(JSON.stringify({ error: 'incorrect password' }), { status: 401 });
     }
 
+    // The raw token goes to the browser as the session cookie; only its
+    // SHA-256 hash is ever written to the database (see hashToken in
+    // functions/_lib/auth.js).
     const token = newSessionToken();
-    await sql`insert into applicant_sessions (token, applicant_account_id, expires_at) values (${token}, ${applicant.id}, ${sessionExpiry()})`;
+    const tokenHash = await hashToken(token);
+    await sql`insert into applicant_sessions (token_hash, applicant_account_id, expires_at) values (${tokenHash}, ${applicant.id}, ${sessionExpiry()})`;
 
     return new Response(JSON.stringify({ email }), {
       status: 200,
