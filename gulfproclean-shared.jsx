@@ -240,6 +240,77 @@ function Services({ navy, items }) {
   );
 }
 
+// Representative small and large properties for each side, used only to
+// compute honest ballpark price RANGES for prospects who have not run the
+// full calculator yet — visible with no login and no account. Priced through
+// the same GPC_PRICING engine as the calculator (see pricing-model.js), so a
+// range shown here can never state a number the calculator wouldn't also
+// produce for some real property. These are one-time, per-visit prices;
+// recurring plans discount further off them (see the Plans/Calculator
+// sections).
+const PRICING_RANGE_PROPERTIES = {
+  residential: {
+    small: { bedrooms: 1, fullBaths: 1, halfBaths: 0, kitchens: 1, livingAreas: 1, sqft: 700 },
+    large: { bedrooms: 5, fullBaths: 3, halfBaths: 1, kitchens: 1, livingAreas: 2, sqft: 3500 },
+  },
+  commercial: {
+    small: { sqft: 1500, restrooms: 2, breakRooms: 1, offices: 4, entrances: 1 },
+    large: { sqft: 8000, restrooms: 6, breakRooms: 2, offices: 15, entrances: 3 },
+  },
+};
+const PRICING_RANGE_TIERS = ["Essential", "Preferred", "Premium"];
+
+// compact=true renders a slim banner (used on the overview pages, right under
+// the hero, so a first-time visitor sees a price idea before clicking
+// anything). compact=false renders a row of cards (used inside ServiceTiers,
+// which already has its own heading/intro above it).
+function PricingRanges({ navy, gold, side, quoteHref, compact = false }) {
+  const props = PRICING_RANGE_PROPERTIES[side];
+  if (!window.GPC_PRICING || !props) return null;
+  const ranges = PRICING_RANGE_TIERS.map(tier => {
+    const a = GPC_PRICING.quote(side, props.small, tier).price;
+    const b = GPC_PRICING.quote(side, props.large, tier).price;
+    return { tier, lo: Math.min(a, b), hi: Math.max(a, b) };
+  });
+  const fmt = (n) => "$" + Math.round(n).toLocaleString("en-US");
+
+  if (compact) {
+    return (
+      <section style={{ padding: "0 clamp(20px,5vw,56px)", maxWidth: 1200, margin: "40px auto 0" }}>
+        <div style={{ border: "1px solid #e3ded2", borderRadius: 8, background: "#fff", padding: "26px 28px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 24, justifyContent: "space-between" }}>
+          <div style={{ flex: "1 1 260px" }}>
+            <Kicker gold="#8a6221">Ballpark pricing</Kicker>
+            <p style={{ fontSize: 14.5, color: "#3d4a4d", margin: 0, maxWidth: "48ch" }}>General ranges for a typical property, so you can get an idea before you're ready to talk details — no account needed.</p>
+          </div>
+          <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
+            {ranges.map(r => (
+              <div key={r.tier}>
+                <p style={{ fontSize: 12.5, color: "#7a746a", margin: 0 }}>{r.tier}</p>
+                <p style={{ fontSize: 17, fontWeight: 600, color: "#8a6221", margin: "2px 0 0" }}>{fmt(r.lo)}–{fmt(r.hi)}<span style={{ fontSize: 11.5, fontWeight: 400, color: "#7a746a" }}> / visit</span></p>
+              </div>
+            ))}
+          </div>
+          {quoteHref && (
+            <a href={quoteHref} style={{ flex: "none", border: `1px solid ${navy}`, color: navy, fontWeight: 600, fontSize: 13.5, padding: "10px 18px", borderRadius: 3 }}>Get your exact price</a>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, margin: "24px 0 8px" }}>
+      {ranges.map(r => (
+        <div key={r.tier} style={{ border: "1px solid #e3ded2", borderRadius: 8, padding: "18px 20px", background: "#fff" }}>
+          <p style={{ fontSize: 13, color: "#7a746a", margin: 0 }}>{r.tier}</p>
+          <p style={{ fontSize: 22, fontWeight: 600, color: "#8a6221", margin: "4px 0 0" }}>{fmt(r.lo)}–{fmt(r.hi)}</p>
+          <p style={{ fontSize: 12, color: "#7a746a", margin: "2px 0 0" }}>per visit, one-time price</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PlanList({ items, gold }) {
   return (
     <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, fontSize: 14, color: "#3d4a4d" }}>

@@ -46,6 +46,8 @@ function ServiceTiers({ navy, gold }) {
       <Kicker gold="#8a6221">Service tiers</Kicker>
       <h1 style={{ fontFamily: "inherit", fontWeight: 300, fontSize: 32, color: navy, margin: 0, maxWidth: 640 }}>Choose how deep we go</h1>
       <p style={{ fontSize: 14, color: "#7a746a", marginTop: 10 }}>Every tier includes everything in the tier before it — compare all three at a glance.</p>
+      <PricingRanges navy={navy} gold={gold} side="commercial" />
+      <p style={{ fontSize: 13, color: "#7a746a", margin: "-4px 0 0" }}>Ranges span a small office up to a large facility — recurring plans discount further off these numbers. <a href="commercial-quote.html" style={{ color: "#8a6221" }}>Get your exact price</a> in under a minute — no account needed.</p>
       <div style={{ overflowX: "auto", marginTop: 32 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
           <thead>
