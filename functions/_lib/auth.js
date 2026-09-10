@@ -57,11 +57,12 @@ export function newSessionToken() {
 
 // Hashes a session token before it is ever written to or read from the
 // database. Only this digest is stored, in sessions.token_hash /
-// applicant_sessions.token_hash / vendor_sessions.token_hash — never the raw
-// token from newSessionToken(), which stays only in the browser's session
-// cookie and in-memory during a request. If the database were ever read by
-// someone unauthorized, a stolen token_hash cannot be replayed as a cookie
-// value the way a stolen raw token could.
+// applicant_sessions.token_hash / vendor_sessions.token_hash /
+// employee_sessions.token_hash — never the raw token from
+// newSessionToken(), which stays only in the browser's session cookie and
+// in-memory during a request. If the database were ever read by someone
+// unauthorized, a stolen token_hash cannot be replayed as a cookie value
+// the way a stolen raw token could.
 //
 // Plain SHA-256 (Web Crypto, the same API hashPassword/verifyPassword above
 // already use for PBKDF2 — there is no Node `crypto` module on Cloudflare
@@ -84,11 +85,11 @@ export async function hashToken(token) {
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-// Three separate account types (customer, applicant, vendor) share this one
-// helper file, each with its own cookie name so a person can be signed in as
-// more than one type at once without the cookies colliding — a customer who
-// is also applying for a job does not get logged out of one by logging into
-// the other.
+// Four separate account types (customer, applicant, vendor, employee) share
+// this one helper file, each with its own cookie name so a person can be
+// signed in as more than one type at once without the cookies colliding — a
+// customer who is also applying for a job does not get logged out of one by
+// logging into the other.
 export function sessionCookie(token, name = 'session') {
   return `${name}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
 }
@@ -142,6 +143,25 @@ export async function getVendorFromSession(sql, request) {
     from vendor_sessions s
     join vendor_accounts v on v.id = s.vendor_account_id
     where s.token_hash = ${tokenHash} and s.expires_at > now()
+  `;
+  return rows[0] || null;
+}
+
+// Employees (the crew using employee.html / the Crew mobile app). The
+// session also dies the moment the office deactivates the technician —
+// `active = true` is part of the lookup, so a deactivated employee is
+// logged out on their next request without anyone having to hunt down
+// their sessions. Same token_hash scheme as the other three account types
+// above — see hashToken's comment for why.
+export async function getEmployeeFromSession(sql, request) {
+  const token = getSessionToken(request, 'employee_session');
+  if (!token) return null;
+  const tokenHash = await hashToken(token);
+  const rows = await sql`
+    select e.id, e.email, e.first_name, e.last_name, e.phone
+    from employee_sessions s
+    join employees e on e.id = s.employee_id
+    where s.token_hash = ${tokenHash} and s.expires_at > now() and e.active = true
   `;
   return rows[0] || null;
 }
