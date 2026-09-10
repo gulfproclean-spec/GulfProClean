@@ -26,7 +26,7 @@ export async function onRequestGet({ env, request }) {
     `,
     sql`
       select page, path, ip_address::text as ip_address, country, region, city,
-             to_char(viewed_at, 'YYYY-MM-DD HH24:MI') as viewed_at
+             to_char(viewed_at_central, 'YYYY-MM-DD HH24:MI') as viewed_at
       from page_views
       order by viewed_at desc
       limit 50
