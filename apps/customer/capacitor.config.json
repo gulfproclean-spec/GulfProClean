@@ -1,0 +1,15 @@
+{
+  "appId": "com.gulfproclean.app",
+  "appName": "Gulf ProClean",
+  "webDir": "www",
+  "server": {
+    "url": "https://gulfproclean.pages.dev/account.html",
+    "allowNavigation": ["gulfproclean.pages.dev", "*.gulfproclean.com", "checkout.stripe.com", "*.stripe.com"]
+  },
+  "ios": { "contentInset": "always", "backgroundColor": "#153238" },
+  "android": { "backgroundColor": "#153238", "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 1200, "backgroundColor": "#153238", "launchAutoHide": true },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#153238" }
+  }
+}
