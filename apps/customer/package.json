@@ -1,0 +1,24 @@
+{
+  "name": "gulfproclean-customer-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gulf ProClean — iOS/Android shell around the live Gulf ProClean site (Capacitor).",
+  "scripts": {
+    "sync": "npx cap sync",
+    "ios": "npx cap open ios",
+    "android": "npx cap open android",
+    "assets": "npx @capacitor/assets generate --iconBackgroundColor '#153238' --iconBackgroundColorDark '#153238' --splashBackgroundColor '#153238' --splashBackgroundColorDark '#153238'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.0"
+  }
+}
