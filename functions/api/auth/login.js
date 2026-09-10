@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { verifyPassword, newSessionToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { verifyPassword, newSessionToken, hashToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
 import { isFirstTimeCustomer } from '../../_lib/first-time.js';
 import { checkRateLimit, clientIp } from '../../_lib/rate-limit.js';
 
@@ -50,8 +50,12 @@ export async function onRequestPost({ env, request }) {
     // cannot disagree.
     const isFirstTime = await isFirstTimeCustomer(sql, customer.id, address);
 
+    // The raw token goes to the browser as the session cookie; only its
+    // SHA-256 hash is ever written to the database (see hashToken in
+    // functions/_lib/auth.js).
     const token = newSessionToken();
-    await sql`insert into sessions (token, customer_id, expires_at) values (${token}, ${customer.id}, ${sessionExpiry()})`;
+    const tokenHash = await hashToken(token);
+    await sql`insert into sessions (token_hash, customer_id, expires_at) values (${tokenHash}, ${customer.id}, ${sessionExpiry()})`;
 
     return new Response(JSON.stringify({ email, isFirstTime }), {
       status: 200,
