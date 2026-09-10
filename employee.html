@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#153238" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="manifest" href="crew.webmanifest" />
+<link rel="apple-touch-icon" href="assets/app/crew-icon-180.png" />
+<title>Gulf ProClean Crew</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: #f5f2ec; color: #153238; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; }
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); min-height: 100vh; }
+  button, input, textarea { font: inherit; }
+  button { cursor: pointer; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600; background: #e3ded2; color: #153238; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: #b68235; color: #153238; }
+  button.secondary { background: #e3ded2; }
+  button.wide { width: 100%; padding: 14px; font-size: 17px; }
+  button.link { background: none; padding: 6px 0; color: #8a6221; text-decoration: underline; font-weight: 500; }
+  button.link.danger { color: #b3261e; }
+  button.icon { width: 40px; height: 40px; padding: 0; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 22px; line-height: 1; }
+  input[type=text], input[type=email], input[type=password], textarea { width: 100%; padding: 12px; border: 1px solid #d8d3c8; border-radius: 8px; background: #fff; margin-top: 6px; }
+  textarea { resize: vertical; }
+  .brand { font-weight: 700; letter-spacing: .08em; font-size: 13px; }
+  .muted { color: #7a746a; }
+  .small { font-size: 13px; }
+  .status { font-size: 13px; }
+  .status.ok { color: #1a7a3d; }
+  .status.err { color: #b3261e; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .row.between { justify-content: space-between; margin: 14px 0 6px; }
+  .pad { padding: 16px; max-width: 720px; margin: 0 auto; }
+  .topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; background: #153238; color: #fff; }
+  .topbar-title { font-weight: 600; }
+  .banner { margin: 12px 16px 0; padding: 10px 14px; border-radius: 8px; font-size: 14px; }
+  .banner.err { background: #fbe9e7; color: #b3261e; }
+  .card { background: #fff; border: 1px solid #d8d3c8; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .card.job { cursor: pointer; }
+  .card-head { display: flex; gap: 8px; justify-content: space-between; margin-bottom: 8px; }
+  .addr { font-weight: 600; font-size: 17px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; background: #e3ded2; }
+  .badge.commercial { background: #153238; color: #fff; }
+  .badge.residential { background: #b68235; }
+  .badge.st-in_progress { background: #fdf8ee; color: #8a6221; border: 1px solid #b68235; }
+  .badge.st-complete { background: #1a7a3d; color: #fff; }
+  .bar { height: 6px; background: #e3ded2; border-radius: 3px; margin: 10px 0 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: #1a7a3d; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; }
+  .chip { white-space: nowrap; padding: 8px 14px; border-radius: 20px; background: #fff; border: 1px solid #d8d3c8; font-weight: 500; }
+  .chip.on { background: #153238; color: #fff; border-color: #153238; }
+  .empty { text-align: center; color: #7a746a; padding: 40px 0; }
+  .supply-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fdf8ee; border: 1px solid #b68235; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; cursor: pointer; }
+  .supply-banner.done { background: #eef7f0; border-color: #1a7a3d; }
+  .chev { font-size: 24px; color: #7a746a; }
+  .phases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 4px 0 8px; }
+  .phase { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; background: #fff; border: 1px solid #d8d3c8; font-size: 13px; }
+  .phase span { font-size: 12px; color: #7a746a; font-weight: 500; }
+  .phase.on { background: #153238; color: #fff; border-color: #153238; }
+  .phase.on span { color: #e3ded2; }
+  .cat { background: #fff; border: 1px solid #d8d3c8; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .cat-head { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #fff; border-radius: 0; text-align: left; font-size: 16px; }
+  .items { border-top: 1px solid #eee9de; }
+  .item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-bottom: 1px solid #f0ede5; cursor: pointer; font-size: 15px; line-height: 1.4; }
+  .item:last-child { border-bottom: none; }
+  .item input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: #1a7a3d; }
+  .item.on span { color: #7a746a; text-decoration: line-through; }
+  .lbl { display: block; font-weight: 600; margin-bottom: 4px; }
+  .note-box { margin-top: 8px; padding: 8px 10px; background: #fdf8ee; border-radius: 8px; font-size: 14px; }
+  .supply-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff; border: 1px solid #d8d3c8; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; font-size: 15px; }
+  .tri { display: flex; gap: 4px; flex: none; }
+  .tri-btn { padding: 8px 10px; font-size: 12px; background: #f0ede5; }
+  .tri-btn.on.ok { background: #1a7a3d; color: #fff; }
+  .tri-btn.on.low { background: #b68235; }
+  .tri-btn.on.out { background: #b3261e; color: #fff; }
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: #153238; }
+  .login-card { background: #fff; border-radius: 16px; padding: 28px 22px; width: 100%; max-width: 400px; }
+  .login-card h1 { margin: 10px 0 4px; font-size: 24px; font-weight: 600; }
+  .login-card label { display: block; margin-top: 14px; font-weight: 500; font-size: 14px; }
+  .login-card .status { min-height: 18px; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div id="app"><div class="pad muted">Loading…</div></div>
+<script src="employee-app.js"></script>
+</body>
+</html>
