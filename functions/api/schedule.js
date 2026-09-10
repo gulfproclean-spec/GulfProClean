@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { getBookedSlots } from '../_lib/scheduling.js';
+import { timingSafeEqualString } from '../_lib/auth.js';
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -21,7 +22,7 @@ export async function onRequestGet({ env }) {
 
 export async function onRequestPut({ env, request }) {
   const auth = request.headers.get('Authorization') || '';
-  if (auth !== `Bearer ${env.ADMIN_TOKEN}`) {
+  if (!timingSafeEqualString(auth, `Bearer ${env.ADMIN_TOKEN}`)) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
   }
   let body;

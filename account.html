@@ -66,6 +66,16 @@ const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
 
+// Escapes text pulled from account-holder data (their own email, their own
+// service address) before it's dropped into an innerHTML template below —
+// both are customer-supplied at signup/booking time, not hardcoded copy.
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 let state = {
   step: 'loading', email: null, mode: 'login', bookings: [], schedule: null,
   reschedulingId: null, selectedDate: null, selectedTime: null,
@@ -307,7 +317,7 @@ function renderBookings() {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div>
         <h1>My Account</h1>
-        <p class="muted">Signed in as ${state.email}</p>
+        <p class="muted">Signed in as ${esc(state.email)}</p>
       </div>
       <button class="secondary" id="signout">Sign out</button>
     </div>
@@ -335,7 +345,7 @@ function renderBookings() {
           ${canceled ? '<span class="tag" style="color:#7a746a;background:#f0ede5">Canceled</span>' : ''}
           ${!canceled && b.subscription_status === 'canceling' ? '<span class="tag" style="color:#8a6221;background:#fdf3e3">Canceling</span>' : ''}
           ${!canceled && b.subscription_status === 'past_due' ? '<span class="tag" style="color:#b3261e;background:#fbe9e7">Payment issue</span>' : ''}
-          <p style="margin:8px 0 0;font-weight:500">${b.tier} — ${b.address}</p>
+          <p style="margin:8px 0 0;font-weight:500">${esc(b.tier)} — ${esc(b.address)}</p>
           <p class="muted" style="font-size:13px;margin-top:4px">${scheduled}</p>
         </div>
         <p style="font-size:18px;font-weight:600;color:#8a6221;margin:0">${money(b.final_total)}</p>

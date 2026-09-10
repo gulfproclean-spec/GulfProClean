@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { sendRenewalReminderEmail } from '../../_lib/email.js';
+import { timingSafeEqualString } from '../../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -14,7 +15,7 @@ function json(obj, status = 200) {
 // with CRON_SECRET set to the same value here and on that scheduler. See
 // README.md for the full setup steps.
 export async function onRequestPost({ env, request }) {
-  if (!env.CRON_SECRET || request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
+  if (!env.CRON_SECRET || !timingSafeEqualString(request.headers.get('x-cron-secret') || '', env.CRON_SECRET)) {
     return json({ error: 'unauthorized' }, 401);
   }
   const sql = neon(env.DATABASE_URL);

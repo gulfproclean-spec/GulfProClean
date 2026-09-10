@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -15,7 +16,7 @@ function json(obj, status = 200) {
 // ?status= filters both lists. Default shows everything.
 export async function onRequestGet({ env, request }) {
   const auth = request.headers.get('authorization');
-  if (!env.ADMIN_TOKEN || auth !== `Bearer ${env.ADMIN_TOKEN}`) {
+  if (!env.ADMIN_TOKEN || !timingSafeEqualString(auth || '', `Bearer ${env.ADMIN_TOKEN}`)) {
     return json({ error: 'unauthorized' }, 401);
   }
 
