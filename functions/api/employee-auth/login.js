@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { verifyPassword, newSessionToken, hashToken, sessionCookie, sessionExpiry, isValidEmail } from '../../_lib/auth.js';
+import { checkRateLimit, clientIp } from '../../_lib/rate-limit.js';
 
 // POST /api/employee-auth/login { email, password }
 // Employees never self-register — the office creates them and sets the
@@ -23,6 +24,17 @@ export async function onRequestPost({ env, request }) {
 
   try {
     const sql = neon(env.DATABASE_URL);
+
+    // Basic brute-force guard: at most 10 login attempts per IP per
+    // 10-minute window. See functions/_lib/rate-limit.js. Employee accounts
+    // are the highest-privilege accounts a compromised login can reach
+    // (schedules, customer addresses, supply checks), so this is at least
+    // as important here as it is on the customer/vendor/applicant logins.
+    const allowed = await checkRateLimit(sql, `login:employee:${clientIp(request)}`, 600, 10);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many login attempts. Please try again in a few minutes.' }), { status: 429 });
+    }
+
     const rows = await sql`
       select id, first_name, last_name, password_hash, password_salt, active
       from employees where lower(email) = ${email}
