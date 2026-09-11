@@ -48,12 +48,38 @@ const BOT_PATTERN = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|embe
 // very often runs on cloud compute. This will occasionally flag a legitimate
 // visitor on a corporate VPN that egresses through a cloud provider — a
 // deliberate false-positive tradeoff in favor of a cleaner traffic count.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|tencent|vultr|choopa|contabo|scaleway|leaseweb|hostinger/i;
+//
+// Includes both named major clouds and generic hosting/colo/VPS keywords —
+// most bot traffic runs on smaller regional hosting providers, not just the
+// big three clouds, and those providers' ASN names usually contain one of
+// these generic words even when the specific brand isn't listed.
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|tencent|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+
+// Third signal: does the user-agent claim a browser version that doesn't
+// exist? Bots that spoof a UA string to dodge the checks above often use
+// stale templates with implausible version numbers (e.g. "CriOS/152" when
+// Chrome for iOS has never reached version 152). Real browsers auto-update,
+// so a visitor's version should fall within a plausible current range.
+//
+// MAX_BROWSER_VERSION needs occasional bumping as real browser versions
+// climb — set generously above the current release train so real users on
+// slightly-behind versions are never caught, only versions that are
+// obviously fabricated.
+const MAX_BROWSER_VERSION = 145;
+const VERSIONED_UA_PATTERN = /(Chrome|CriOS|Firefox|FxiOS|Edg|OPR)\/(\d+)/;
+
+function hasImplausibleVersion(userAgent) {
+  const match = userAgent.match(VERSIONED_UA_PATTERN);
+  if (!match) return false;
+  const version = parseInt(match[2], 10);
+  return version > MAX_BROWSER_VERSION;
+}
 
 function isBot(userAgent, asOrganization) {
   if (!userAgent) return true;          // no UA at all is not a browser
   if (BOT_PATTERN.test(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
+  if (hasImplausibleVersion(userAgent)) return true;
   return false;
 }
 
