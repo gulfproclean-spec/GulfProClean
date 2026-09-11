@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { sendContactNotificationEmail } from '../_lib/email.js';
+import { checkRateLimit, clientIp } from '../_lib/rate-limit.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -26,6 +27,17 @@ export async function onRequestPost({ env, request }) {
   }
 
   const sql = neon(env.DATABASE_URL);
+
+  // This form has no login gate (unlike applications/vendor pricing, which
+  // require an account) — anyone can hit it with a script, and every
+  // submission sends an email. Cap it at a generous rate for a real visitor
+  // filling out a form by hand, but tight enough to blunt a spam/flood
+  // script. See functions/_lib/rate-limit.js.
+  const allowed = await checkRateLimit(sql, `contact:${clientIp(request)}`, 600, 5);
+  if (!allowed) {
+    return json({ error: 'Too many messages sent. Please try again in a few minutes.' }, 429);
+  }
+
   const rows = await sql`
     insert into contact_messages (page, name, email, phone, message)
     values (${typeof page === 'string' && page.trim() ? page.trim() : null}, ${name.trim()}, ${email.trim()}, ${typeof phone === 'string' && phone.trim() ? phone.trim() : null}, ${message.trim()})
