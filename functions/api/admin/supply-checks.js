@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { timingSafeEqualString } from '../../_lib/auth.js';
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -9,7 +10,7 @@ function json(obj, status = 200) {
 // to see who's checked in and what's flagged low/out.
 export async function onRequestGet({ env, request }) {
   const auth = request.headers.get('Authorization') || '';
-  if (auth !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: 'unauthorized' }, 401);
+  if (!timingSafeEqualString(auth, `Bearer ${env.ADMIN_TOKEN}`)) return json({ error: 'unauthorized' }, 401);
   const sql = neon(env.DATABASE_URL);
   const rows = await sql`
     select s.check_date, s.items, s.notes, s.submitted_at,
