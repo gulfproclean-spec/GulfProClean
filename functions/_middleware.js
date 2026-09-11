@@ -40,9 +40,21 @@ const TRACKED_PATHS = {
 // the result as "traffic minus the obvious bots," not as verified humans.
 const BOT_PATTERN = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|embedly|quora|pinterest|vkshare|w3c_validator|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|scrapy|curl|wget|python-requests|axios|headless|lighthouse|gtmetrix|phantomjs|puppeteer|playwright/i;
 
-function isBot(userAgent) {
+// Second signal, independent of the user-agent string: is the request coming
+// from a datacenter/hosting network rather than a residential or mobile ISP?
+// Cloudflare resolves this for us in request.cf.asOrganization. Real visitors
+// browse from home/office/mobile connections; automated traffic (scrapers,
+// headless browsers, bots that fake a normal browser UA to dodge BOT_PATTERN)
+// very often runs on cloud compute. This will occasionally flag a legitimate
+// visitor on a corporate VPN that egresses through a cloud provider — a
+// deliberate false-positive tradeoff in favor of a cleaner traffic count.
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|tencent|vultr|choopa|contabo|scaleway|leaseweb|hostinger/i;
+
+function isBot(userAgent, asOrganization) {
   if (!userAgent) return true;          // no UA at all is not a browser
-  return BOT_PATTERN.test(userAgent);
+  if (BOT_PATTERN.test(userAgent)) return true;
+  if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
+  return false;
 }
 
 export async function onRequest(context) {
@@ -52,10 +64,11 @@ export async function onRequest(context) {
   if (request.method === 'GET' && response.status === 200) {
     const url = new URL(request.url);
     const page = TRACKED_PATHS[url.pathname];
-    if (page && !isBot(request.headers.get('user-agent'))) {
+    const userAgent = request.headers.get('user-agent');
+    const cf = request.cf || {};
+    if (page && !isBot(userAgent, cf.asOrganization)) {
       // Cloudflare's edge already resolved the visitor's IP to a
       // country/region/city — no external lookup needed.
-      const cf = request.cf || {};
       const geo = {
         ip: request.headers.get('CF-Connecting-IP') || null,
         country: cf.country || null,
@@ -65,19 +78,19 @@ export async function onRequest(context) {
       // waitUntil lets this finish after the response is already on its way
       // to the browser — tracking never adds latency to a page load, and a
       // failure here (e.g. DB hiccup) never breaks the page itself.
-      context.waitUntil(logVisit(env, page, url.pathname, geo));
+      context.waitUntil(logVisit(env, page, url.pathname, geo, userAgent));
     }
   }
 
   return response;
 }
 
-async function logVisit(env, page, path, geo) {
+async function logVisit(env, page, path, geo, userAgent) {
   try {
     const sql = neon(env.DATABASE_URL);
     await sql`
-      insert into page_views (page, path, ip_address, country, region, city)
-      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city})
+      insert into page_views (page, path, ip_address, country, region, city, user_agent)
+      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city}, ${userAgent})
     `;
   } catch (e) {
     // Swallow — visit tracking must never surface an error to the visitor.
