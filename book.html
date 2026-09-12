@@ -378,8 +378,30 @@ async function loadSchedule() {
   state.bookedSlots = Array.isArray(data.bookedSlots) ? data.bookedSlots : [];
 }
 
+// A slot occupies VISIT_DURATION_MIN minutes on the crew's schedule once
+// booked, regardless of how finely start times are offered (see
+// SLOT_OFFER_INCREMENT_MIN below) — matches
+// functions/_lib/scheduling.js's VISIT_DURATION_MINUTES, the server's
+// authoritative check. Two start times conflict if they're within this
+// many minutes of each other, not only on an exact match — booking 9:00
+// also removes 10:00/11:00/12:00 as options, since the crew is on that job
+// until 13:00. Canceling a booking removes it from bookedSlots entirely
+// (the server's getBookedSlots only ever selects non-canceled bookings),
+// so a canceled slot becomes available again automatically the next time
+// this page loads — no separate "release" step needed here.
+const VISIT_DURATION_MIN = 240;
+
+function timeToMinutes(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function slotsOverlap(timeA, timeB) {
+  return Math.abs(timeToMinutes(timeA) - timeToMinutes(timeB)) < VISIT_DURATION_MIN;
+}
+
 function isSlotBooked(dateStr, time) {
-  return state.bookedSlots.some(b => b.date === dateStr && b.time === time);
+  return state.bookedSlots.some(b => b.date === dateStr && slotsOverlap(b.time, time));
 }
 
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -399,17 +421,26 @@ function nextAvailableDays(schedule, count) {
   return out;
 }
 
-const SLOT_INCREMENT_MIN = 240;
+// Start times are now offered every hour (not every 4 hours) — a customer
+// can pick any hourly start that leaves the full VISIT_DURATION_MIN before
+// closing time. Booking one still blocks a full 4-hour range around it
+// (see isSlotBooked above), so the two constants are deliberately separate:
+// this one controls how many start-time choices a customer sees, that one
+// controls how much of the schedule one booking actually occupies.
+const SLOT_OFFER_INCREMENT_MIN = 60;
 
 function timeSlots(start, end) {
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
+  const startTotal = sh * 60 + sm;
+  const endTotal = eh * 60 + em;
   const slots = [];
-  let h = sh, m = sm;
-  while (h < eh || (h === eh && m < em)) {
+  // A slot is only offered if the full visit (start + VISIT_DURATION_MIN)
+  // fits before closing time — e.g. with a 6am–6pm window, the last
+  // offered start is 2pm, not 5pm, since a 5pm start would run until 9pm.
+  for (let t = startTotal; t + VISIT_DURATION_MIN <= endTotal; t += SLOT_OFFER_INCREMENT_MIN) {
+    const h = Math.floor(t / 60), m = t % 60;
     slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    m += SLOT_INCREMENT_MIN;
-    while (m >= 60) { h += 1; m -= 60; }
   }
   return slots;
 }
@@ -551,11 +582,11 @@ function renderSchedule() {
       ` : ''}
       ${individualMode ? `
         <label>Choose each visit</label>
-        <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice; times are offered in 4-hour windows. Pick a date and time for all ${draft.visitsCount} visits.</p>
+        <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice; each visit takes a 4-hour window on the crew's schedule, and start times are offered hourly. Pick a date and time for all ${draft.visitsCount} visits.</p>
         ${individualVisitsHtml(days)}
       ` : `
         <label>Choose a day</label>
-        <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice. This confirms your first visit; times are offered in 4-hour windows.</p>
+        <p class="muted" style="font-size:12.5px;margin-top:-6px">Bookings need at least 24 hours' notice. This confirms your first visit; each visit takes a 4-hour window, and start times are offered hourly.</p>
         <div class="day-grid">
           ${days.map(d => {
             const hasSlots = availableTimeSlots(d.date, d.cfg).length > 0;
