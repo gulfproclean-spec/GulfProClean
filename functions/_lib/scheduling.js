@@ -10,9 +10,9 @@
 // Every visit occupies a 4-hour block on the crew's schedule regardless of
 // how finely start times are offered. Slots are now offered hourly (see
 // book.html's SLOT_OFFER_INCREMENT_MIN), but booking one still blocks the
-// full 4 hours around it — book.html and this file both derive from this
-// same constant so client and server can never disagree about how long a
-// visit occupies.
+// full 4 hours forward from it — book.html and this file both derive from
+// this same constant so client and server can never disagree about how
+// long a visit occupies.
 export const VISIT_DURATION_MINUTES = 240;
 
 function timeToMinutes(timeStr) {
@@ -20,13 +20,19 @@ function timeToMinutes(timeStr) {
   return h * 60 + m;
 }
 
-// Two visits on the same date conflict if their 4-hour occupied windows
-// overlap at all — not just if they start at the exact same time. Visits
-// starting an hour apart (e.g. 9:00 and 10:00) still overlap, since the
-// 9:00 visit runs until 13:00. Only a gap of a full VISIT_DURATION_MINUTES
-// or more between start times means no overlap.
-function slotsOverlap(timeA, timeB) {
-  return Math.abs(timeToMinutes(timeA) - timeToMinutes(timeB)) < VISIT_DURATION_MINUTES;
+// A candidate start time is blocked by an existing booking only going
+// FORWARD from that booking's start — e.g. an existing 10:00 booking blocks
+// 10:00, 11:00, 12:00, and 13:00, but NOT 7:00, 8:00, or 9:00. This is
+// deliberately one-directional, by request: earlier start times stay
+// available even though, strictly, a 9:00 visit would run until 13:00 and
+// overlap a 10:00 job. That edge case (booking an earlier hour after a
+// later one is already taken) is accepted as out of scope for now — the
+// stricter symmetric version (blocking both directions) is a one-line
+// change here if that ever becomes a real double-booking problem.
+function isBlockedBy(candidateTime, bookedTime) {
+  const candidate = timeToMinutes(candidateTime);
+  const booked = timeToMinutes(bookedTime);
+  return candidate >= booked && candidate < booked + VISIT_DURATION_MINUTES;
 }
 
 export async function getBookedSlots(sql, { excludeBookingId } = {}) {
@@ -62,12 +68,12 @@ export async function getBookedSlots(sql, { excludeBookingId } = {}) {
 }
 
 // Returns the first requested slot (from `wanted`, an array of {date, time})
-// whose 4-hour window overlaps a slot already held by another booking, or
-// null if none conflict. Same-date + overlapping-time is a conflict even
-// when the exact start times differ.
+// that falls within an already-booked slot's forward 4-hour window, or null
+// if none conflict. See isBlockedBy above for the exact (one-directional)
+// rule.
 export function findSlotConflict(bookedSlots, wanted) {
   for (const w of wanted) {
-    if (bookedSlots.some(b => b.date === w.date && slotsOverlap(b.time, w.time))) return w;
+    if (bookedSlots.some(b => b.date === w.date && isBlockedBy(w.time, b.time))) return w;
   }
   return null;
 }
