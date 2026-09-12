@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getCustomerFromSession } from '../../_lib/auth.js';
 import { sendBookingConfirmationEmail } from '../../_lib/email.js';
-import { getBookedSlots, findSlotConflict } from '../../_lib/scheduling.js';
+import { getBookedSlots, findSlotConflict, VISIT_DURATION_MINUTES } from '../../_lib/scheduling.js';
 
 const MIN_NOTICE_MS = 24 * 60 * 60 * 1000;
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -12,6 +12,12 @@ function combineDateTime(dateStr, timeStr) {
   const [y, mo, d] = dateStr.split('-').map(Number);
   const [h, mi] = timeStr.split(':').map(Number);
   return new Date(y, mo - 1, d, h, mi, 0, 0);
+}
+
+function addMinutes(timeStr, minutes) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 export async function onRequestGet({ env, request, params }) {
@@ -82,7 +88,12 @@ export async function onRequestPut({ env, request, params }) {
   const days = scheduleRows[0] ? scheduleRows[0].days : null;
   const dayKey = DAY_KEYS[newDateTime.getDay()];
   const dayCfg = days ? days[dayKey] : null;
-  if (!dayCfg || !dayCfg.enabled || scheduledTime < dayCfg.start || scheduledTime >= dayCfg.end) {
+  // A visit must both start within business hours AND finish (start + the
+  // full 4-hour job) before closing time — a 5pm start when the day ends at
+  // 6pm no longer qualifies now that jobs run 4 hours regardless of how
+  // finely start times are offered.
+  const visitEnd = addMinutes(scheduledTime, VISIT_DURATION_MINUTES);
+  if (!dayCfg || !dayCfg.enabled || scheduledTime < dayCfg.start || visitEnd > dayCfg.end) {
     return new Response(JSON.stringify({ error: 'That day or time is outside available service hours.' }), { status: 400 });
   }
 
