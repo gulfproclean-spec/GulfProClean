@@ -72,6 +72,13 @@ function isHardBlocked(userAgent) {
 // corporate VPN — a deliberate false-positive tradeoff in favor of a
 // cleaner traffic count, which is why this stays analytics-only rather
 // than a hard block.
+//
+// KNOWN GAP (under investigation, see as_org below): this check has been
+// observed NOT catching traffic from providers already in this exact list
+// (Contabo, Tencent) — consistent with request.cf.asOrganization coming
+// back empty for some requests rather than the keyword list being wrong.
+// Left in place because it costs nothing when it does work; the burst
+// check below is the backstop for when it doesn't.
 const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|tencent|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // NOTE: a browser-version-plausibility check ("is this Chrome version too
@@ -118,6 +125,7 @@ export async function onRequest(context) {
         country: cf.country || null,
         region: cf.region || null,
         city: cf.city || null,
+        asOrg: cf.asOrganization || null,
       };
       context.waitUntil(logVisit(env, page, url.pathname, geo, userAgent));
     }
@@ -126,12 +134,32 @@ export async function onRequest(context) {
   return response;
 }
 
+// A real visitor doesn't load the same tracked page twice from the same IP
+// within a few seconds — that pattern is a script, regardless of what its
+// user-agent claims or what ASN Cloudflare reports (or fails to report) for
+// it. This is independent of HOSTING_PROVIDER_PATTERN/asOrganization on
+// purpose: it catches the Manassas case (15 hits/second, rotating fake
+// Chrome versions) even if the ASN check above is silently not firing for
+// a reason unrelated to the keyword list itself. Analytics-only — this
+// never affects what the visitor sees, only whether the hit gets counted.
+async function isBurstDuplicate(sql, ip) {
+  if (!ip) return false;
+  const rows = await sql`
+    select 1 from page_views
+    where ip_address = ${ip}::inet
+      and viewed_at > now() - interval '5 seconds'
+    limit 1
+  `;
+  return rows.length > 0;
+}
+
 async function logVisit(env, page, path, geo, userAgent) {
   try {
     const sql = neon(env.DATABASE_URL);
+    if (await isBurstDuplicate(sql, geo.ip)) return;
     await sql`
-      insert into page_views (page, path, ip_address, country, region, city, user_agent)
-      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city}, ${userAgent})
+      insert into page_views (page, path, ip_address, country, region, city, user_agent, as_org)
+      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city}, ${userAgent}, ${geo.asOrg})
     `;
   } catch (e) {
     // Swallow — visit tracking must never surface an error to the visitor.
