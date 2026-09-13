@@ -382,13 +382,14 @@ async function loadSchedule() {
 // booked, regardless of how finely start times are offered (see
 // SLOT_OFFER_INCREMENT_MIN below) — matches
 // functions/_lib/scheduling.js's VISIT_DURATION_MINUTES, the server's
-// authoritative check. Two start times conflict if they're within this
-// many minutes of each other, not only on an exact match — booking 9:00
-// also removes 10:00/11:00/12:00 as options, since the crew is on that job
-// until 13:00. Canceling a booking removes it from bookedSlots entirely
-// (the server's getBookedSlots only ever selects non-canceled bookings),
-// so a canceled slot becomes available again automatically the next time
-// this page loads — no separate "release" step needed here.
+// authoritative check. Blocking is forward-only from the booked start: a
+// 9:00 booking removes 9:00, 10:00, 11:00, and 12:00 as options, but NOT
+// 6:00, 7:00, or 8:00 — by design, not blocking backward even though a
+// 7:00 visit would technically run until 11:00 and overlap. Canceling a
+// booking removes it from bookedSlots entirely (the server's
+// getBookedSlots only ever selects non-canceled bookings), so a canceled
+// slot becomes available again automatically the next time this page loads
+// — no separate "release" step needed here.
 const VISIT_DURATION_MIN = 240;
 
 function timeToMinutes(timeStr) {
@@ -396,12 +397,14 @@ function timeToMinutes(timeStr) {
   return h * 60 + m;
 }
 
-function slotsOverlap(timeA, timeB) {
-  return Math.abs(timeToMinutes(timeA) - timeToMinutes(timeB)) < VISIT_DURATION_MIN;
+function isBlockedBy(candidateTime, bookedTime) {
+  const candidate = timeToMinutes(candidateTime);
+  const booked = timeToMinutes(bookedTime);
+  return candidate >= booked && candidate < booked + VISIT_DURATION_MIN;
 }
 
 function isSlotBooked(dateStr, time) {
-  return state.bookedSlots.some(b => b.date === dateStr && slotsOverlap(b.time, time));
+  return state.bookedSlots.some(b => b.date === dateStr && isBlockedBy(time, b.time));
 }
 
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
