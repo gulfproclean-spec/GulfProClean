@@ -39,7 +39,18 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 // Crawlers, monitors and scanners we don't want counted as customer traffic,
 // but also don't want to hard-block (uptime monitors are often something the
 // business itself runs; blocking those would break their own tooling).
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider/i;
+//
+// Includes one specific literal signature, not a keyword: a byte-identical
+// "iPhone; CPU iPhone OS 13_2_3 ... Safari/604.1" string, confirmed via the
+// as_org diagnostic (2026-09-13) arriving from 6 different IPs across 5
+// countries within under an hour, all datacenter-adjacent. A single stale
+// (6-year-old) build repeated byte-for-byte across a rotating, geographically
+// scattered IP pool is a scraping/proxy network reusing a canned UA, not six
+// people with the same old iPhone. Kept as an analytics-only exclusion
+// (not a 403) since it is syntactically a real, if implausible, browser UA —
+// no reason to risk hard-blocking the vanishingly unlikely genuine visitor
+// still running it.
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -73,13 +84,19 @@ function isHardBlocked(userAgent) {
 // cleaner traffic count, which is why this stays analytics-only rather
 // than a hard block.
 //
-// KNOWN GAP (under investigation, see as_org below): this check has been
-// observed NOT catching traffic from providers already in this exact list
-// (Contabo, Tencent) — consistent with request.cf.asOrganization coming
-// back empty for some requests rather than the keyword list being wrong.
-// Left in place because it costs nothing when it does work; the burst
-// check below is the backstop for when it doesn't.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|tencent|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+// RESOLVED (as_org diagnostic, 2026-09-13): asOrganization is NOT empty —
+// the earlier hypothesis was wrong. It's populated but doesn't always
+// contain the parent company name the way this list assumed:
+//   - Tencent's international infrastructure reports its RIR-registered
+//     office address instead of a company name, e.g. "6 COLLYER QUAY" /
+//     "16 COLLYER QUAY # 18-29 INCOME AT RAFFLES" (Tencent's registered
+//     Singapore address across several of their ASNs).
+//   - Alibaba Cloud reports its cloud brand name, "Aliyun Computing
+//     Co.LTD" — not "Alibaba".
+// Added both below. This list will likely need occasional additions the
+// same way — ASN "org name" fields are whatever each provider registered
+// with their RIR, not a clean, predictable company name.
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // NOTE: a browser-version-plausibility check ("is this Chrome version too
 // high to be real?") lived here briefly and was removed. It caused a real
@@ -136,12 +153,11 @@ export async function onRequest(context) {
 
 // A real visitor doesn't load the same tracked page twice from the same IP
 // within a few seconds — that pattern is a script, regardless of what its
-// user-agent claims or what ASN Cloudflare reports (or fails to report) for
-// it. This is independent of HOSTING_PROVIDER_PATTERN/asOrganization on
-// purpose: it catches the Manassas case (15 hits/second, rotating fake
-// Chrome versions) even if the ASN check above is silently not firing for
-// a reason unrelated to the keyword list itself. Analytics-only — this
-// never affects what the visitor sees, only whether the hit gets counted.
+// user-agent claims or what ASN Cloudflare reports for it. Independent of
+// HOSTING_PROVIDER_PATTERN/asOrganization on purpose, as a backstop for
+// whatever the next unanticipated bot pattern turns out to be. Analytics-only
+// — this never affects what the visitor sees, only whether the hit gets
+// counted.
 async function isBurstDuplicate(sql, ip) {
   if (!ip) return false;
   const rows = await sql`
