@@ -93,10 +93,15 @@ function isHardBlocked(userAgent) {
 //     Singapore address across several of their ASNs).
 //   - Alibaba Cloud reports its cloud brand name, "Aliyun Computing
 //     Co.LTD" — not "Alibaba".
-// Added both below. This list will likely need occasional additions the
-// same way — ASN "org name" fields are whatever each provider registered
-// with their RIR, not a clean, predictable company name.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+//   - "code200, UAB" / "Code200 UAB" (inconsistent capitalization from the
+//     same entity) — a Lithuania-registered proxy-infrastructure org, added
+//     2026-09-13 after 3 identical-UA hits from Warsaw/New York/Dubai in
+//     under 3 hours all reported this org.
+// This list will likely need occasional additions the same way — ASN "org
+// name" fields are whatever each provider registered with their RIR, not a
+// clean, predictable company name. See isCrossCountryUaDuplicate() below
+// for a check that doesn't depend on naming this list at all.
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // NOTE: a browser-version-plausibility check ("is this Chrome version too
 // high to be real?") lived here briefly and was removed. It caused a real
@@ -169,10 +174,40 @@ async function isBurstDuplicate(sql, ip) {
   return rows.length > 0;
 }
 
+// Generalizes the Collyer Quay / Aliyun / code200 findings instead of
+// requiring a new literal ASN-name or UA entry every time a new proxy
+// network shows up: the same exact full user-agent string arriving from a
+// different country within a short window is not something a real single
+// visitor does, regardless of what org name (if any) is attached to the IP.
+//
+// Deliberately requires a DIFFERENT COUNTRY, not just a different IP or a
+// repeat of the same UA in general — a shared Chrome-on-Windows or
+// Chrome-on-Mac user-agent string is extremely common among genuine,
+// unrelated visitors in the same country and would trigger constant false
+// positives if matched on its own. Cross-country repetition of a
+// byte-identical UA within hours is a much stronger, much rarer signal:
+// no ordinary visitor browses from Warsaw, then New York, then Dubai in
+// one afternoon. The first sighting of any UA is always let through
+// untouched (there's nothing to compare it against yet); only a repeat
+// from a different country gets suppressed.
+async function isCrossCountryUaDuplicate(sql, userAgent, country) {
+  if (!userAgent || !country) return false;
+  const rows = await sql`
+    select 1 from page_views
+    where user_agent = ${userAgent}
+      and country is not null
+      and country != ${country}
+      and viewed_at > now() - interval '3 hours'
+    limit 1
+  `;
+  return rows.length > 0;
+}
+
 async function logVisit(env, page, path, geo, userAgent) {
   try {
     const sql = neon(env.DATABASE_URL);
     if (await isBurstDuplicate(sql, geo.ip)) return;
+    if (await isCrossCountryUaDuplicate(sql, userAgent, geo.country)) return;
     await sql`
       insert into page_views (page, path, ip_address, country, region, city, user_agent, as_org)
       values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city}, ${userAgent}, ${geo.asOrg})
