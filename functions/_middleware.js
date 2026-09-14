@@ -40,17 +40,17 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 // but also don't want to hard-block (uptime monitors are often something the
 // business itself runs; blocking those would break their own tooling).
 //
-// Includes one specific literal signature, not a keyword: a byte-identical
-// "iPhone; CPU iPhone OS 13_2_3 ... Safari/604.1" string, confirmed via the
-// as_org diagnostic (2026-09-13) arriving from 6 different IPs across 5
-// countries within under an hour, all datacenter-adjacent. A single stale
-// (6-year-old) build repeated byte-for-byte across a rotating, geographically
-// scattered IP pool is a scraping/proxy network reusing a canned UA, not six
-// people with the same old iPhone. Kept as an analytics-only exclusion
-// (not a 403) since it is syntactically a real, if implausible, browser UA —
-// no reason to risk hard-blocking the vanishingly unlikely genuine visitor
-// still running it.
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
+// Includes two specific literal signatures, not keywords:
+//   - A byte-identical "iPhone; CPU iPhone OS 13_2_3 ... Safari/604.1"
+//     string (a 2019 build), confirmed via the as_org diagnostic
+//     (2026-09-13) arriving from 6 different IPs across 5 countries within
+//     under an hour, all datacenter-adjacent.
+//   - "redroid" — an Android emulator built specifically for cloud-scale,
+//     rootless device farms with no consumer use; seen 2026-09-14 in a UA
+//     alongside "uni-app" (a cross-platform automation framework).
+// Both are analytics-only exclusions (not a 403) since they're syntactically
+// real, if implausible, browser UAs.
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -73,6 +73,23 @@ function isHardBlocked(userAgent) {
   if (!userAgent.startsWith('Mozilla/')) return true;
   if (HARD_BLOCK_TOOL_PATTERN.test(userAgent)) return true;
   return false;
+}
+
+// A real Chrome/Chromium-family browser (Chrome, Edge, Brave, Opera,
+// Samsung Internet, Chromium WebViews) ALWAYS includes "AppleWebKit" in its
+// UA string — it's a legacy-compatibility token every Chromium build emits
+// unconditionally, alongside "Chrome/<version>". A UA containing "Chrome/"
+// without "AppleWebKit" is not a shape any real browser produces; it's a
+// hand-built/templated string from a script or proxy tool that didn't
+// bother completing it. Found 2026-09-14: 12+ hits within 3 minutes, one
+// per Chinese province/ISP, each reading exactly
+// "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0" — missing
+// the AppleWebKit/Safari middle and tail every genuine Chrome UA has.
+// Catches this from the very first hit, unlike the fan-out check below
+// which needs a couple of repeats to trigger.
+function isMalformedChromeUA(userAgent) {
+  if (!userAgent) return false;
+  return /Chrome\//.test(userAgent) && !/AppleWebKit/i.test(userAgent);
 }
 
 // Analytics-only signal: is the request coming from a datacenter/hosting
@@ -102,9 +119,10 @@ function isHardBlocked(userAgent) {
 //     label instead of "Contabo".
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
-// clean, predictable company name. See isCrossCountryUaDuplicate() and
-// KNOWN_BAD_CIDRS below for checks that don't depend on naming this list at
-// all.
+// clean, predictable company name. Note it will NEVER catch traffic
+// spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
+// ISP fan-out finding) — those aren't hosting providers at all, which is
+// what isUaFanOutDuplicate() below is for.
 const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // NOTE: a browser-version-plausibility check ("is this Chrome version too
@@ -168,6 +186,7 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (!userAgent) return true;
   if (SOFT_BOT_PATTERN.test(userAgent)) return true;
   if (isHardBlocked(userAgent)) return true;
+  if (isMalformedChromeUA(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
   if (isKnownBadIp(ip)) return true;
   return false;
@@ -207,24 +226,6 @@ export async function onRequest(context) {
   return response;
 }
 
-// A real visitor doesn't load the same tracked page twice from the same IP
-// within a few seconds — that pattern is a script, regardless of what its
-// user-agent claims or what ASN Cloudflare reports for it. Independent of
-// HOSTING_PROVIDER_PATTERN/asOrganization on purpose, as a backstop for
-// whatever the next unanticipated bot pattern turns out to be. Analytics-only
-// — this never affects what the visitor sees, only whether the hit gets
-// counted.
-async function isBurstDuplicate(sql, ip) {
-  if (!ip) return false;
-  const rows = await sql`
-    select 1 from page_views
-    where ip_address = ${ip}::inet
-      and viewed_at > now() - interval '5 seconds'
-    limit 1
-  `;
-  return rows.length > 0;
-}
-
 // Generalizes the Collyer Quay / Aliyun / code200 findings instead of
 // requiring a new literal ASN-name or UA entry every time a new proxy
 // network shows up: the same exact full user-agent string arriving from a
@@ -254,14 +255,56 @@ async function isCrossCountryUaDuplicate(sql, userAgent, country) {
   return rows.length > 0;
 }
 
+// Covers the gap the cross-country check leaves on purpose: a same-UA
+// fan-out CONFINED to one country. Found 2026-09-14 — 12+ hits within 3
+// minutes, one per Chinese province, all from residential/mobile ISPs
+// (China Unicom/Telecom regional networks, not hosting providers) sharing
+// one exact user-agent. Same country throughout, so isCrossCountryUaDuplicate
+// never fires; isMalformedChromeUA happened to catch that specific UA's
+// missing-AppleWebKit shape, but a well-formed UA reused the same way
+// wouldn't be. This checks distinct IP COUNT for the same UA regardless of
+// country: 3+ distinct IPs sending the identical UA within 10 minutes is
+// not plausible for one visitor or a handful of unrelated ones sharing a
+// common browser build — it's a proxy pool. Requires 2 prior distinct IPs
+// (so this would be the 3rd+) before suppressing, same "let the first
+// couple through, catch the pattern once it repeats" design as the
+// cross-country check.
+async function isUaFanOutDuplicate(sql, userAgent) {
+  if (!userAgent) return false;
+  const rows = await sql`
+    select count(distinct ip_address) as cnt
+    from page_views
+    where user_agent = ${userAgent}
+      and viewed_at > now() - interval '10 minutes'
+  `;
+  return rows.length > 0 && Number(rows[0].cnt) >= 2;
+}
+
 async function logVisit(env, page, path, geo, userAgent) {
   try {
     const sql = neon(env.DATABASE_URL);
-    if (await isBurstDuplicate(sql, geo.ip)) return;
     if (await isCrossCountryUaDuplicate(sql, userAgent, geo.country)) return;
+    if (await isUaFanOutDuplicate(sql, userAgent)) return;
+
+    // Same-IP-within-5-seconds dedup used to be a SELECT-then-INSERT check
+    // here (isBurstDuplicate). Confirmed racy in production 2026-09-14: two
+    // requests from the same IP 116ms apart both landed, because both ran
+    // their "any row in the last 5 seconds?" check before either one's
+    // insert had committed — a plain check-then-act race under concurrent
+    // requests, which this file's traffic patterns hit often enough to
+    // matter. Replaced with ip_time_bucket (migration 036): a plain text
+    // column set here, not DB-generated (Postgres rejected extract(epoch
+    // from timestamptz) as non-immutable for a generated column), computed
+    // as `${ip}:${5-second window number}` and enforced via a partial
+    // unique index + ON CONFLICT DO NOTHING. That makes the same-IP/5-second
+    // dedup atomic at the database level instead of racing two separate
+    // queries against each other.
+    const ipTimeBucket = geo.ip ? `${geo.ip}:${Math.floor(Date.now() / 5000)}` : null;
+
     await sql`
-      insert into page_views (page, path, ip_address, country, region, city, user_agent, as_org)
-      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city}, ${userAgent}, ${geo.asOrg})
+      insert into page_views (page, path, ip_address, country, region, city, user_agent, as_org, ip_time_bucket)
+      values (${page}, ${path}, ${geo.ip}, ${geo.country}, ${geo.region}, ${geo.city}, ${userAgent}, ${geo.asOrg}, ${ipTimeBucket})
+      on conflict (ip_time_bucket) where ip_time_bucket is not null do nothing
     `;
   } catch (e) {
     // Swallow — visit tracking must never surface an error to the visitor.
