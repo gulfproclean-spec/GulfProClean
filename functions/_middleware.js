@@ -97,10 +97,14 @@ function isHardBlocked(userAgent) {
 //     same entity) — a Lithuania-registered proxy-infrastructure org, added
 //     2026-09-13 after 3 identical-UA hits from Warsaw/New York/Dubai in
 //     under 3 hours all reported this org.
+//   - "powered by ANX" — seen 2026-09-13/14 on an IP inside Contabo's own
+//     152.53.0.0/16 range (see KNOWN_BAD_CIDRS below), yet another reseller
+//     label instead of "Contabo".
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
-// clean, predictable company name. See isCrossCountryUaDuplicate() below
-// for a check that doesn't depend on naming this list at all.
+// clean, predictable company name. See isCrossCountryUaDuplicate() and
+// KNOWN_BAD_CIDRS below for checks that don't depend on naming this list at
+// all.
 const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // NOTE: a browser-version-plausibility check ("is this Chrome version too
@@ -114,12 +118,58 @@ const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean
 // data. The signals above (known bot/tool keywords, hosting-provider ASN)
 // don't have this failure mode and are sufficient on their own.
 
-function isExcludedFromAnalytics(userAgent, asOrganization) {
+// IP ranges confirmed (not guessed) to have produced repeated bot/scraper
+// traffic against page_views, under multiple DIFFERENT as_org label
+// strings — meaning the org-name text match keeps missing this specific
+// network's traffic regardless of how many label variants get added to
+// HOSTING_PROVIDER_PATTERN. Matching the network itself sidesteps the
+// naming problem entirely for this range. Analytics-only, same as every
+// other check here — a real visitor on this network (unlikely, since it's
+// Contabo's own hosting block, not a residential/mobile ISP range) would
+// simply not show up in page_views, nothing about their page load changes.
+//
+// 152.53.0.0/16 — Contabo GmbH (Nuremberg, Germany hosting). Seen twice:
+// once labeled "Contabo GmbH" directly (2026-09-10, 15 hits/second from
+// 152.53.195.17), once labeled "powered by ANX" (2026-09-13/14, from
+// 152.53.13.195). Add further ranges here the same way, only once a range
+// has shown actual repeated abuse — this is a confirmed-offender list, not
+// a preemptive blocklist of every hosting provider's IP space.
+const KNOWN_BAD_CIDRS = ['152.53.0.0/16'];
+
+function ipv4ToInt(ip) {
+  const parts = ip.split('.');
+  if (parts.length !== 4) return null;
+  let n = 0;
+  for (const part of parts) {
+    const octet = Number(part);
+    if (!Number.isInteger(octet) || octet < 0 || octet > 255) return null;
+    n = (n << 8) | octet;
+  }
+  return n >>> 0;
+}
+
+function isInCidr(ip, cidr) {
+  const [rangeIp, prefixStr] = cidr.split('/');
+  const prefix = Number(prefixStr);
+  const ipInt = ipv4ToInt(ip);
+  const rangeInt = ipv4ToInt(rangeIp);
+  if (ipInt === null || rangeInt === null) return false; // not IPv4 (e.g. IPv6) — silently skip rather than error
+  const mask = prefix === 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
+  return (ipInt & mask) === (rangeInt & mask);
+}
+
+function isKnownBadIp(ip) {
+  if (!ip) return false;
+  return KNOWN_BAD_CIDRS.some((cidr) => isInCidr(ip, cidr));
+}
+
+function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (isKnownGoodCrawler(userAgent)) return true;
   if (!userAgent) return true;
   if (SOFT_BOT_PATTERN.test(userAgent)) return true;
   if (isHardBlocked(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
+  if (isKnownBadIp(ip)) return true;
   return false;
 }
 
@@ -141,9 +191,10 @@ export async function onRequest(context) {
 
   if (request.method === 'GET' && response.status === 200) {
     const cf = request.cf || {};
-    if (page && !isExcludedFromAnalytics(userAgent, cf.asOrganization)) {
+    const ip = request.headers.get('CF-Connecting-IP') || null;
+    if (page && !isExcludedFromAnalytics(userAgent, cf.asOrganization, ip)) {
       const geo = {
-        ip: request.headers.get('CF-Connecting-IP') || null,
+        ip,
         country: cf.country || null,
         region: cf.region || null,
         city: cf.city || null,
