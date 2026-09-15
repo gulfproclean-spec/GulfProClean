@@ -92,6 +92,25 @@ function isMalformedChromeUA(userAgent) {
   return /Chrome\//.test(userAgent) && !/AppleWebKit/i.test(userAgent);
 }
 
+// A subtler version of the same idea: real Chrome/Chromium always sets the
+// trailing "Safari/<version>" token to the EXACT SAME version number as its
+// own "AppleWebKit/<version>" token — this has been true since Chrome froze
+// both at 537.36 in 2013, and holds for every older paired version before
+// that too. Found 2026-09-14: three sightings (Nuremberg, Cheyenne x2, New
+// York), hours apart, different orgs, all sharing the byte-identical string
+// "...AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3"
+// — AppleWebKit correctly at 537.36, but Safari truncated to 537.3. No
+// genuine browser build has ever shipped that mismatch; it's a template
+// with a typo. Unlike isUaFanOutDuplicate, this needs no repeat or window
+// at all — it's wrong on its own, in a single request.
+function hasMismatchedWebKitSafariVersion(userAgent) {
+  if (!userAgent) return false;
+  const webkit = userAgent.match(/AppleWebKit\/([\d.]+)/);
+  const safari = userAgent.match(/Safari\/([\d.]+)/);
+  if (!webkit || !safari) return false;
+  return webkit[1] !== safari[1];
+}
+
 // Analytics-only signal: is the request coming from a datacenter/hosting
 // network rather than a residential or mobile ISP? Cloudflare resolves this
 // for us in request.cf.asOrganization. Real visitors browse from
@@ -117,6 +136,8 @@ function isMalformedChromeUA(userAgent) {
 //   - "powered by ANX" — seen 2026-09-13/14 on an IP inside Contabo's own
 //     152.53.0.0/16 range (see KNOWN_BAD_CIDRS below), yet another reseller
 //     label instead of "Contabo".
+//   - "Aviation RE LLC" — seen 2026-09-14 on the New York sighting of the
+//     WebKit/Safari version mismatch above.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
@@ -187,6 +208,7 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (SOFT_BOT_PATTERN.test(userAgent)) return true;
   if (isHardBlocked(userAgent)) return true;
   if (isMalformedChromeUA(userAgent)) return true;
+  if (hasMismatchedWebKitSafariVersion(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
   if (isKnownBadIp(ip)) return true;
   return false;
