@@ -111,6 +111,35 @@ function hasMismatchedWebKitSafariVersion(userAgent) {
   return webkit[1] !== safari[1];
 }
 
+// A FLOOR on Chrome's major version, not a ceiling — this is deliberately
+// the opposite shape of the version check that caused a real production
+// incident in this file (see the NOTE below), and is safe for a different
+// reason than that one was dangerous.
+//
+// That earlier check asked "is this version too NEW to be real?" — a
+// ceiling that goes stale the moment Chrome ships again, since real traffic
+// keeps moving forward past any fixed number. This check asks "is this
+// version too OLD to be real?" — a floor that does NOT go stale the same
+// way, because Chrome auto-updates forward and never backward: real-world
+// usage of any given version only shrinks over time as people update, it
+// never grows again. A floor picked generously today does not need
+// maintenance the way a ceiling did.
+//
+// Chrome 100 shipped March 2022. Genuine traffic in September 2026 running
+// anything below that is vanishingly rare (an unsupported, unpatched,
+// years-out-of-date browser). Found 2026-09-14/15: Chrome 44 (2015), 47
+// (2015), 48 (2016), and 84 (2020) all appeared within one afternoon, from
+// different countries and different (often hosting-flavored) as_org
+// values — real people do not disproportionately run half-decade-old
+// Chrome; scrapers reusing a stale bundled UA list do. Analytics-only, like
+// every other check here — never blocks the response.
+function isAncientChromeVersion(userAgent) {
+  if (!userAgent) return false;
+  const match = userAgent.match(/Chrome\/(\d+)/);
+  if (!match) return false;
+  return Number(match[1]) < 100;
+}
+
 // Analytics-only signal: is the request coming from a datacenter/hosting
 // network rather than a residential or mobile ISP? Cloudflare resolves this
 // for us in request.cf.asOrganization. Real visitors browse from
@@ -138,24 +167,30 @@ function hasMismatchedWebKitSafariVersion(userAgent) {
 //     label instead of "Contabo".
 //   - "Aviation RE LLC" — seen 2026-09-14 on the New York sighting of the
 //     WebKit/Safari version mismatch above.
+//   - "netcup GmbH" (Nuremberg hosting), "Shanghai UCloud Information
+//     Technology Company Limited" (UCloud, a real Chinese cloud provider —
+//     same shape as the Aliyun/Tencent gap above), and "Datacamp Limited"
+//     (a known proxy-as-a-service company, not a hosting brand a casual
+//     visitor would ever be behind) — all added 2026-09-15.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
-// NOTE: a browser-version-plausibility check ("is this Chrome version too
-// high to be real?") lived here briefly and was removed. It caused a real
-// production incident: it silently misclassified genuine, up-to-date
-// Chrome browsers as bots the moment real Chrome's version number passed
-// the hardcoded ceiling, with no error of any kind — analytics just quietly
-// stopped recording real visitors. Any check based on "what a plausible
-// current version number looks like" goes stale the moment browsers
-// release again and is not worth the risk of silently losing real traffic
-// data. The signals above (known bot/tool keywords, hosting-provider ASN)
-// don't have this failure mode and are sufficient on their own.
+// NOTE: an EARLIER browser-version-plausibility check ("is this Chrome
+// version too HIGH to be real?") lived here briefly and was removed. It
+// caused a real production incident: it silently misclassified genuine,
+// up-to-date Chrome browsers as bots the moment real Chrome's version
+// number passed the hardcoded ceiling, with no error of any kind —
+// analytics just quietly stopped recording real visitors. That specific
+// shape of check (a ceiling on how NEW a version can plausibly be) is not
+// safe and should not return here. isAncientChromeVersion() above is a
+// FLOOR, not a ceiling, and does not share this failure mode — see the
+// comment on that function for why the direction of the check changes its
+// safety profile entirely.
 
 // IP ranges confirmed (not guessed) to have produced repeated bot/scraper
 // traffic against page_views, under multiple DIFFERENT as_org label
@@ -209,6 +244,7 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (isHardBlocked(userAgent)) return true;
   if (isMalformedChromeUA(userAgent)) return true;
   if (hasMismatchedWebKitSafariVersion(userAgent)) return true;
+  if (isAncientChromeVersion(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
   if (isKnownBadIp(ip)) return true;
   return false;
