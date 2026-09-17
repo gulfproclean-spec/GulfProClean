@@ -180,6 +180,20 @@ function isAncientChromeVersion(userAgent) {
 // what isUaFanOutDuplicate() below is for.
 const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
+// A DIFFERENT category from hosting: enterprise security vendors whose own
+// infrastructure crawls the web for attack-surface-management / URL
+// categorization purposes (feeding their firewall/threat-intel products).
+// Not malicious, not a hosting provider — but not a customer either, so it
+// still doesn't belong in a traffic count. Kept as its own list rather than
+// folded into HOSTING_PROVIDER_PATTERN so the distinction stays honest in
+// the code, not just in a comment.
+//
+// "Palo Alto Networks, Inc" — added 2026-09-17 after 2 hits, 24 minutes
+// apart, from adjacent IPs in the same /24 (Saginaw, TX), identical
+// Chrome/117 build on both — consistent with an automated scanning crawler
+// working through a subnet, not a customer reloading a page.
+const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks/i;
+
 // NOTE: an EARLIER browser-version-plausibility check ("is this Chrome
 // version too HIGH to be real?") lived here briefly and was removed. It
 // caused a real production incident: it silently misclassified genuine,
@@ -246,6 +260,7 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (hasMismatchedWebKitSafariVersion(userAgent)) return true;
   if (isAncientChromeVersion(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
+  if (asOrganization && SECURITY_SCANNER_ORG_PATTERN.test(asOrganization)) return true;
   if (isKnownBadIp(ip)) return true;
   return false;
 }
