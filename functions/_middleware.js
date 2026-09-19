@@ -40,7 +40,7 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 // but also don't want to hard-block (uptime monitors are often something the
 // business itself runs; blocking those would break their own tooling).
 //
-// Includes two specific literal signatures, not keywords:
+// Includes several specific literal signatures, not keywords:
 //   - A byte-identical "iPhone; CPU iPhone OS 13_2_3 ... Safari/604.1"
 //     string (a 2019 build), confirmed via the as_org diagnostic
 //     (2026-09-13) arriving from 6 different IPs across 5 countries within
@@ -48,9 +48,19 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 //   - "redroid" — an Android emulator built specifically for cloud-scale,
 //     rootless device farms with no consumer use; seen 2026-09-14 in a UA
 //     alongside "uni-app" (a cross-platform automation framework).
-// Both are analytics-only exclusions (not a 403) since they're syntactically
-// real, if implausible, browser UAs.
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
+//   - "censysinspect" — Censys, Inc.'s internet-wide scanning tool; UA
+//     self-identifies as "CensysInspect/1.1 +https://about.censys.io/".
+//     A known research/attack-surface scanning company, not a customer.
+//   - "internetmeasurement" — self-identifies as
+//     "InternetMeasurement/1.0 +https://internet-measurement.com/"; seen
+//     2026-09-19 from 3 different London IPs, all "Driftnet Ltd", same
+//     literal string each time. A network-measurement research probe.
+// All are analytics-only exclusions (not a 403) since they're syntactically
+// real, if implausible, browser UAs, and the two research/scanning tools
+// openly identify themselves rather than trying to blend in — treating an
+// honestly-labeled scanner the same as a customer would just be wrong, not
+// a security question.
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -172,13 +182,26 @@ function isAncientChromeVersion(userAgent) {
 //     same shape as the Aliyun/Tencent gap above), and "Datacamp Limited"
 //     (a known proxy-as-a-service company, not a hosting brand a casual
 //     visitor would ever be behind) — all added 2026-09-15.
+//   - Added 2026-09-19, from a multi-day batch: "FranTech Solutions" (aka
+//     BuyVM, a well-known budget VPS host — repeat, same Miami IP twice 6
+//     minutes apart, identical UA); "DMZHOST" (a Romanian VPS brand — the
+//     name says "host" outright); "Subnet Digital LLC" (repeat, two
+//     adjacent IPs in the same /24, New York City, identical UA ~35 minutes
+//     apart — too spread out for the burst/fan-out windows below to catch
+//     on their own); "FBW NETWORKS SAS" (seen once in the ancient-Chrome
+//     batch on 2026-09-15 without being added, now a confirmed second
+//     sighting); "DEDIK SERVICES LIMITED" ("dedik" is hosting-community
+//     shorthand for "dedicated server" — the name is self-describing even
+//     on one sighting); "VPN Consumer Brussels, Belgium" (the org string
+//     itself says "VPN Consumer", paired with an Avast VPN client tag in
+//     the UA).
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
@@ -219,7 +242,7 @@ const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks/i;
 // 152.53.0.0/16 — Contabo GmbH (Nuremberg, Germany hosting). Seen twice:
 // once labeled "Contabo GmbH" directly (2026-09-10, 15 hits/second from
 // 152.53.195.17), once labeled "powered by ANX" (2026-09-13/14, from
-// 152.53.13.195). Add further ranges here the same way, only once a range
+// 152.53.13.199). Add further ranges here the same way, only once a range
 // has shown actual repeated abuse — this is a confirmed-offender list, not
 // a preemptive blocklist of every hosting provider's IP space.
 const KNOWN_BAD_CIDRS = ['152.53.0.0/16'];
