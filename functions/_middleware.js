@@ -55,12 +55,17 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 //     "InternetMeasurement/1.0 +https://internet-measurement.com/"; seen
 //     2026-09-19 from 3 different London IPs, all "Driftnet Ltd", same
 //     literal string each time. A network-measurement research probe.
+//   - "forestengine" — self-identifies as
+//     "ForestEngine/1.0 +https://forestengine.net/"; seen 2026-09-20 from a
+//     DigitalOcean-hosted Amsterdam IP (see the DigitalOcean spacing note
+//     on HOSTING_PROVIDER_PATTERN below — this one would have slipped
+//     through that check too, on top of needing its own entry here).
 // All are analytics-only exclusions (not a 403) since they're syntactically
-// real, if implausible, browser UAs, and the two research/scanning tools
-// openly identify themselves rather than trying to blend in — treating an
-// honestly-labeled scanner the same as a customer would just be wrong, not
-// a security question.
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
+// real, if implausible, browser UAs, and the research/scanning tools in
+// this list openly identify themselves rather than trying to blend in —
+// treating an honestly-labeled scanner the same as a customer would just
+// be wrong, not a security question.
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -195,13 +200,22 @@ function isAncientChromeVersion(userAgent) {
 //     on one sighting); "VPN Consumer Brussels, Belgium" (the org string
 //     itself says "VPN Consumer", paired with an Avast VPN client tag in
 //     the UA).
+//   - REGEX GAP found 2026-09-20: the "digitalocean" keyword (one word)
+//     never matched "Digital Ocean, Inc." (two words, from a real
+//     ForestEngine-scanner sighting — see SOFT_BOT_PATTERN above) because
+//     the space defeats a plain substring match. Changed to "digital
+//     ?ocean" so both the one-word brand form and the two-word registered
+//     legal-entity form match. The other entries in this list may have the
+//     same kind of gap for their own two-word forms; this was only caught
+//     because this particular sighting also had a self-identifying UA to
+//     catch it a different way.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
