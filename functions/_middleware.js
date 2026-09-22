@@ -250,23 +250,32 @@ const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks/i;
 // comment on that function for why the direction of the check changes its
 // safety profile entirely.
 
-// IP ranges confirmed (not guessed) to have produced repeated bot/scraper
-// traffic against page_views, under multiple DIFFERENT as_org label
-// strings — meaning the org-name text match keeps missing this specific
-// network's traffic regardless of how many label variants get added to
-// HOSTING_PROVIDER_PATTERN. Matching the network itself sidesteps the
-// naming problem entirely for this range. Analytics-only, same as every
-// other check here — a real visitor on this network (unlikely, since it's
-// Contabo's own hosting block, not a residential/mobile ISP range) would
-// simply not show up in page_views, nothing about their page load changes.
+// IP ranges (or single addresses, via /32) confirmed to have produced
+// repeated bot/scraper-shaped traffic against page_views, kept SEPARATE
+// from org-name matching (HOSTING_PROVIDER_PATTERN) for cases where the
+// evidence is against one specific address rather than the provider behind
+// it. Matching by address here rather than by org name matters when the
+// org itself looks like an ordinary provider that also has real customers
+// — excluding the whole org would risk dropping genuine visitors who
+// happen to share it.
 //
 // 152.53.0.0/16 — Contabo GmbH (Nuremberg, Germany hosting). Seen twice:
 // once labeled "Contabo GmbH" directly (2026-09-10, 15 hits/second from
 // 152.53.195.17), once labeled "powered by ANX" (2026-09-13/14, from
-// 152.53.13.199). Add further ranges here the same way, only once a range
-// has shown actual repeated abuse — this is a confirmed-offender list, not
-// a preemptive blocklist of every hosting provider's IP space.
-const KNOWN_BAD_CIDRS = ['152.53.0.0/16'];
+// 152.53.13.199). A confirmed-offender range, not a preemptive blocklist
+// of Contabo's whole hosting footprint.
+//
+// 45.74.159.42/32 — "Tres Teknoloji A.S." (Istanbul), added 2026-09-22.
+// This single IP hit page_views 6 times across 4+ days, always the exact
+// byte-identical UA (Chrome/122.0.0.0 on Mac), never drifting even once —
+// implausible for a real browser over two weeks, where at least one Chrome
+// auto-update would ordinarily show up. Hit timing was scattered through
+// the day rather than session-shaped, consistent with a scheduled
+// automated check rather than organic repeat browsing. Excluded as a /32
+// specifically, not the org name — "Tres Teknoloji A.S." reads like an
+// ordinary Turkish ISP that most likely also carries real customers, and
+// this evidence is against this one address's behavior, not the provider.
+const KNOWN_BAD_CIDRS = ['152.53.0.0/16', '45.74.159.42/32'];
 
 function ipv4ToInt(ip) {
   const parts = ip.split('.');
