@@ -170,7 +170,12 @@ function isAncientChromeVersion(userAgent) {
 //   - Tencent's international infrastructure reports its RIR-registered
 //     office address instead of a company name, e.g. "6 COLLYER QUAY" /
 //     "16 COLLYER QUAY # 18-29 INCOME AT RAFFLES" (Tencent's registered
-//     Singapore address across several of their ASNs).
+//     Singapore address across several of their ASNs). A second, different
+//     instance of this same shape — an address instead of a name — showed
+//     up 2026-09-21 in Singapore too ("80 Robinson Road # 02-00"), over
+//     IPv6. Not added as its own keyword since the literal string differs
+//     each time; noted here as a recurring category worth watching rather
+//     than a one-off.
 //   - Alibaba Cloud reports its cloud brand name, "Aliyun Computing
 //     Co.LTD" — not "Alibaba".
 //   - "code200, UAB" / "Code200 UAB" (inconsistent capitalization from the
@@ -209,13 +214,15 @@ function isAncientChromeVersion(userAgent) {
 //     same kind of gap for their own two-word forms; this was only caught
 //     because this particular sighting also had a self-identifying UA to
 //     catch it a different way.
+//   - "Web2Objects LLC" (Dallas) — added 2026-09-21, a known low-cost
+//     VPS/hosting reseller brand.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
