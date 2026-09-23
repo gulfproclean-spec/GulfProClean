@@ -216,13 +216,22 @@ function isAncientChromeVersion(userAgent) {
 //     catch it a different way.
 //   - "Web2Objects LLC" (Dallas) — added 2026-09-21, a known low-cost
 //     VPS/hosting reseller brand.
+//   - Added 2026-09-22: "AEZA GROUP LLC" (Helsinki — repeat, same IP twice
+//     ~15 hours apart, identical UA; also a well-known Russian VPS/hosting
+//     provider frequently flagged in security research for abusive
+//     traffic, not just a name-pattern guess); "Private Customer" (a RIR
+//     placeholder string, not a company name — repeated identically from
+//     two different IPs/cities, Houston and Chicago, which is what makes
+//     this one actionable where the differently-worded Collyer
+//     Quay/Robinson Road placeholders above weren't: same literal string
+//     twice, not just the same general shape).
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
@@ -237,6 +246,21 @@ const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?oce
 // Chrome/117 build on both — consistent with an automated scanning crawler
 // working through a subnet, not a customer reloading a page.
 const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks/i;
+
+// A THIRD category, distinct from both hosting providers and security
+// vendors: as_org strings beginning with "FOP " — a Ukrainian/Russian
+// "individual entrepreneur" (Fizychna Osoba-Pidpryyemets) sole-
+// proprietorship designation. This is a well-known registration pattern
+// for small-scale VPS/proxy resellers in that region; a residential ISP
+// registers its ASN under the ISP's corporate name, never under an
+// individual's personal sole-proprietorship name, so this prefix alone is
+// a reliable signal regardless of which specific name follows it. Added
+// 2026-09-22 after "FOP Danik Vyacheslav Evgenievich" (Amsterdam) showed
+// up from two adjacent IPs in the same /24, identical UA, 20 minutes
+// apart. Anchored to the START of the string (unlike every other pattern
+// here, which matches anywhere) since "fop" as a bare substring could
+// plausibly appear inside an unrelated word or name.
+const FOP_PREFIX_PATTERN = /^fop /i;
 
 // NOTE: an EARLIER browser-version-plausibility check ("is this Chrome
 // version too HIGH to be real?") lived here briefly and was removed. It
@@ -314,6 +338,7 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (isAncientChromeVersion(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
   if (asOrganization && SECURITY_SCANNER_ORG_PATTERN.test(asOrganization)) return true;
+  if (asOrganization && FOP_PREFIX_PATTERN.test(asOrganization)) return true;
   if (isKnownBadIp(ip)) return true;
   return false;
 }
