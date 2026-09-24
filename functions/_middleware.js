@@ -76,7 +76,17 @@ const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|sem
 // signature, is about as close to certain as this gets that the request is
 // a script, not a person — so these are actively refused with a 403 rather
 // than merely excluded from analytics.
-const HARD_BLOCK_TOOL_PATTERN = /curl|wget|python-requests|scrapy|node[/-]|^node$|node-fetch|undici|go-http-client|java\/[\d.]|libwww-perl|apache-httpclient|okhttp|phantomjs|puppeteer|playwright|headless|lighthouse|gtmetrix/i;
+//
+// "nutch" — added 2026-09-23: Apache Nutch, an open-source web-crawler
+// framework, seen 2026-09-22 appended to an otherwise-spoofed Chrome
+// string ("...Chrome/139.0.0.0 Safari/537.36/Nutch-1.23-SNAPSHOT") from
+// "TrafficTransitSolution LLC" (New York City — see the HOSTING_PROVIDER_
+// PATTERN addition below for that org). A crawler framework's own
+// signature tacked onto a browser-shaped UA is as close to a confession as
+// this gets; belongs in the hard-block tier with Scrapy, not the softer
+// analytics-only tier, since it has no legitimate reason to load these
+// pages at all.
+const HARD_BLOCK_TOOL_PATTERN = /curl|wget|python-requests|scrapy|nutch|node[/-]|^node$|node-fetch|undici|go-http-client|java\/[\d.]|libwww-perl|apache-httpclient|okhttp|phantomjs|puppeteer|playwright|headless|lighthouse|gtmetrix/i;
 
 function isKnownGoodCrawler(userAgent) {
   return !!userAgent && GOOD_CRAWLER_PATTERN.test(userAgent);
@@ -225,13 +235,16 @@ function isAncientChromeVersion(userAgent) {
 //     this one actionable where the differently-worded Collyer
 //     Quay/Robinson Road placeholders above weren't: same literal string
 //     twice, not just the same general shape).
+//   - "TrafficTransitSolution LLC" (New York City) — added 2026-09-23, a
+//     self-describing proxy/relay-sounding name, paired with the Nutch
+//     crawler signature caught above.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
