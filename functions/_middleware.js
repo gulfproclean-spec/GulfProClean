@@ -136,6 +136,33 @@ function hasMismatchedWebKitSafariVersion(userAgent) {
   return webkit[1] !== safari[1];
 }
 
+// A THIRD structural check in the same family: since Chrome's 2023
+// "User-Agent Reduction" policy, every real Chrome/Chromium build (Chrome,
+// Edge, Brave, Opera, Samsung Internet) freezes its "Chrome/<version>"
+// token to the exact shape "<major>.0.0.0" by default — the minor, build,
+// and patch numbers are always literally "0.0.0", never real sub-version
+// numbers, unless a site specifically opts in to the full string via
+// Client Hints (this site doesn't). So any "Chrome/" version that ISN'T
+// exactly major.0.0.0 is not a shape a real, unmodified browser hitting
+// this site can produce. Found 2026-09-24: "TECHOFF SRV LIMITED" sent
+// "Chrome/124.0" (missing two of the three frozen zero segments) on one
+// hit and, from a different IP in the same /24 six hours later,
+// "Firefox/140.9" (Firefox ships only whole-integer major.0 releases —
+// "140.9" doesn't exist either, though that half of the finding is closed
+// by this specific Chrome-shaped check only; see HOSTING_PROVIDER_PATTERN
+// below for the org-name exclusion that catches the Firefox row too).
+// Like the WebKit/Safari check above, this needs no repeat or window —
+// it's wrong in a single request. Chrome versions below 100 predate this
+// policy and could legitimately look different, but isAncientChromeVersion
+// above already excludes anything under 100, so this check never has to
+// distinguish pre- and post-reduction Chrome itself.
+function hasMalformedChromeVersionFormat(userAgent) {
+  if (!userAgent) return false;
+  const match = userAgent.match(/Chrome\/([\d.]+)/);
+  if (!match) return false;
+  return !/^\d+\.0\.0\.0$/.test(match[1]);
+}
+
 // A FLOOR on Chrome's major version, not a ceiling — this is deliberately
 // the opposite shape of the version check that caused a real production
 // incident in this file (see the NOTE below), and is safe for a different
@@ -238,13 +265,19 @@ function isAncientChromeVersion(userAgent) {
 //   - "TrafficTransitSolution LLC" (New York City) — added 2026-09-23, a
 //     self-describing proxy/relay-sounding name, paired with the Nutch
 //     crawler signature caught above.
+//   - Added 2026-09-24: "Internet Vikings International AB" (Stockholm —
+//     repeat sighting of an org flagged once before as worth watching;
+//     also a known Swedish hosting/VPN provider); "TECHOFF SRV LIMITED"
+//     (Amsterdam — repeat, same /24, ~6 hours apart, "SRV" reads as
+//     "server"; see hasMalformedChromeVersionFormat() above for the
+//     version-format anomaly found on both of its sightings).
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
 // what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet vikings|techoff|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
@@ -282,10 +315,11 @@ const FOP_PREFIX_PATTERN = /^fop /i;
 // number passed the hardcoded ceiling, with no error of any kind —
 // analytics just quietly stopped recording real visitors. That specific
 // shape of check (a ceiling on how NEW a version can plausibly be) is not
-// safe and should not return here. isAncientChromeVersion() above is a
-// FLOOR, not a ceiling, and does not share this failure mode — see the
-// comment on that function for why the direction of the check changes its
-// safety profile entirely.
+// safe and should not return here. isAncientChromeVersion() and
+// hasMalformedChromeVersionFormat() above are a FLOOR and a FORMAT check,
+// not a ceiling, and don't share this failure mode — see the comments on
+// those functions for why the shape of the check changes its safety
+// profile entirely.
 
 // IP ranges (or single addresses, via /32) confirmed to have produced
 // repeated bot/scraper-shaped traffic against page_views, kept SEPARATE
@@ -348,6 +382,7 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (isHardBlocked(userAgent)) return true;
   if (isMalformedChromeUA(userAgent)) return true;
   if (hasMismatchedWebKitSafariVersion(userAgent)) return true;
+  if (hasMalformedChromeVersionFormat(userAgent)) return true;
   if (isAncientChromeVersion(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
   if (asOrganization && SECURITY_SCANNER_ORG_PATTERN.test(asOrganization)) return true;
