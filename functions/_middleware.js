@@ -60,12 +60,19 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 //     DigitalOcean-hosted Amsterdam IP (see the DigitalOcean spacing note
 //     on HOSTING_PROVIDER_PATTERN below — this one would have slipped
 //     through that check too, on top of needing its own entry here).
+//   - "enrich/" — self-identifies as "Mozilla/5.0 (compatible; enrich/1.0)",
+//     the ENTIRE user-agent (no OS/platform details at all, let alone the
+//     usual browser tokens) — seen 2026-09-29 from "TechTies Inc."
+//     (Frankfurt). A data-enrichment/prospecting scraper, same category as
+//     the other self-identifying tools above. Matched with the trailing
+//     slash (not bare "enrich") to avoid catching the word if it ever
+//     appeared as part of an unrelated string.
 // All are analytics-only exclusions (not a 403) since they're syntactically
 // real, if implausible, browser UAs, and the research/scanning tools in
 // this list openly identify themselves rather than trying to blend in —
 // treating an honestly-labeled scanner the same as a customer would just
 // be wrong, not a security question.
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|enrich\/|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -210,9 +217,15 @@ function isAncientChromeVersion(userAgent) {
 //     Singapore address across several of their ASNs). A second, different
 //     instance of this same shape — an address instead of a name — showed
 //     up 2026-09-21 in Singapore too ("80 Robinson Road # 02-00"), over
-//     IPv6. Not added as its own keyword since the literal string differs
-//     each time; noted here as a recurring category worth watching rather
-//     than a one-off.
+//     IPv6. A THIRD instance, 2026-09-25, was traceable to a specific real
+//     company: "500 Oracle Parkway" is Oracle Corporation's actual
+//     Redwood Shores, CA headquarters address, from a Singapore IP — almost
+//     certainly Oracle Cloud Infrastructure registering under its street
+//     address rather than the "oracle cloud" keyword already in this list.
+//     Added as its own literal entry below since this one case is
+//     identifiable; the general address-instead-of-name category otherwise
+//     still isn't a single keyword, since the literal string differs
+//     every time.
 //   - Alibaba Cloud reports its cloud brand name, "Aliyun Computing
 //     Co.LTD" — not "Alibaba".
 //   - "code200, UAB" / "Code200 UAB" (inconsistent capitalization from the
@@ -271,13 +284,23 @@ function isAncientChromeVersion(userAgent) {
 //     (Amsterdam — repeat, same /24, ~6 hours apart, "SRV" reads as
 //     "server"; see hasMalformedChromeVersionFormat() above for the
 //     version-format anomaly found on both of its sightings).
+//   - Added 2026-09-30, from a multi-day batch: "OMEGATECH" (Amsterdam —
+//     6 repeat hits across two IPs in the same /24, byte-identical UA each
+//     time — the single biggest repeat offender seen to date); "RackNerd"
+//     (a well-known budget VPS brand, same tier as FranTech/BuyVM);
+//     "RackGenius" ("Rack" self-describes, same reasoning as Dedik/
+//     DMZHOST); "SERV.HOST GROUP" (the name says "host group" outright);
+//     "500 Oracle Parkway" (see the Oracle Corporation note above).
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
 // spoofed from ordinary residential/mobile ISPs (see the 2026-09-14 Chinese
 // ISP fan-out finding) — those aren't hosting providers at all, which is
-// what isUaFanOutDuplicate() below is for.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet vikings|techoff|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+// what isUaFanOutDuplicate() below is for. Also deliberately NOT matching
+// "Cloudflare" here (seen 2026-09-30, Kyiv): Cloudflare WARP is a real
+// consumer VPN app a genuine visitor could plausibly be using, unlike the
+// entries above — excluding it would risk dropping real customers.
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet vikings|techoff|omegatech|racknerd|rackgenius|serv\.?host group|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
