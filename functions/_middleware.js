@@ -223,9 +223,12 @@ function isAncientChromeVersion(userAgent) {
 //     certainly Oracle Cloud Infrastructure registering under its street
 //     address rather than the "oracle cloud" keyword already in this list.
 //     Added as its own literal entry below since this one case is
-//     identifiable; the general address-instead-of-name category otherwise
-//     still isn't a single keyword, since the literal string differs
-//     every time.
+//     identifiable. A FOURTH sighting of the same shape, 2026-10-01,
+//     "Zürich (790RIE)" — looks like a city name plus an internet-exchange
+//     code rather than a registrant name; still only a single sighting, not
+//     added as its own keyword. The general address/non-company-name
+//     category otherwise still isn't a single keyword, since the literal
+//     string differs every time.
 //   - Alibaba Cloud reports its cloud brand name, "Aliyun Computing
 //     Co.LTD" — not "Alibaba".
 //   - "code200, UAB" / "Code200 UAB" (inconsistent capitalization from the
@@ -291,6 +294,21 @@ function isAncientChromeVersion(userAgent) {
 //     "RackGenius" ("Rack" self-describes, same reasoning as Dedik/
 //     DMZHOST); "SERV.HOST GROUP" (the name says "host group" outright);
 //     "500 Oracle Parkway" (see the Oracle Corporation note above).
+//   - Added 2026-10-03: "CustodianDC Limited" (London — held back on its
+//     first sighting for being a single occurrence with a merely plausible
+//     "DC" signal; now repeat-confirmed with a second hit, clearing the
+//     bar); "HostPapa" ("Host" self-describes, same tier as DMZHOST/SERV.
+//     HOST GROUP — and corroborated independently: its one sighting
+//     (Los Angeles) shared a byte-identical Firefox/121 UA with a
+//     "EAGLEDISTRIBUTORSNETWOR" (New York) sighting just ONE SECOND apart,
+//     from a different IP — a same-second cross-country duplicate is not
+//     something a real visitor produces, and is itself evidence the
+//     HostPapa request was automated too). "EAGLEDISTRIBUTORSNETWOR" itself
+//     was not added as a keyword — nothing in the name is self-describing,
+//     and the one-second-apart duplicate against HostPapa is circumstantial
+//     rather than this specific org showing its own repeat pattern; holding
+//     for a second independent sighting of this org before adding it on its
+//     own.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
@@ -300,7 +318,7 @@ function isAncientChromeVersion(userAgent) {
 // "Cloudflare" here (seen 2026-09-30, Kyiv): Cloudflare WARP is a real
 // consumer VPN app a genuine visitor could plausibly be using, unlike the
 // entries above — excluding it would risk dropping real customers.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet vikings|techoff|omegatech|racknerd|rackgenius|serv\.?host group|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
