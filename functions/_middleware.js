@@ -309,6 +309,12 @@ function isAncientChromeVersion(userAgent) {
 //     rather than this specific org showing its own repeat pattern; holding
 //     for a second independent sighting of this org before adding it on its
 //     own.
+//   - Added 2026-10-04: "Internetbolaget Sweden AB" (Stockholm — held back
+//     on its first sighting as a single occurrence; now repeat-confirmed
+//     with a second hit, same Stockholm cluster that already produced
+//     Internet Vikings above). Not a self-describing name on its own
+//     ("the Internet company" is a plausible ordinary-ISP name), but the
+//     repeat sighting clears the same bar CustodianDC did.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
@@ -318,7 +324,7 @@ function isAncientChromeVersion(userAgent) {
 // "Cloudflare" here (seen 2026-09-30, Kyiv): Cloudflare WARP is a real
 // consumer VPN app a genuine visitor could plausibly be using, unlike the
 // entries above — excluding it would risk dropping real customers.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|internetbolaget|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
