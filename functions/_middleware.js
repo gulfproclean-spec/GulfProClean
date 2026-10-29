@@ -67,12 +67,24 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 //     the other self-identifying tools above. Matched with the trailing
 //     slash (not bare "enrich") to avoid catching the word if it ever
 //     appeared as part of an unrelated string.
+//   - "modatscanner" — self-identifies as "...ModatScanner/1.2
+//     (+https://modat.io/)" appended to an otherwise-normal Chrome UA; seen
+//     2026-10-20/21 from 3 different IPs in the same Beauharnois, Canada
+//     datacenter range, as_org alternating between "Modat B.V." and "NL
+//     MODAT" for the same tool. Same openly-self-identifying-scanner
+//     category as Censys/internet-measurement above.
+//   - "leadforge" — self-identifies as "Mozilla/5.0 (compatible;
+//     LeadForge/1.0; +mailto:opt-out@newsitelead.com)", the entire UA; seen
+//     2026-10-16 with as_org "Customer allocation HB Client 3860" (a RIR
+//     allocation placeholder, not a company name — the UA is the real
+//     signal here). A lead-generation/prospecting scraper that even ships
+//     its own opt-out contact, i.e. openly admits what it is.
 // All are analytics-only exclusions (not a 403) since they're syntactically
 // real, if implausible, browser UAs, and the research/scanning tools in
 // this list openly identify themselves rather than trying to blend in —
 // treating an honestly-labeled scanner the same as a customer would just
 // be wrong, not a security question.
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|enrich\/|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|enrich\/|modatscanner|leadforge|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -309,6 +321,33 @@ function isAncientChromeVersion(userAgent) {
 //     rather than this specific org showing its own repeat pattern; holding
 //     for a second independent sighting of this org before adding it on its
 //     own.
+//   - Added 2026-10-04: "Internetbolaget Sweden AB" (Stockholm — held back
+//     on its first sighting as a single occurrence; now repeat-confirmed
+//     with a second hit, same Stockholm cluster that already produced
+//     Internet Vikings above). Not a self-describing name on its own
+//     ("the Internet company" is a plausible ordinary-ISP name), but the
+//     repeat sighting clears the same bar CustodianDC did.
+//   - Added 2026-10-27, from a 3-week batch: "Virtualine" ("Virtual" +
+//     "line" reads as a VPS brand; 19 hits across 6 IPs in one /24 subnet
+//     in Aachen, DE, over 12 days — the single biggest repeat offender
+//     seen to date, surpassing OMEGATECH); "Ghosty ?Networks" (Frankfurt —
+//     repeat, 2 adjacent IPs, identical UA claiming "Chrome/148", a
+//     version that doesn't exist — "Networks" self-describes); "IONOS"
+//     (a major, well-known hosting/registrar brand, formerly 1&1 — 3 hits
+//     from 3 different countries); "RapidSeedbox" ("Seedbox" is hosting
+//     terminology for a rented bulk-transfer server); "31173 Services"
+//     (Gothenburg — the org string itself contains the word
+//     "infrastructure"); "Greenhost" ("host" self-describes); "tzulo" (a
+//     recognized budget VPS brand, same tier as RackNerd); "Internetbolaget"
+//     (re-added — the 2026-10-04 PR for this one was drafted but never
+//     actually merged, so this org kept showing up unfiltered since).
+//     Separately, broadened "microsoft azure" to bare "microsoft": found
+//     repeat Microsoft Corporation sightings going back to 2026-09-19
+//     (Dublin, Amsterdam, Pune x4) that the azure-specific keyword never
+//     matched, since real Azure-hosted traffic's as_org often just reads
+//     "Microsoft Corporation" with no "Azure" in it. No legitimate home ISP
+//     reports "Microsoft" as its org name, so broadening carries the same
+//     low false-positive risk as the existing brand-name entries above.
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
@@ -317,8 +356,11 @@ function isAncientChromeVersion(userAgent) {
 // what isUaFanOutDuplicate() below is for. Also deliberately NOT matching
 // "Cloudflare" here (seen 2026-09-30, Kyiv): Cloudflare WARP is a real
 // consumer VPN app a genuine visitor could plausibly be using, unlike the
-// entries above — excluding it would risk dropping real customers.
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+// entries above — excluding it would risk dropping real customers. (A
+// specific Cloudflare-fronted IP with its own repeat-offender evidence is
+// instead handled via KNOWN_BAD_CIDRS below, which targets addresses, not
+// the shared Cloudflare org.)
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|internetbolaget|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|virtualine|ghosty ?networks|ionos|rapidseedbox|31173 services|greenhost|tzulo|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
@@ -332,7 +374,16 @@ const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft azure|digital ?oce
 // apart, from adjacent IPs in the same /24 (Saginaw, TX), identical
 // Chrome/117 build on both — consistent with an automated scanning crawler
 // working through a subnet, not a customer reloading a page.
-const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks/i;
+//
+// Added 2026-10-27: "ONYPHE" (a known internet-scanning/threat-intel
+// company, same business model as Censys — self-identifying by brand name
+// alone, same confidence tier as recognizing Censys or Palo Alto by name);
+// "Fortinet" (another major security vendor; also sent an impossible
+// "Chrome/155" on its one sighting, reinforcing the non-human read); "brand
+// protection" (the full as_org string was "The domain watchdog for brand
+// protection" — a domain/brand-monitoring service describing itself
+// outright, not a company name at all).
+const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks|onyphe|fortinet|brand protection/i;
 
 // A THIRD category, distinct from both hosting providers and security
 // vendors: as_org strings beginning with "FOP " — a Ukrainian/Russian
@@ -387,7 +438,21 @@ const FOP_PREFIX_PATTERN = /^fop /i;
 // specifically, not the org name — "Tres Teknoloji A.S." reads like an
 // ordinary Turkish ISP that most likely also carries real customers, and
 // this evidence is against this one address's behavior, not the provider.
-const KNOWN_BAD_CIDRS = ['152.53.0.0/16', '45.74.159.42/32'];
+//
+// 102.220.161.89/32 — as_org just the bare word "Internet" (Thyrnau, DE),
+// added 2026-10-27. Same IP, same UA, twice ~5.75 hours apart on
+// 2026-10-05. The org name itself is too generic/risky to keyword (lots of
+// legitimate ISPs plausibly contain the word "internet"), so this is
+// excluded by address instead, same reasoning as Tres Teknoloji above.
+//
+// 104.28.192.94/32 — Cloudflare-fronted IP (Kyiv), added 2026-10-27. 12+
+// hits over a month (2026-09-30 through 2026-10-25), always the identical
+// Chrome/134 UA. This is the same single address repeating for weeks, not
+// organic browsing — but per the standing note on HOSTING_PROVIDER_PATTERN
+// above, the shared "Cloudflare, Inc." org is deliberately never matched
+// (WARP is a real consumer VPN), so this specific address's own repeat
+// evidence is handled here instead, the same way Tres Teknoloji was.
+const KNOWN_BAD_CIDRS = ['152.53.0.0/16', '45.74.159.42/32', '102.220.161.89/32', '104.28.192.94/32'];
 
 function ipv4ToInt(ip) {
   const parts = ip.split('.');
