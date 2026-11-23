@@ -79,12 +79,21 @@ const GOOD_CRAWLER_PATTERN = /googlebot|bingbot|slurp|duckduckbot|baiduspider|ya
 //     allocation placeholder, not a company name — the UA is the real
 //     signal here). A lead-generation/prospecting scraper that even ships
 //     its own opt-out contact, i.e. openly admits what it is.
+//   - Added 2026-11-23: "cartographier", "domain-list-check" and
+//     "domaindragon" — self-identifying domain/URL-mapping scanner tokens
+//     (domain-list-check from BESTDC LIMITED, 4 hits). Same
+//     openly-self-identifying-scanner category as the entries above.
+//   - "viewer/99.9." — a bogus product token ("Viewer/99.9.8853.8"), not
+//     any real browser; seen on THREE unrelated orgs (Internet Vikings
+//     2026-10-03, Internetbolaget 2026-10-13, Gulegoj Bananer og Domains
+//     Limited 2026-11-16). Matched with the "99.9." prefix so only this
+//     fake version family is caught, not a legitimately-named viewer app.
 // All are analytics-only exclusions (not a 403) since they're syntactically
 // real, if implausible, browser UAs, and the research/scanning tools in
 // this list openly identify themselves rather than trying to blend in —
 // treating an honestly-labeled scanner the same as a customer would just
 // be wrong, not a security question.
-const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|enrich\/|modatscanner|leadforge|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
+const SOFT_BOT_PATTERN = /bot|crawl|spider|monitor|uptime|pingdom|statuscake|semrush|ahrefs|mj12|dotbot|petalbot|dataprovider|redroid|censysinspect|internetmeasurement|forestengine|enrich\/|modatscanner|leadforge|cartographier|domain-list-check|domaindragon|viewer\/99\.9\.|iphone os 13_2_3 like mac os x\) applewebkit\/605\.1\.15 \(khtml, like gecko\) version\/13\.0\.3 mobile\/15e148 safari\/604\.1/i;
 
 // Signatures with essentially zero legitimate reason to load a full HTML
 // page: raw HTTP clients and scripting/automation libraries. A real
@@ -211,6 +220,49 @@ function isAncientChromeVersion(userAgent) {
   return Number(match[1]) < 100;
 }
 
+// Added 2026-11-23: the Firefox twin of isAncientChromeVersion — same FLOOR
+// shape (never a ceiling, see the NOTE below), same reasoning: Firefox
+// auto-updates forward, so real-world use of any old major only shrinks
+// over time. Firefox 100 shipped May 2022; by November 2026 the current
+// line is in the 140s. Found: 8 sightings of Firefox below 100 across 6
+// different orgs in a 4-week window (versions 88, 89, 91, and others),
+// several of them also tied to hosting-flavored orgs. Matches only the
+// desktop/Android "Firefox/<n>" token — Firefox for iOS uses "FxiOS/" and
+// is not affected. Small known tradeoff: a real visitor on an unpatched
+// pre-2022 Firefox (or an old ESR) would be left out of the traffic count;
+// analytics-only, so they are never blocked from the site.
+function isAncientFirefoxVersion(userAgent) {
+  if (!userAgent) return false;
+  const match = userAgent.match(/Firefox\/(\d+)/);
+  if (!match) return false;
+  return Number(match[1]) < 100;
+}
+
+// Added 2026-11-23: every real WebKit/Blink browser that sends an
+// "AppleWebKit/" token also sends the "(KHTML, like Gecko)" compatibility
+// token right after it — Chrome, Edge, Safari, Samsung Internet, Opera and
+// WebViews all do, unconditionally. A UA with AppleWebKit but no "KHTML,
+// like Gecko" is a hand-assembled string, same family as the
+// missing-AppleWebKit check above. Found: "PT Starlink Indonesia" sent a UA
+// with the token missing. Single-request check, no repeat needed. Good
+// crawlers are short-circuited before this runs (see
+// isExcludedFromAnalytics).
+function isMissingKhtmlToken(userAgent) {
+  if (!userAgent) return false;
+  return /AppleWebKit/i.test(userAgent) && !/KHTML,? like Gecko/i.test(userAgent);
+}
+
+// Added 2026-11-23: a UA that is literally just "Mozilla/5.0" with nothing
+// else — no platform, no engine, no browser. Every real browser appends
+// at least a platform parenthetical and an engine token. Seen 3 times
+// across 2 orgs (Carrytel x2, lena-yeni x1). Analytics-only, not a 403:
+// it already passes the "starts with Mozilla/" gate in isHardBlocked, and
+// we keep that gate strict-but-narrow rather than widening the 403 tier.
+function isBareMozillaUA(userAgent) {
+  if (!userAgent) return false;
+  return userAgent.trim() === 'Mozilla/5.0';
+}
+
 // Analytics-only signal: is the request coming from a datacenter/hosting
 // network rather than a residential or mobile ISP? Cloudflare resolves this
 // for us in request.cf.asOrganization. Real visitors browse from
@@ -316,11 +368,8 @@ function isAncientChromeVersion(userAgent) {
 //     from a different IP — a same-second cross-country duplicate is not
 //     something a real visitor produces, and is itself evidence the
 //     HostPapa request was automated too). "EAGLEDISTRIBUTORSNETWOR" itself
-//     was not added as a keyword — nothing in the name is self-describing,
-//     and the one-second-apart duplicate against HostPapa is circumstantial
-//     rather than this specific org showing its own repeat pattern; holding
-//     for a second independent sighting of this org before adding it on its
-//     own.
+//     was held for a second independent sighting of its own — that second
+//     sighting arrived and it is added 2026-11-23 (see below).
 //   - Added 2026-10-04: "Internetbolaget Sweden AB" (Stockholm — held back
 //     on its first sighting as a single occurrence; now repeat-confirmed
 //     with a second hit, same Stockholm cluster that already produced
@@ -331,8 +380,10 @@ function isAncientChromeVersion(userAgent) {
 //     "line" reads as a VPS brand; 19 hits across 6 IPs in one /24 subnet
 //     in Aachen, DE, over 12 days — the single biggest repeat offender
 //     seen to date, surpassing OMEGATECH); "Ghosty ?Networks" (Frankfurt —
-//     repeat, 2 adjacent IPs, identical UA claiming "Chrome/148", a
-//     version that doesn't exist — "Networks" self-describes); "IONOS"
+//     repeat, 2 adjacent IPs, identical UA — "Networks" self-describes;
+//     its UA claimed Chrome/148, which IS a real Chrome version, so the
+//     exclusion rests on the repeat/identical-UA evidence and the org name,
+//     not on the version number); "IONOS"
 //     (a major, well-known hosting/registrar brand, formerly 1&1 — 3 hits
 //     from 3 different countries); "RapidSeedbox" ("Seedbox" is hosting
 //     terminology for a rented bulk-transfer server); "31173 Services"
@@ -348,6 +399,37 @@ function isAncientChromeVersion(userAgent) {
 //     "Microsoft Corporation" with no "Azure" in it. No legitimate home ISP
 //     reports "Microsoft" as its org name, so broadening carries the same
 //     low false-positive risk as the existing brand-name entries above.
+//   - Added 2026-11-23, from a 4-week batch (82 new rows). Repeat-confirmed
+//     or strong-signal orgs: "TechTies Inc." (8 hits, 4 IPs — the same org
+//     as the enrich/ scraper above, now rotating browser UAs); "Unus, Inc."
+//     (5 sightings, 5 IPs, always the identical Chrome/115); "WGIX" (5 hits,
+//     5 IPs, identical Chrome/145, over 3 weeks); "Sundance International"
+//     (4+ sightings, same Chrome/105 Linux UA over 7 weeks); "Feo Prest SRL"
+//     (6 hits, one IP); "36/F, Tower Two," (an address-only org string, same
+//     shape as the Collyer Quay entries above — same Android UA as another
+//     sighting from the same Kerkrade city 6 seconds apart); "Urban Network
+//     Solutions SRL" (4 hits in bursts seconds apart); "Virtual Systems LLC"
+//     (3 hits, same IPv6 address and UA); "BESTDC LIMITED" (4 hits, with a
+//     domain-list-check UA); "BL Networks" (2 sightings a month apart, both
+//     an identical Firefox/124 UA, each seconds after a blank-org NYC
+//     burst — see 103.4.248.0/22 below); "Global Business Consulting" (3
+//     sightings, 3 IPs, Firefox 88/89/91); "EAGLEDISTRIBUTORSNETWOR" (its
+//     second independent sighting, clearing the bar noted on 2026-10-03);
+//     "HostRoyale" ("Host" self-describes); "3xK Tech GmbH" (2 hits, 2 IPs,
+//     both Ashburn — a moderate-confidence call); "Xinet Solutions" (its IP
+//     was one of the five Montréal IPs in the 2026-09-10 same-second burst);
+//     "Netiface LLC" (same 130.12.x range as Virtualine, hit 25 seconds
+//     before it); "A100 ROW GmbH" (ipinfo lists it as the company behind an
+//     Amazon AS16509 Frankfurt range — Amazon hosting traffic that the
+//     "amazon|aws" keywords miss because neither word is in the org
+//     string); "GREEN FLOID" (one IP, Firefox 122 then 121 a day later —
+//     versions don't go backward); "EarthMeta" (one IP flipping Mac to
+//     Windows UAs within 12 seconds).
+//     Deliberately NOT added: consumer VPNs (Mullvad, NordLayer) and
+//     residential ISPs. Still holding on single sightings: Atlas Network
+//     Holdings, BraveWay, Dainet Solutions, Rica Web Services, Internet
+//     Security - AU, H4Y, FASTPLANET, Power NMS, Global Peering, Zkillu,
+//     INVITE Systems, Database Mart, "Zürich (790RIE)".
 // This list will likely need occasional additions the same way — ASN "org
 // name" fields are whatever each provider registered with their RIR, not a
 // clean, predictable company name. Note it will NEVER catch traffic
@@ -360,7 +442,7 @@ function isAncientChromeVersion(userAgent) {
 // specific Cloudflare-fronted IP with its own repeat-offender evidence is
 // instead handled via KNOWN_BAD_CIDRS below, which targets addresses, not
 // the shared Cloudflare org.)
-const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|internetbolaget|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|virtualine|ghosty ?networks|ionos|rapidseedbox|31173 services|greenhost|tzulo|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
+const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft|digital ?ocean|linode|akamai|ovh|hetzner|oracle cloud|500 oracle parkway|alibaba|aliyun|tencent|collyer quay|code200|netcup|ucloud|datacamp|frantech|buyvm|dmzhost|subnet digital|fbw networks|dedik|vpn consumer|web2objects|aeza|private customer|traffictransitsolution|internet ?vikings|internetbolaget|techoff|omegatech|racknerd|rackgenius|serv\.?host group|custodiandc|hostpapa|virtualine|ghosty ?networks|ionos|rapidseedbox|31173 services|greenhost|tzulo|techties|\bunus,? inc|wgix|sundance international|feo prest|36\/f, tower two|urban network solutions|virtual systems|bestdc|bl networks|global business consulting|eagledistributors|hostroyale|3xk tech|xinet solutions|netiface|a100 row|green ?floid|earthmeta|vultr|choopa|contabo|scaleway|leaseweb|hostinger|quadranet|psychz|m247|host europe|servint|webair|cogent|as-colo|colo(cation)?|data ?center|hosting|dedicated|vps|server(s)?\b/i;
 
 // A DIFFERENT category from hosting: enterprise security vendors whose own
 // infrastructure crawls the web for attack-surface-management / URL
@@ -378,11 +460,12 @@ const HOSTING_PROVIDER_PATTERN = /google|amazon|aws|microsoft|digital ?ocean|lin
 // Added 2026-10-27: "ONYPHE" (a known internet-scanning/threat-intel
 // company, same business model as Censys — self-identifying by brand name
 // alone, same confidence tier as recognizing Censys or Palo Alto by name);
-// "Fortinet" (another major security vendor; also sent an impossible
-// "Chrome/155" on its one sighting, reinforcing the non-human read); "brand
-// protection" (the full as_org string was "The domain watchdog for brand
-// protection" — a domain/brand-monitoring service describing itself
-// outright, not a company name at all).
+// "Fortinet" (another major security vendor — a security vendor's own
+// infrastructure is not a customer by definition; its one sighting also
+// carried Chrome/155, which is a real version and is NOT part of the
+// reasoning here); "brand protection" (the full as_org string was "The
+// domain watchdog for brand protection" — a domain/brand-monitoring
+// service describing itself outright, not a company name at all).
 const SECURITY_SCANNER_ORG_PATTERN = /palo alto networks|onyphe|fortinet|brand protection/i;
 
 // A THIRD category, distinct from both hosting providers and security
@@ -407,12 +490,14 @@ const FOP_PREFIX_PATTERN = /^fop /i;
 // number passed the hardcoded ceiling, with no error of any kind —
 // analytics just quietly stopped recording real visitors. That specific
 // shape of check (a ceiling on how NEW a version can plausibly be) is not
-// safe and should not return here. isAncientChromeVersion() and
-// hasMalformedChromeVersionFormat() above are a FLOOR and a FORMAT check,
-// not a ceiling, and don't share this failure mode — see the comments on
-// those functions for why the shape of the check changes its safety
-// profile entirely.
-
+// safe and should not return here. isAncientChromeVersion(),
+// isAncientFirefoxVersion() and hasMalformedChromeVersionFormat() above are
+// FLOOR and FORMAT checks, not ceilings, and don't share this failure mode
+// — see the comments on those functions for why the shape of the check
+// changes its safety profile entirely. Likewise: never describe a high
+// Chrome/Firefox version as "impossible" or "non-existent" in a comment or
+// a rule — real versions keep climbing (Chrome 148 and 155 both exist).
+//
 // IP ranges (or single addresses, via /32) confirmed to have produced
 // repeated bot/scraper-shaped traffic against page_views, kept SEPARATE
 // from org-name matching (HOSTING_PROVIDER_PATTERN) for cases where the
@@ -452,7 +537,14 @@ const FOP_PREFIX_PATTERN = /^fop /i;
 // above, the shared "Cloudflare, Inc." org is deliberately never matched
 // (WARP is a real consumer VPN), so this specific address's own repeat
 // evidence is handled here instead, the same way Tres Teknoloji was.
-const KNOWN_BAD_CIDRS = ['152.53.0.0/16', '45.74.159.42/32', '102.220.161.89/32', '104.28.192.94/32'];
+//
+// 103.4.248.0/22 — blank/null as_org (New York City), added 2026-11-23.
+// 7 hits in bursts on 2026-10-15 and 2026-11-07, each burst followed seconds
+// later by a BL Networks (Amsterdam) hit carrying an identical Firefox/124
+// UA from a different IP. With no org string there is no name keyword that
+// could ever catch this, so it is excluded by range, the same way the
+// addresses above are.
+const KNOWN_BAD_CIDRS = ['152.53.0.0/16', '45.74.159.42/32', '102.220.161.89/32', '104.28.192.94/32', '103.4.248.0/22'];
 
 function ipv4ToInt(ip) {
   const parts = ip.split('.');
@@ -486,10 +578,13 @@ function isExcludedFromAnalytics(userAgent, asOrganization, ip) {
   if (!userAgent) return true;
   if (SOFT_BOT_PATTERN.test(userAgent)) return true;
   if (isHardBlocked(userAgent)) return true;
+  if (isBareMozillaUA(userAgent)) return true;
   if (isMalformedChromeUA(userAgent)) return true;
+  if (isMissingKhtmlToken(userAgent)) return true;
   if (hasMismatchedWebKitSafariVersion(userAgent)) return true;
   if (hasMalformedChromeVersionFormat(userAgent)) return true;
   if (isAncientChromeVersion(userAgent)) return true;
+  if (isAncientFirefoxVersion(userAgent)) return true;
   if (asOrganization && HOSTING_PROVIDER_PATTERN.test(asOrganization)) return true;
   if (asOrganization && SECURITY_SCANNER_ORG_PATTERN.test(asOrganization)) return true;
   if (asOrganization && FOP_PREFIX_PATTERN.test(asOrganization)) return true;
