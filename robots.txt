@@ -1,0 +1,6 @@
+# Gulf ProClean. Cloudflare may add its own managed rules above this block.
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://gulfproclean.com/sitemap.xml

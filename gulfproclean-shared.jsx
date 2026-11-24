@@ -483,7 +483,7 @@ function useLegacyAnchorRedirect(side) {
 
 function PromoBanner({ navy = NAVY, gold = GOLD }) {
   return (
-    <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, textAlign: "center", padding: "13px 20px", fontWeight: 700, fontSize: 14.5, letterSpacing: "0.02em" }}>✦ No contracts. Cancel anytime. ✦</div>
+    <div style={{ background: `linear-gradient(135deg, ${gold}, #d9a94a)`, color: navy, textAlign: "center", padding: "13px 20px", fontWeight: 700, fontSize: 14.5, letterSpacing: "0.02em" }}>✦ No contracts. Cancel anytime. ✦ <a href="tel:+18506775077" style={{ color: navy, textDecoration: "underline", whiteSpace: "nowrap" }}>Call 850-677-5077</a></div>
   );
 }
 
@@ -500,7 +500,7 @@ function SiteFooter({ side = "residential" }) {
         <a href="contact.html" style={{ color: GOLD_DARK }}>Contact</a>
         <a href="account.html" style={{ color: GOLD_DARK }}>My Account</a>
       </div>
-      Gulf ProClean — a veteran-owned, family-operated business serving {who} from Pensacola to Panama City Beach.
+      Gulf ProClean — a veteran-owned, family-operated business serving {who} from Pensacola to Panama City Beach. Call <a href="tel:+18506775077" style={{ color: GOLD_DARK, fontWeight: 600 }}>850-677-5077</a>.
       <div style={{ marginTop: 10 }}>Gulf ProClean is an equal opportunity employer. <a href="careers-process.html" style={{ color: GOLD_DARK }}>Hiring process &amp; applicant notices →</a></div>
     </footer>
   );
