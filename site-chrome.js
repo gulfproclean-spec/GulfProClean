@@ -46,7 +46,8 @@
       '<span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:' + GOLD_DARK + ';margin-top:2px;">★ Veteran Owned &amp; Family Operated</span>' +
       '</span></a>' + items + '</nav>' +
       '<div style="background:linear-gradient(135deg,' + GOLD + ',#d9a94a);color:' + NAVY +
-      ';text-align:center;padding:13px 20px;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">✦ No contracts. Cancel anytime. ✦</div>';
+      ';text-align:center;padding:13px 20px;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">✦ No contracts. Cancel anytime. ✦ ' +
+      '<a href="tel:+18506775077" style="color:' + NAVY + ';text-decoration:underline;white-space:nowrap;">Call 850-677-5077</a></div>';
   }
 
   function footerHtml() {
@@ -58,7 +59,8 @@
         .map(function (p) { var x = p.split('|'); return '<a href="' + x[0] + '" style="color:' + GOLD_DARK + ';">' + x[1] + '</a>'; })
         .join('') +
       '</div>' +
-      'Gulf ProClean — a veteran-owned, family-operated business serving homes and businesses from Pensacola to Panama City Beach.' +
+      'Gulf ProClean — a veteran-owned, family-operated business serving homes and businesses from Pensacola to Panama City Beach. ' +
+      'Call <a href="tel:+18506775077" style="color:' + GOLD_DARK + ';font-weight:600;">850-677-5077</a>.' +
       '<div style="margin-top:10px;">Gulf ProClean is an equal opportunity employer. ' +
       '<a href="careers-process.html" style="color:' + GOLD_DARK + ';">Hiring process &amp; applicant notices →</a></div>' +
       '</footer>';
