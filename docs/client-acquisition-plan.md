@@ -1,216 +1,329 @@
-# Gulf ProClean — Client Acquisition Plan
+# Gulf ProClean — Step-by-Step Client Acquisition Plan
 
-*Drafted 2026-11-24. Covers the next 90 days (Dec 2026 – Feb 2027).*
+*Updated 2026-11-24. Covers 90 days (Dec 2026 – Feb 2027). The website, price
+calculator and quote forms stay as they are — this plan is everything around them.*
 
-## 1. Where we actually are (live data, not assumptions)
+---
 
-Pulled from the production database on 2026-11-24:
+## Where we start
+
+Live data from the production database (2026-11-24):
 
 | Metric | Value |
 |---|---|
-| Page views since tracking began (2026-09-10) | 543 |
-| Page views, last 30 days | 99 |
-| Unique IPs, last 30 days | 79 (some are bots — see the bot-filter commits) |
-| Customer accounts | **0** |
-| Bookings (any status) | **0** |
-| Contact-form messages | **0** |
+| Page views since 2026-09-10 | 543 |
+| Unique visitors, last 30 days | ~79 (some bots) |
+| Customer accounts / bookings / contact messages | **0 / 0 / 0** |
 
-**What this means:** the site works but it gets almost no traffic, and nobody who
-visited has converted. At ~80 visitors a month, even a strong 3% conversion rate
-gives about 2 leads a month. **Website fixes alone will not produce customers.**
-The first 10–25 customers will come from direct, local, person-to-person
-channels. The website's job is to close the deal ("they look legit") after
-someone already heard of us.
+The site is ready; people just aren't finding it yet. Every step below is about
+putting Gulf ProClean in front of local people, earning their trust, and sending
+them to the site (or the phone, 850-677-5077) to book.
 
-This is the normal pattern for new home-service businesses: the first customers
-come through Google Business Profile, referrals, neighborhood groups and
-B2B relationships, not organic web search, which takes 6–12 months to build.
+**90-day targets:** 25+ customers · 10+ on recurring plans · 15+ Google reviews ·
+1,000+ local social followers · 1 vacation-rental or property-manager account.
 
-## 2. Goals (90 days)
+---
 
-| By | Goal |
+## Why this plan works (the psychology behind it)
+
+Letting a stranger into your home is a trust decision, not a price decision.
+Every step leans on how people actually decide:
+
+| Principle | How we use it |
 |---|---|
-| Day 14 | Google Business Profile verified; 5+ reviews; site conversion blockers fixed |
-| Day 30 | First 5 paying customers; 2 on recurring plans |
-| Day 60 | 15 customers; 1 property-manager or vacation-rental account |
-| Day 90 | 25+ customers; 10+ recurring; $4,000+ monthly recurring revenue; 15+ Google reviews |
+| **Social proof** — people copy what neighbors do | Google reviews, tagged neighborhood posts, customer testimonial videos |
+| **Familiarity** — we trust faces we've seen repeatedly | The owner on camera every week; same uniforms, colors, van |
+| **Authority / identity** | "Veteran-owned, family-operated" in every bio, video intro and flyer |
+| **Visible results** | Before/after photos and videos — the single most-shared content type for cleaners |
+| **Reciprocity** | Free cleaning tips and checklists before asking for a sale |
+| **Scarcity / urgency (real only)** | Limited "founding customer" spots, seasonal booking deadlines |
+| **Risk reversal** | Re-clean guarantee stated everywhere |
 
-**Why recurring matters:** a Preferred biweekly home runs about $250 × 2 = ~$500/month
-before plan discount, or roughly $5,500–6,000 a year. One recurring client is worth
-30+ one-time cleans in lifetime value, so it's worth spending real money and
-effort ($100–150) to win each one.
+---
 
-## 3. Fix these on the site first (week 1, small effort)
+## PHASE 1 — Foundation (Week 1–2)
 
-These are things in the repo that directly cost conversions:
+### Step 1. Lock the brand kit (Day 1)
+- Logo, navy + gold colors (same as the site), one font.
+- One-line pitch, used everywhere:
+  > *"Veteran-owned, family-operated cleaning from Pensacola to Panama City Beach. No contracts — cancel anytime."*
+- Branded polo shirts for everyone who cleans; magnetic car-door signs with phone + website.
+- Business cards, door hangers and a one-page flyer with a QR code to the site.
 
-1. **Contradictory copy about the price calculator.** `residential-sections.jsx:54`,
-   `commercial-sections.jsx:50` say *"Get your exact price in under a minute — no
-   account needed"*, but the calculator is wrapped in `AuthGate`
-   (`gulfproclean-shared.jsx:149`) and requires signup. Users who are promised one
-   thing and then hit a signup wall leave. Pick one:
-   - **Recommended:** let anyone see the exact price, and require an account only at
-     "Book". Showing the price first and asking for commitment second is the
-     classic foot-in-the-door order, and it converts better than asking up front.
-   - Or change the copy to say a free account is required.
-2. **Add a "Text us for a quote" / call-back form with 2–3 fields** (name, phone,
-   zip). Many cleaning buyers, especially older homeowners and businesses, won't
-   create an account but will text. Route it to the owner's phone in under 5 minutes.
-3. **Add trust proof above the fold:** "Licensed & insured" (only if true — have the
-   certificate ready to send), "Veteran-owned", a satisfaction guarantee
-   ("Not happy? We come back and re-clean free within 24 hours"), and real Google
-   review stars once you have them. People choosing someone to come into their
-   home look for social proof and risk reversal more than anything else.
-4. **Real photos of the owner/crew.** Stock-looking photos reduce trust for a
-   service that enters homes. One honest photo of the team in branded shirts does more.
-5. **Set up conversion tracking** (Google Analytics 4 or Cloudflare Web Analytics +
-   a "lead" event on form submit / tap-to-call) so we can tell which channel works.
+### Step 2. Claim every profile with the same name, logo, phone, and link (Day 1–3)
+Consistent name/address/phone across platforms also helps Google ranking.
 
-## 4. Channels, ranked by expected return
+| Platform | Why | Priority |
+|---|---|---|
+| **Google Business Profile** | #1 source of local cleaning leads; appears in Maps | Must |
+| **Facebook Page** | Local groups, reviews, older homeowners, ads | Must |
+| **Instagram** | Before/after photos and Reels; younger homeowners, vacation-rental hosts | Must |
+| **Nextdoor Business Page** | Neighborhood recommendations — warmest leads | Must |
+| **TikTok** | Satisfying cleaning videos get large organic reach for free | High |
+| **YouTube (Shorts)** | Reuse every TikTok/Reel; videos also show up in Google search | Medium |
+| **LinkedIn (owner profile)** | Commercial clients, office managers, property managers | Medium |
+| Yelp, BBB, Apple Maps, Bing Places | Free listings, trust badges | Low effort, do once |
 
-### Tier 1 — Do now (free or cheap, highest historical return)
+**Every bio includes:** veteran-owned, service area, "Book online" link to
+`gulfproclean.com`, phone, and the guarantee.
 
-**A. Google Business Profile (GBP)** — the #1 lead source for local cleaners.
-- Create and verify it (service-area business; hide the home address).
-- Categories: "House cleaning service" (primary), "Commercial cleaning service",
-  "Janitorial service". Add every city from the service area.
-- Upload 10+ real photos, list services and starting prices, add the booking link.
-- Post weekly (before/after, seasonal tip, offer).
-- Turn on messaging and answer within minutes.
+**Security:** use a unique password + 2-factor authentication on every account,
+keep login access to owners only, and add helpers as page roles (never share the password).
 
-**B. Reviews engine** — reviews drive local ranking and trust more than anything else.
-- Ask every customer in person at the end of the job, then send the direct GBP
-  review link by text the same day. Same-day asks get far higher response than
-  delayed email asks.
-- Start with your personal network: friends/family who you clean for at a
-  "founding customer" rate can leave honest reviews of real work. **Never buy or
-  fake reviews** — it violates Google and FTC rules and can get the profile suspended.
+### Step 3. Build the starter photo library (Week 1)
+Shoot on a phone, landscape *and* vertical, natural light, lights on, clutter removed.
+Get **written permission** from the homeowner before posting their home; never show
+house numbers, mail, family photos, door codes or anything identifying.
 
-**C. Warm network blitz (week 1)** — text/call 50 people you know personally.
-Script: *"Hey [name], I've launched Gulf ProClean, a veteran-owned cleaning
-company here on the coast. I'm taking my first 20 founding customers at 20% off
-their first clean. Know anyone who'd want it? I'd really appreciate the referral."*
-Asking for *a referral* rather than a sale gets more yes's and less awkwardness.
+**Photo shot list (aim for 60+ photos):**
+1. Owner portrait in uniform (smiling, looking at camera) — used on GBP, every bio, flyers
+2. Team photo in uniform next to the car/van
+3. Owner with service flag / veteran context (tasteful, no uniform rules violated)
+4. Before/after pairs — same angle, same spot: kitchen sink, stovetop, oven interior,
+   shower glass, toilet, baseboards, fridge interior, floors
+5. Close-up "detail" shots: shining faucet, streak-free mirror, vacuum lines in carpet
+6. Supplies neatly laid out (shows professionalism)
+7. Finished-room "wide" shots — bedroom with made bed, living room
+8. Vacation-rental style: staged bed with folded towels, beach-view condo
+9. Commercial: clean office lobby, restroom, break room
+10. Local landmarks with the van — Pensacola Beach, Destin harbor, 30A — signals "local"
 
-**D. Nextdoor + local Facebook groups** — Pensacola, Gulf Breeze, Navarre,
-Fort Walton, Destin, Niceville, 30A/Santa Rosa Beach, PCB community groups and
-military-spouse groups. Post as a neighbor, not an ad: a short intro, owner photo,
-veteran story, founding-customer offer. Respond to every "anyone recommend a
-cleaner?" thread fast — those are the warmest leads that exist.
-Claim a free Nextdoor business page.
+> Before you have customers, clean the homes of friends/family (at founding rate or free)
+> specifically to build this library and get your first honest reviews.
 
-### Tier 2 — The niches where you have an unfair advantage
+### Step 4. Google Business Profile setup (Week 1–2)
+- Primary category: *House cleaning service*; add *Commercial cleaning service*, *Janitorial service*.
+- Service-area business (hide home address); add all 9 service cities.
+- Upload 15+ photos from Step 3; add services and starting prices; add booking link.
+- Turn on messaging — reply within minutes.
+- Post weekly (photo + short caption + "Book" button).
 
-**E. Military PCS move-out cleans** — the area has Eglin AFB, Hurlburt Field,
-NAS Pensacola, NAS Whiting Field and Tyndall AFB. Military families move on short
-notice and need move-out cleans to pass inspection and get deposits back.
-"Veteran-owned" carries real weight with this audience.
-- Offer: "PCS Move-Out Clean — inspection-ready, re-clean free if it doesn't pass."
-- Get in front of: base spouse Facebook groups, privatized base-housing offices,
-  off-base property managers that rent to military, military-friendly realtors.
-- Ask whether a military/first-responder discount (e.g., 10%) fits margins —
-  it's a strong trust signal with this group.
+### Step 5. First reviews (Week 1–2)
+- Ask the 5–10 founding customers in person at the end of each clean, then text
+  the direct Google review link the same day. Same-day asks get the most replies.
+- **Never buy, fake or pay for *positive* reviews** — it breaks Google's policy and the FTC rule, and can get the profile removed.
 
-**F. Vacation-rental turnovers (Destin, Miramar Beach, 30A, PCB, Navarre)** —
-huge volume, recurring, every week of the season. Hosts' biggest pain is a
-cleaner who doesn't show up on Saturday.
-- Target: self-managing Airbnb/VRBO hosts (local host groups on Facebook) and
-  small property managers with 10–50 units.
-- Pitch reliability, not price: photo checklist after every turnover, damage/
-  low-supply report, guaranteed same-day turnover.
-- Start Dec–Feb (off-season) so you're their proven cleaner before spring break.
-  This is the most important timing decision in this plan.
+### Step 6. Warm-network launch (Week 1)
+Personal text/call to 50 people you know:
+> *"Hey [name] — I just launched Gulf ProClean, a veteran-owned cleaning company here on the coast. I'm taking a limited number of founding customers. Know anyone who'd want a great clean? A referral would mean a lot."*
 
-**G. Realtors and property managers (move-in/move-out)** — one realtor can send
-dozens of jobs a year. Visit 20 local brokerages, drop off a card + a "first
-listing clean 50% off" so they try you once. Offer to clean before listing photos.
+Asking for *a referral* rather than a sale gets more yeses and feels less pushy.
+Post the same launch announcement on your personal Facebook — friends share launches.
 
-### Tier 3 — Commercial (higher value, slower close)
+---
 
-**H. Door-to-door B2B + follow-up** — small offices, dental/medical offices,
-insurance and real-estate offices, gyms, churches, salons within one area at a time.
-- Walk in, ask for the office manager, hand a one-page flyer with a free
-  walkthrough offer. Follow up in 3 days by phone, then again in a week.
-  Most B2B deals close after several touches; most competitors quit after one.
-- Join the local chambers (Greater Pensacola, Destin Area, Emerald Coast)
-  and a BNI chapter — common, proven referral sources for commercial cleaners.
-- Register with the SBA/state as a veteran-owned business (VOSB) and look for
-  local government cleaning contracts later.
+## PHASE 2 — Social presence and video engine (Week 2 onward)
 
-### Tier 4 — Paid (only after Tier 1 is running and tracking works)
+### Step 7. Content pillars (what we post)
+Rotate five themes so feeds never look like nonstop ads:
 
-**I. Google Local Services Ads ("Google Guaranteed")** — pay per lead, not per
-click, shown above regular ads. Usually the best paid channel for house cleaners.
-Requires background check + insurance proof. Start at ~$300–500/month.
+| Pillar | Share of posts | Examples |
+|---|---|---|
+| **Transformations** | 35% | Before/after videos and photo carousels |
+| **Tips & hacks** (reciprocity) | 25% | "Clean shower glass in 60 seconds", "Salt-air window streak fix", "Hurricane-season prep checklist" |
+| **Meet the team / veteran story** (familiarity) | 15% | Owner intro, "why I started this after service", day-in-the-life |
+| **Social proof** | 15% | Customer reviews as graphics, testimonial clips, "5 homes in Navarre this week" |
+| **Offers & calls to action** | 10% | Founding spots left, seasonal deep clean, PCS move-out special |
 
-**J. Facebook/Instagram ads** — geo-targeted to service zips, homeowners 35–65,
-using a real before/after video and the founding-customer offer. Start at
-$10–15/day, judge after 2 weeks on cost per booked job, not clicks.
+### Step 8. The video playbook
+Short vertical video (9:16, 15–45 seconds) is the highest-reach free content right now.
+Post the same video to TikTok, Instagram Reels, Facebook Reels and YouTube Shorts.
 
-Skip for now: Thumbtack/Angi (expensive shared leads, low margins), print
-newspaper ads, billboards.
+**Rules for every video:**
+- Hook in the first 1–2 seconds (text on screen + motion). Most viewers decide almost instantly.
+- Captions on screen — most people watch with sound off.
+- Show the "after" quickly or tease it ("wait for it…").
+- End with one call to action: "Book at gulfproclean.com" or "Comment CLEAN for pricing."
+- Trending/royalty-free audio only (use each app's licensed library).
 
-## 5. The offer
+**10 starter videos to film in the first 2 weeks:**
 
-People buy faster when there's a concrete reason to act *now* and no risk.
+| # | Video | Hook (on-screen text) |
+|---|---|---|
+| 1 | Owner introduction | "I served [X] years in the [branch]. Now I clean homes on the Emerald Coast. Here's why." |
+| 2 | Oven before/after timelapse | "This oven hadn't been cleaned in 3 years 😳" |
+| 3 | Shower glass hard-water removal | "Gulf Coast hard water vs. us" |
+| 4 | Satisfying vacuum lines / carpet extraction | No text needed — pure satisfying |
+| 5 | Vacation-rental turnover speed-run | "Airbnb turnover in Destin: 2 hours, start to finish" |
+| 6 | What's in our cleaning kit | "What a professional cleaner actually brings" |
+| 7 | Tip: baseboards fast | "The 10-minute baseboard trick" |
+| 8 | PCS move-out checklist | "Military family? Here's what base inspectors check" |
+| 9 | Day in the life of a veteran-owned cleaning business | "Come clean with me — Pensacola edition" |
+| 10 | Customer reaction / testimonial (with permission) | "We surprised her with a deep clean" |
 
-- **Founding customer offer:** 20% off the first clean for the first 25 customers
-  (real limit — say how many spots are left, and honor it). The site already
-  advertises 10% for first-time customers; decide one number and make it consistent everywhere.
-- **Risk reversal:** 100% satisfaction guarantee — free re-clean within 24 hours.
-- **Push recurring at the first clean:** after a great first clean, offer
-  "keep it this way" — lock in the biweekly rate today. The customer's satisfaction
-  is highest right then.
-- **Referral reward:** give $50 off for the referrer and $25 off for the new
-  customer, credited after the new customer's first paid clean (prevents abuse).
-  Two-sided rewards work better than one-sided ones, because the referrer doesn't feel like they're selling to a friend.
+**How to film fast:** phone on a small tripod in the corner, record the whole job,
+cut the best 20 seconds in CapCut or the app's own editor. Batch-edit once a week.
 
-## 6. Speed and follow-up (where most small businesses lose leads)
+### Step 9. Posting schedule (sustainable, not overwhelming)
 
-- Reply to every lead within **5 minutes** during business hours. Research on lead
-  response consistently shows contact rates fall off sharply after the first few minutes.
-- Follow-up sequence for quotes that didn't book: text day 1, call day 3,
-  "still interested?" text day 7, final offer day 14.
-- Track every lead in a simple sheet: date, source, name, phone, service,
-  quote, status, next step. Without this you can't tell what works.
-
-## 7. 90-day calendar
-
-| Week | Actions |
+| Platform | Frequency |
 |---|---|
-| 1 | Fix site items §3.1–3.3. Create GBP. Order cards/shirts/door hangers. Warm-network blitz (50 contacts). Set up lead tracking sheet. |
-| 2 | GBP verified + photos. First reviews requested. Nextdoor + 10 Facebook group intros. Join 1 chamber. |
-| 3–4 | Military PCS push: spouse groups, 5 property managers. 20 realtor drop-ins. First recurring conversions. |
-| 5–6 | Vacation-rental host outreach (target 30 hosts/PMs). Start B2B walk-ins: 10 businesses/week in one city. |
-| 7–8 | If tracking + 10 reviews are in place: launch Google Local Services Ads. Referral program announcement to all customers. |
-| 9–10 | Review numbers; double down on the top 2 channels, drop the bottom 2. Start Facebook ads test. |
-| 11–13 | Lock in spring vacation-rental contracts before March. Commercial follow-ups. Plan next quarter. |
+| TikTok / Reels / Shorts | 4 videos per week (same video cross-posted) |
+| Instagram feed + Stories | 3 posts/week; Stories daily from the job (no client details) |
+| Facebook Page | 3 posts/week + share Reels |
+| Google Business Profile | 1 post/week + new photos every job |
+| Nextdoor | 1 helpful post/week; reply to every "recommend a cleaner?" thread |
+| LinkedIn | 1 post/week aimed at businesses (office results, reliability, veteran values) |
 
-## 8. Budget (suggested starting point)
+Plan a week of content every Sunday (≈2 hours). Use a scheduler (Metricool, Meta
+Business Suite) so posting doesn't depend on daily discipline.
+Best general posting windows for local audiences: early morning (7–9am),
+lunch (12–1pm), evening (7–9pm) — then let each platform's analytics refine it.
 
-| Item | Cost |
+### Step 10. Engage the community (30 minutes a day)
+Followers come from conversation, not just posting.
+- Join and be helpful in local Facebook groups: Pensacola, Gulf Breeze, Navarre,
+  Fort Walton Beach, Destin, Niceville, 30A, PCB, plus military-spouse groups and
+  vacation-rental host groups. Follow each group's rules about business posts.
+- Comment on local businesses, realtors and community pages as Gulf ProClean.
+- Reply to every comment and DM within the hour during business hours.
+  Fast responses win jobs — most people book whoever answers first.
+
+---
+
+## PHASE 3 — Targeted outreach (Week 3–8)
+
+### Step 11. Military PCS move-out cleans
+Nearby: Eglin AFB, Hurlburt Field, NAS Pensacola, NAS Whiting Field, Tyndall AFB.
+Military families move on short notice and need inspection-ready move-out cleans.
+- Content: video #8 (checklist), "Move-out ready" photo carousel.
+- Post in base spouse groups, contact housing offices and off-base property managers.
+- Flyers on community boards (with permission) at commissary-area businesses, gyms, churches.
+
+### Step 12. Vacation-rental hosts and property managers
+Destin, Miramar Beach, 30A, Navarre and PCB have heavy turnover volume.
+Hosts care most about a cleaner who *always* shows up on changeover day.
+- Content: turnover speed-run videos, staged-bed photos, "photo report after every turnover."
+- Message 30 self-managing hosts and 10 small property managers in host groups and on LinkedIn.
+- **Timing matters:** win these accounts Dec–Feb, before the spring-break rush, when hosts have time to switch.
+
+### Step 13. Realtors and brokerages
+- Visit 20 local offices with flyers, cards and a short pitch:
+  "listing-ready and move-in cleans, photo-ready before your shoot."
+- Tag realtors in posts about cleans you did for their listings (with permission).
+- One happy realtor can send many jobs a year.
+
+### Step 14. Commercial walk-ins and networking
+- Pick one city per week. Visit 10 small businesses (offices, dental/medical,
+  salons, gyms, churches), ask for the manager, leave a flyer offering a free walkthrough.
+- Follow up: call on day 3, email/text on day 7, stop by again on day 14.
+  Most B2B deals close after several touches, and most competitors stop after one.
+- Join a chamber of commerce (Greater Pensacola, Destin Area, or Emerald Coast)
+  and a BNI chapter; post every networking event on LinkedIn.
+
+### Step 15. Door hangers in target neighborhoods
+After each job, hang 20–30 door hangers on nearby homes:
+> *"We just cleaned your neighbor's home on [Street]! Veteran-owned · Book at gulfproclean.com"*
+
+The "your neighbor just used us" line is social proof. Only hang on doors, never in
+mailboxes (that's against federal law).
+
+---
+
+## PHASE 4 — Paid amplification (Week 7+, after 10+ reviews)
+
+### Step 16. Google Local Services Ads
+Pay per lead (not per click), shown at the top of Google with the "Google Guaranteed" badge.
+Requires background check and insurance proof. Start at ~$300–500/month.
+
+### Step 17. Facebook / Instagram ads
+- Boost the 2–3 videos that already performed best organically. They're already proven.
+- Target: service zip codes, homeowners 30–65, plus a separate vacation-rental host audience.
+- Budget: $10–15/day. Judge after 14 days on **cost per booked job**, not likes or clicks.
+- Retarget site visitors and video viewers with a testimonial + offer.
+
+Skip for now: Thumbtack/Angi shared leads, newspaper, billboards.
+
+---
+
+## PHASE 5 — Retention, referrals and reviews (ongoing)
+
+### Step 18. Turn every customer into marketing
+After every clean:
+1. Take before/after photos (with permission).
+2. Ask for the Google review the same day.
+3. Offer the recurring plan while they're happiest with the result.
+4. Hand them two referral cards.
+
+### Step 19. Referral program
+Two-sided reward: **$50 credit for the referrer, $25 off for the friend**, applied
+after the friend's first paid clean (prevents abuse). Two-sided rewards feel like a
+gift to the friend, so people share them more.
+
+### Step 20. Monthly "thank you" touch
+A short monthly text/email to customers (who opted in) with a seasonal tip and a
+reminder of the referral reward. Include opt-out on every message (TCPA/CAN-SPAM).
+
+---
+
+## Seasonal content calendar
+
+| Month | Theme |
 |---|---|
-| GBP, Nextdoor page, Facebook groups, reviews | $0 |
-| Business cards, flyers, 500 door hangers | ~$150–250 |
-| Branded shirts | ~$100 |
-| Chamber membership | ~$300–500/yr |
-| Google Local Services Ads (from week 7) | ~$300–500/mo |
-| Facebook ads test (from week 9) | ~$300/mo |
+| December | Holiday-guest prep cleans, gift certificates ("give a clean"), year-end office deep clean |
+| January | New-year reset, vacation-rental host recruitment push, PCS season prep |
+| February | Spring-break turnover sign-ups (deadline-driven), Valentine's "come home to a clean house" |
+| March–April | Spring cleaning, spring-break turnovers, pollen season window cleaning |
+| May–June | Summer PCS move-out peak, hurricane-season prep checklist |
 
-## 9. Metrics to watch weekly
+---
 
-- Leads by source · lead-to-booked rate · cost per booked customer
-- Recurring vs one-time mix · Google review count & rating
-- Customer churn (cancellations) · referrals generated
+## 90-day week-by-week checklist
 
-Targets: cost per booked customer under $100 for residential; under $300 for a
-recurring commercial account.
+| Week | Do this |
+|---|---|
+| 1 | Brand kit, shirts, car signs, cards/door hangers. Claim all profiles. Warm-network texts to 50 people. Clean 3–5 founding homes and shoot the photo library. |
+| 2 | GBP live with photos. First 5 reviews. Film the 10 starter videos. Join 10 local Facebook groups + Nextdoor. Start posting schedule. |
+| 3 | Military PCS outreach. Door hangers after every job. Daily engagement routine. |
+| 4 | Realtor office visits (10). First recurring customers. Review what content performed best. |
+| 5 | Vacation-rental host outreach (15). Realtor visits (10 more). Commercial walk-ins, city #1. |
+| 6 | Vacation-rental outreach (15 more) + property managers. Commercial walk-ins, city #2. Join a chamber. |
+| 7 | Launch Google Local Services Ads (if 10+ reviews). Announce referral program. |
+| 8 | Customer testimonial videos. Commercial follow-ups. |
+| 9 | Start Facebook/Instagram ads with best organic videos. |
+| 10 | Review all numbers: double down on top 2 channels, cut bottom 2. |
+| 11–12 | Push spring-break turnover sign-ups with a real deadline. Commercial proposals. |
+| 13 | 90-day review; set next-quarter goals. |
 
-## 10. Guardrails
+---
 
-- Only claim what's true and documented (insurance, bonding, licensing, guarantees).
-- No fake reviews, no review incentives tied to *positive* reviews (FTC rule).
-- Get consent before adding anyone to text/email marketing (TCPA/CAN-SPAM);
-  include opt-out on every marketing message.
-- Keep customer data (addresses, door codes) out of group chats and shared
-  spreadsheets without access control.
+## Starter budget
+
+| Item | Approx. cost |
+|---|---|
+| Profiles, posting, groups, GBP, reviews | $0 |
+| Phone tripod + clip-on light | $30–60 |
+| CapCut / Canva (free tiers are enough to start) | $0 |
+| Business cards, flyers, 500 door hangers | $150–250 |
+| Branded shirts + car door magnets | $150–250 |
+| Chamber membership | $300–500/yr |
+| Google Local Services Ads (week 7+) | $300–500/mo |
+| Facebook/Instagram ads (week 9+) | ~$300/mo |
+
+---
+
+## Track weekly (simple spreadsheet)
+
+| Metric | Target by Day 90 |
+|---|---|
+| New leads, by source (Google, Facebook, Instagram, TikTok, Nextdoor, referral, door hanger, walk-in) | Know your top 2 |
+| Leads → booked jobs | 30%+ |
+| Cost per booked customer | Under $100 residential |
+| Recurring customers | 10+ |
+| Google reviews / rating | 15+ / 4.8+ |
+| Followers (all platforms) | 1,000+ local |
+| Best-performing video of the week | Remake its format |
+
+Ask every new customer "How did you hear about us?" and write it down. That's the
+most reliable attribution a small business has.
+
+---
+
+## Guardrails
+
+- Only claim what's true and documented (insurance, licensing, guarantees, veteran status).
+- Written permission before posting anyone's home or face; no addresses, house numbers, mail, kids or door codes on camera.
+- No fake or purchased reviews; never offer rewards in exchange for *positive* reviews.
+- Marketing texts/emails only with consent, always with an opt-out.
+- Use licensed music and your own photos — no copied content from other cleaners.
+- 2-factor authentication on every business account; customer info stays out of public posts and group chats.
