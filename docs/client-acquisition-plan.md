@@ -165,8 +165,9 @@ cut the best 20 seconds in CapCut or the app's own editor. Batch-edit once a wee
 | Nextdoor | 1 helpful post/week; reply to every "recommend a cleaner?" thread |
 | LinkedIn | 1 post/week aimed at businesses (office results, reliability, veteran values) |
 
-Plan a week of content every Sunday (≈2 hours). Use a scheduler (Metricool, Meta
-Business Suite) so posting doesn't depend on daily discipline.
+Plan a week of content every Sunday (≈2 hours). Schedule posts with the platforms'
+own free tools (Meta Business Suite for Facebook + Instagram, TikTok's built-in
+scheduler, YouTube Studio) so posting doesn't depend on daily discipline.
 Best general posting windows for local audiences: early morning (7–9am),
 lunch (12–1pm), evening (7–9pm) — then let each platform's analytics refine it.
 
