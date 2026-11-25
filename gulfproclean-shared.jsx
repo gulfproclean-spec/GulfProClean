@@ -500,6 +500,13 @@ function SiteFooter({ side = "residential" }) {
         <a href="contact.html" style={{ color: GOLD_DARK }}>Contact</a>
         <a href="account.html" style={{ color: GOLD_DARK }}>My Account</a>
       </div>
+      <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginBottom: 14 }}>
+        <span>Follow us:</span>
+        <a href="https://www.facebook.com/profile.php?id=61596687972105" target="_blank" rel="noopener" style={{ color: GOLD_DARK }}>Facebook</a>
+        <a href="https://www.instagram.com/gulfproclean/" target="_blank" rel="noopener" style={{ color: GOLD_DARK }}>Instagram</a>
+        <a href="https://www.youtube.com/@gulfproclean" target="_blank" rel="noopener" style={{ color: GOLD_DARK }}>YouTube</a>
+        <a href="https://www.tiktok.com/@gulfproclean" target="_blank" rel="noopener" style={{ color: GOLD_DARK }}>TikTok</a>
+      </div>
       Gulf ProClean — a veteran-owned, family-operated business serving {who} from Pensacola to Panama City Beach. Call <a href="tel:+18506775077" style={{ color: GOLD_DARK, fontWeight: 600 }}>850-677-5077</a>.
       <div style={{ marginTop: 10 }}>Gulf ProClean is an equal opportunity employer. <a href="careers-process.html" style={{ color: GOLD_DARK }}>Hiring process &amp; applicant notices →</a></div>
     </footer>
