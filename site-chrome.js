@@ -59,6 +59,12 @@
         .map(function (p) { var x = p.split('|'); return '<a href="' + x[0] + '" style="color:' + GOLD_DARK + ';">' + x[1] + '</a>'; })
         .join('') +
       '</div>' +
+      '<div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px;"><span>Follow us:</span>' +
+      [['https://www.facebook.com/profile.php?id=61596687972105', 'Facebook'], ['https://www.instagram.com/gulfproclean/', 'Instagram'],
+       ['https://www.youtube.com/@gulfproclean', 'YouTube'], ['https://www.tiktok.com/@gulfproclean', 'TikTok']]
+        .map(function (s) { return '<a href="' + s[0] + '" target="_blank" rel="noopener" style="color:' + GOLD_DARK + ';">' + s[1] + '</a>'; })
+        .join('') +
+      '</div>' +
       'Gulf ProClean — a veteran-owned, family-operated business serving homes and businesses from Pensacola to Panama City Beach. ' +
       'Call <a href="tel:+18506775077" style="color:' + GOLD_DARK + ';font-weight:600;">850-677-5077</a>.' +
       '<div style="margin-top:10px;">Gulf ProClean is an equal opportunity employer. ' +
