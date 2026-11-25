@@ -347,19 +347,31 @@ Use the **exact master details** on each. Mismatched phone numbers or names acro
 
 | Platform | Handle / URL | Login email | 2-step on? | Verified? | Date |
 |---|---|---|---|---|---|
-| Google Business Profile | | gulfproclean@gmail.com | ☐ | ☐ | |
-| Bing Places | | | ☐ | ☐ | |
+| Google Business Profile | Existing listing, updated (review link: https://g.page/r/CcS69nb8JRiqEBM/review) | gulfproclean@gmail.com | ☐ | ☑ | 2026-11-25 |
+| Bing Places | Imported from Google Business Profile (by owner) | gulfproclean@gmail.com | ☐ | ☐ | 2026-11-25 |
 | Apple Business Connect | | | ☐ | ☐ | |
-| Facebook Page | | | ☐ | — | |
-| Instagram | | | ☐ | — | |
-| Nextdoor | | | ☐ | ☐ | |
-| TikTok | | | ☐ | — | |
-| YouTube | | | ☐ | — | |
+| Facebook Page | https://www.facebook.com/profile.php?id=61596687972105 (username `gulfproclean` not set yet) | | ☐ | — | 2026-11-25 |
+| Instagram | @gulfproclean (https://www.instagram.com/gulfproclean/) | gulfproclean@gmail.com | ☐ | — | 2026-11-25 |
+| Nextdoor | https://nextdoor.com/page/gulf-proclean-fort-walton-beach-fl/ | gulfproclean@gmail.com | ☐ | ☐ | 2026-11-25 |
+| TikTok | @gulfproclean (https://www.tiktok.com/@gulfproclean). Still to do in the phone app: Switch to Business Account, 2-step, spam filter, contact suggestions, Business Suite, website link; branded launch video posted 2026-11-25, under TikTok review | gulfproclean@gmail.com | ☐ | — | 2026-11-25 |
+| YouTube | @gulfproclean (https://www.youtube.com/@gulfproclean) | gulfproclean@gmail.com | ☐ | — | 2026-11-25 |
 | LinkedIn | | | ☐ | — | |
-| Yelp | | | ☐ | ☐ | |
-| BBB | | | ☐ | — | |
+| Yelp | Claimed via business account (manage: https://biz.yelp.com/home/bomRyJlEQtxcm0m3y_rcvQ/) | gulfproclean@gmail.com | ☐ | ☑ | 2026-11-25 |
+| BBB | Free listing submitted for BBB review (no profile URL yet; address visibility to be checked) | gulfproclean@gmail.com | ☐ | ☐ | 2026-11-25 |
 
 **Never write passwords in this sheet.** Keep those in the password manager only.
+
+### Launch video posting log
+
+Video file: `marketing/brand-kit/social/tiktok-launch-video-1080x1920.mp4` (28 s, silent, branded motion graphics, ends on www.gulfproclean.com and (850) 677-5077). No on-camera intro yet.
+
+| Platform | Result | Date |
+|---|---|---|
+| TikTok | Posted; "Content under review", visible only to you until approved | 2026-11-25 |
+| YouTube | Published as a Short: https://youtube.com/shorts/uViW8UC-iFM | 2026-11-25 |
+| Facebook Page | Posted as a Reel; Facebook said "being processed", confirm it appears | 2026-11-25 |
+| Instagram | Shared as a Reel on @gulfproclean | 2026-11-25 |
+| Nextdoor | Not posted; Page must be verified first (badge prompt on Post) | |
 
 ---
 
